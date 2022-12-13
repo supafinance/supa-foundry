@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.7;
 
+import "forge-std/Console2.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -54,6 +56,7 @@ contract PortfolioProxy is Proxy {
         bytes calldata callData,
         uint256 value
     ) external ifDos returns (bytes memory) {
+        console2.log("enter doCall");
         return to.functionCallWithValue(callData, value);
     }
 
@@ -285,5 +288,49 @@ contract PortfolioLogic is IERC721Receiver, IERC1271, ITransferReceiver2 {
             dos.executeBatch(calls);
         }
         return ITransferReceiver2.onTransferReceived2.selector;
+    }
+
+    function onApprovalReceived(
+        address sender,
+        uint256 amount,
+        address target,
+        bytes calldata data
+    ) external returns (bytes4) {
+        if (data.length == 0) {
+            revert("PL: INVALID_DATA");
+        }
+        emit TokensApproved(sender, amount, data);
+
+        // use data to call pair functions
+        (bool success, ) = address(target).delegatecall(data);
+        if (!success) {
+            revert("PL: DELEGATECALL_FAILED");
+        }
+
+        return this.onApprovalReceived.selector;
+    }
+
+    event TokensApproved(address sender, uint256 amount, bytes data);
+    event TokensReceived(address spender, address sender, uint256 amount, bytes data);
+
+    function onTransferReceived(
+        address spender,
+        address sender,
+        uint256 amount,
+        address target,
+        bytes calldata data
+    ) external returns (bytes4) {
+        if (data.length == 0) {
+            revert("PL: INVALID_DATA");
+        }
+        emit TokensReceived(spender, sender, amount, data);
+
+        // use data to call pair functions
+        (bool success, ) = address(target).delegatecall(data);
+        if (!success) {
+            revert("PL: DELEGATECALL_FAILED");
+        }
+
+        return this.onTransferReceived.selector;
     }
 }
