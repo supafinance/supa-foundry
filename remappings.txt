@@ -1,3 +1,4 @@
+ds-test/=lib/forge-std/lib/ds-test/src/
 @openzeppelin/=lib/openzeppelin-contracts/
 @chainlink/=lib/chainlink
 @uniswap/v2-core/=lib/v2-core/

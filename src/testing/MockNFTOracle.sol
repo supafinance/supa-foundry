@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import "../interfaces/INFTValueOracle.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import {INFTValueOracle} from "../interfaces/INFTValueOracle.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract MockNFTOracle is INFTValueOracle {
     mapping(uint256 => int256) prices;
+    int256 collateralFactor = 1 ether;
 
     function setPrice(uint256 tokenId, int256 price) external {
         require(
@@ -15,7 +16,11 @@ contract MockNFTOracle is INFTValueOracle {
         prices[tokenId] = price + 1;
     }
 
-    function calcValue(uint256 tokenId) external view override returns (int256) {
+    function setCollateralFactor(int256 _collateralFactor) external {
+        collateralFactor = _collateralFactor;
+    }
+
+    function calcValue(uint256 tokenId) external view override returns (int256, int256) {
         require(
             prices[tokenId] > 0,
             string.concat(
@@ -24,6 +29,8 @@ contract MockNFTOracle is INFTValueOracle {
                 " is not set"
             )
         );
-        return prices[tokenId] - 1;
+        int256 value = prices[tokenId] - 1;
+        int256 riskAdjustedValue = (value * collateralFactor) / 1 ether;
+        return (value, riskAdjustedValue);
     }
 }

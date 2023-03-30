@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import "../lib/ImmutableOwnable.sol";
-import "../interfaces/IERC20ValueOracle.sol";
-import "../interfaces/INFTValueOracle.sol";
-import "../lib/FsMath.sol";
-import "../lib/FsUtils.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
+import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {FixedPoint96} from "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
+
+import {ImmutableGovernance} from "../lib/ImmutableGovernance.sol";
+import {IERC20ValueOracle} from "../interfaces/IERC20ValueOracle.sol";
+import {INFTValueOracle} from "../interfaces/INFTValueOracle.sol";
+import {FsMath} from "../lib/FsMath.sol";
+import {FsUtils} from "../lib/FsUtils.sol";
+import {INonfungiblePositionManager} from "../external/interfaces/INonfungiblePositionManager.sol";
 
 // TickMath lib is inconsistent with solidity compiler version
 library TickMath {
@@ -63,49 +65,30 @@ library TickMath {
     }
 }
 
-// Incompatible with our version of OZ
-// import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-
-interface INPM {
-    function positions(
-        uint256 tokenId
-    )
-        external
-        view
-        returns (
-            uint96 nonce,
-            address operator,
-            address token0,
-            address token1,
-            uint24 fee,
-            int24 tickLower,
-            int24 tickUpper,
-            uint128 liquidity,
-            uint256 feeGrowthInside0LastX128,
-            uint256 feeGrowthInside1LastX128,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        );
-}
-
-contract UniV3Oracle is ImmutableOwnable, INFTValueOracle {
-    INPM public immutable manager;
+contract UniV3Oracle is ImmutableGovernance, INFTValueOracle {
+    INonfungiblePositionManager public immutable manager;
     IUniswapV3Factory public immutable factory;
+
+    int256 collateralFactor = 1 ether;
 
     mapping(address => IERC20ValueOracle) public erc20ValueOracle;
 
     int256 constant Q96 = int256(FixedPoint96.Q96);
 
-    constructor(address _factory, address _manager, address _owner) ImmutableOwnable(_owner) {
-        manager = INPM(_manager);
+    constructor(address _factory, address _manager, address _owner) ImmutableGovernance(_owner) {
+        manager = INonfungiblePositionManager(_manager);
         factory = IUniswapV3Factory(_factory);
     }
 
-    function setERC20ValueOracle(address token, address oracle) external onlyOwner {
+    function setERC20ValueOracle(address token, address oracle) external onlyGovernance {
         erc20ValueOracle[token] = IERC20ValueOracle(oracle);
     }
 
-    function calcValue(uint256 tokenId) external view override returns (int256) {
+    function setCollateralFactor(int256 _collateralFactor) external onlyGovernance {
+        collateralFactor = _collateralFactor;
+    }
+
+    function calcValue(uint256 tokenId) external view override returns (int256, int256) {
         address token0;
         address token1;
         int256 liquidity;
@@ -148,8 +131,24 @@ contract UniV3Oracle is ImmutableOwnable, INFTValueOracle {
         int256 amountX = (liquidity * Q96) / sqrtPrice - baseX;
 
         int256 value = 0;
-        value += erc20ValueOracle[token0].calcValue(amountX);
-        value += erc20ValueOracle[token1].calcValue(amountY);
-        return value;
+        int256 riskAdjustedValue;
+        {
+            IERC20ValueOracle valueOracle = erc20ValueOracle[token0];
+            if (address(valueOracle) != address(0)) {
+                (int256 assetValue, int256 adjustedAssetValue) = valueOracle.calcValue(amountX);
+                value += assetValue;
+                riskAdjustedValue += adjustedAssetValue;
+            }
+        }
+        {
+            IERC20ValueOracle valueOracle = erc20ValueOracle[token1];
+            if (address(valueOracle) != address(0)) {
+                (int256 assetValue, int256 adjustedAssetValue) = valueOracle.calcValue(amountY);
+                value += assetValue;
+                riskAdjustedValue += adjustedAssetValue;
+            }
+        }
+        riskAdjustedValue = (riskAdjustedValue * collateralFactor) / 1 ether;
+        return (value, riskAdjustedValue);
     }
 }

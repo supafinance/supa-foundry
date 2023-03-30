@@ -1,18 +1,17 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+// This address is in flux as long as the bytecode of this contract is not fixed. For now
+// we deploy it on local block chain on fixed address, when we go deploy this needs to change
+// to the permanent address.
+address constant TRANSFER_AND_CALL2 = address(0x1554b484D2392672F0375C56d80e91c1d070a007);
 
 // Contracts that implement can receive multiple ERC20 transfers in a single transaction,
 // with backwards compatibility for legacy ERC20's not implementing ERC677.
 abstract contract ITransferReceiver2 {
-    // This address is in flux as long as the bytecode of this contract is not fixed. For now
-    // we deploy it on local block chain on fixed address, when we go deploy this needs to change
-    // to the permanent address.
-    address private constant TRANSFERANDCALL2 = address(0x9848AB09c804dAfCE9e0b82d508aC6d2E8bACFfE);
-
     error InvalidSender(address sender);
 
     struct Transfer {
@@ -33,10 +32,7 @@ abstract contract ITransferReceiver2 {
     ) external virtual returns (bytes4);
 
     modifier onlyTransferAndCall2() {
-        if (msg.sender == TRANSFERANDCALL2) {
-            _;
-        } else {
-            revert InvalidSender(msg.sender);
-        }
+        if (msg.sender != TRANSFER_AND_CALL2) revert InvalidSender(msg.sender);
+        _;
     }
 }

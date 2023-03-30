@@ -1,21 +1,21 @@
 //SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.7;
 
+import {Call} from "../lib/Call.sol";
+
 interface IERC1363SpenderExtended {
     function onApprovalReceived(
         address owner,
         uint256 value,
-        address target,
-        bytes calldata data
+        Call calldata call
     ) external returns (bytes4);
 }
 
 interface IERC1363ReceiverExtended {
-function onTransferReceived(
+    function onTransferReceived(
         address operator,
-        address from,
+        address token,
         uint256 value,
-        address target,
         bytes calldata data
     ) external returns (bytes4);
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import "./FsUtils.sol";
+import {FsUtils} from "./FsUtils.sol";
 
 /**
  * @title Utility methods basic math operations.
@@ -23,8 +23,6 @@ library FsMath {
      *
      * We chose `FIXED_POINT_SCALE` to be a power of 2 to make certain optimizations in the
      * calculation of `e^x` more efficient.  See `exp()` implementation for details.
-     *
-     * TODO Clarify that the above is indeed true.
      *
      * See https://en.wikipedia.org/wiki/Fixed-point_arithmetic
      */
@@ -116,7 +114,9 @@ library FsMath {
         int256 shiftLeft = x / ln2FixedPoint;
         int256 remainder = x % ln2FixedPoint;
         if (shiftLeft <= -FIXED_POINT_SCALE_BITS) return 0;
-        require(shiftLeft < (256 - FIXED_POINT_SCALE_BITS), "Exponentiation overflows");
+        // We use signed integers so we have 256 - 1 bits to work with of which FIXED_POINT_SCALE_BITS
+        // are used for the fractional part.
+        require(shiftLeft < (256 - 1 - FIXED_POINT_SCALE_BITS), "Exponentiation overflows");
 
         /*
          * At this point we have decomposed exp as a simple bitshift and a fractional power of 2. We
@@ -170,13 +170,15 @@ library FsMath {
              * This implies shiftLeft >= 0 we don't want to lose precision by first dividing and
              * subsequent shifting left.
              */
-            prod = pow(twoPowRecipSmallFactor, integerPower) * taylorApprox;
+            prod = powInternal(twoPowRecipSmallFactor, integerPower) * taylorApprox;
             shiftLeft -= FIXED_POINT_SCALE_BITS;
         } else {
             /*
              * This implies shiftLeft <= 0 so we're losing precision anyway.
              */
-            prod = (FIXED_POINT_SCALE * taylorApprox) / pow(twoPowRecipSmallFactor, -integerPower);
+            prod =
+                (FIXED_POINT_SCALE * taylorApprox) /
+                powInternal(twoPowRecipSmallFactor, -integerPower);
         }
 
         return shiftLeft >= 0 ? (prod << uint256(shiftLeft)) : (prod >> uint256(-shiftLeft));
@@ -208,10 +210,10 @@ library FsMath {
     function sqrt(int256 x) internal pure returns (int256) {
         require(x >= 0, "Square root of negative number");
         int256 prevRes = 0;
-        int256 res = x;
+        int256 res = x / 2;
         while (res != prevRes) {
             prevRes = res;
-            res = (res + (x * FIXED_POINT_SCALE) / res) / 2;
+            res = (res + (x << uint256(FIXED_POINT_SCALE_BITS)) / res) / 2;
         }
         return res;
     }
