@@ -6,23 +6,25 @@ import {ImmutableGovernance} from "../lib/ImmutableGovernance.sol";
 
 contract MockERC20Oracle is IERC20ValueOracle, ImmutableGovernance {
     int256 public price;
-    int256 collateralFactor = 1 ether;
-    int256 borrowFactor = 1 ether;
+    int256 public collateralFactor = 1 ether;
+    int256 public borrowFactor = 1 ether;
+
+    uint256 public tokenDecimals;
 
     constructor(address owner) ImmutableGovernance(owner) {}
 
-    function setPrice(int256 _price, uint256, uint256) external onlyGovernance {
+    /// @notice Sets the oracle price
+    function setPrice(int256 _price, uint256 _tokenDecimals, uint256) external onlyGovernance {
         price = _price;
+        tokenDecimals = _tokenDecimals;
     }
 
-    // function setPrice(
-    //     int256 _price,
-    //     uint256 baseDecimals,
-    //     uint256 decimals
-    // ) external onlyGovernance {
-    //     price = (_price * (int256(10) ** (18 + baseDecimals - decimals))) / 1 ether;
-    // }
-
+    /**
+     * @notice Sets the risk factors (collateral factor & borrow factor)
+     * @dev Emits a RiskFactorsSet event
+     * @param _collateralFactor The new collateral factor
+     * @param _borrowFactor The new borrow factor
+     */
     function setRiskFactors(int256 _collateralFactor, int256 _borrowFactor) external onlyGovernance {
         collateralFactor = _collateralFactor;
         borrowFactor = _borrowFactor;
@@ -30,7 +32,7 @@ contract MockERC20Oracle is IERC20ValueOracle, ImmutableGovernance {
     }
 
     function calcValue(int256 amount) external view override returns (int256 value, int256 riskAdjustedValue) {
-        value = (amount * price) / 1 ether;
+        value = (amount * price) / int256(10 ** tokenDecimals);
         if (amount >= 0) {
             riskAdjustedValue = (value * collateralFactor) / 1 ether;
         } else {
@@ -45,7 +47,7 @@ contract MockERC20Oracle is IERC20ValueOracle, ImmutableGovernance {
         override
         returns (int256 value, int256 collateralAdjustedValue, int256 borrowAdjustedValue)
     {
-        value = (price);
+        value = price;
         collateralAdjustedValue = (value * collateralFactor) / 1 ether;
         borrowAdjustedValue = (value * 1 ether) / borrowFactor;
         return (value, collateralAdjustedValue, borrowAdjustedValue);
