@@ -11,7 +11,7 @@ import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Po
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {INonfungiblePositionManager} from "src/external/interfaces/INonfungiblePositionManager.sol";
 import {ISupa} from "src/interfaces/ISupa.sol";
-
+import {Call} from "src/lib/Call.sol";
 import {FixedPoint96} from "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 
 /// @title Supa UniswapV3 LP Position Helper
@@ -35,6 +35,13 @@ contract UniV3LPHelper is IERC721Receiver {
     error InvalidManager();
     /// @notice Invalid data
     error InvalidData();
+
+    event MintAndDeposit(address wallet, uint256 indexed tokenId);
+    event Reinvest(address wallet, uint256 indexed tokenId, uint256 indexed amount0, uint256 indexed amount1);
+    event QuickWithdraw(address wallet, uint256 indexed tokenId, uint256 indexed amount0, uint256 indexed amount1);
+    event Rebalance(
+        address wallet, uint256 indexed tokenId, int24 tickLower, int24 tickUpper, uint256 amount0, uint256 amount1
+    );
 
     constructor(address _supa, address _manager, address _factory, address _swapRouter) {
         supa = ISupa(_supa);
@@ -76,6 +83,8 @@ contract UniV3LPHelper is IERC721Receiver {
 
         // Deposit LP token to credit account
         supa.depositERC721ForWallet(manager, msg.sender, tokenId);
+
+        emit MintAndDeposit(msg.sender, tokenId);
     }
 
     /// @notice Collect fees and reinvest
@@ -84,10 +93,12 @@ contract UniV3LPHelper is IERC721Receiver {
         // transfer LP token to this contract
         IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
 
-        _reinvest(tokenId); // increase gas cost
+        (uint256 amount0, uint256 amount1) = _reinvest(tokenId); // increase gas cost
 
         // deposit LP token to credit account
         supa.depositERC721ForWallet(manager, msg.sender, tokenId);
+
+        emit Reinvest(msg.sender, tokenId, amount0, amount1);
     }
 
     /// @notice Remove liquidity and collect fees
@@ -96,10 +107,24 @@ contract UniV3LPHelper is IERC721Receiver {
         // transfer LP token to this contract
         IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
 
-        _quickWithdraw(tokenId, msg.sender);
+        (, uint256 amount0, uint256 amount1) = _quickWithdraw(tokenId, msg.sender);
 
         // transfer lp token to msg.sender
         IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
+
+        emit QuickWithdraw(msg.sender, tokenId, amount0, amount1);
+    }
+
+    /// @notice Rebalance position with specified ticks
+    /// @param tokenId LP token ID
+    function rebalance(uint256 tokenId, int24 tickLower, int24 tickUpper) external {
+        // transfer LP token to this contract
+        IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
+
+        _rebalance(tokenId, tickLower, tickUpper);
+
+        // deposit LP token to credit account
+        supa.depositERC721ForWallet(manager, msg.sender, tokenId);
     }
 
     /// @notice Rebalance position using the same tick spacing at the current price
@@ -270,9 +295,9 @@ contract UniV3LPHelper is IERC721Receiver {
         return this.onERC721Received.selector;
     }
 
-    function _reinvest(uint256 tokenId) internal {
+    function _reinvest(uint256 tokenId) internal returns (uint256 amount0, uint256 amount1) {
         // collect accrued fees
-        (uint256 amount0, uint256 amount1) = INonfungiblePositionManager(manager).collect(
+        (amount0, amount1) = INonfungiblePositionManager(manager).collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: tokenId,
                 recipient: address(this),
@@ -300,11 +325,55 @@ contract UniV3LPHelper is IERC721Receiver {
                 deadline: block.timestamp
             })
         );
+
+        return (amount0, amount1);
     }
 
-    function _quickWithdraw(uint256 tokenId, address from) internal returns (bool) {
+    function _quickWithdraw(uint256 tokenId, address from) internal returns (bool, uint256 amount0, uint256 amount1) {
         // get current position values
         (,, address token0, address token1,,,, uint128 liquidity,,,,) =
+            INonfungiblePositionManager(manager).positions(tokenId);
+
+        // remove liquidity
+        INonfungiblePositionManager(manager).decreaseLiquidity(
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: tokenId,
+                liquidity: liquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            })
+        );
+
+        // collect tokens
+        (amount0, amount1) = INonfungiblePositionManager(manager).collect(
+            INonfungiblePositionManager.CollectParams({
+                tokenId: tokenId,
+                recipient: address(this),
+                amount0Max: type(uint128).max,
+                amount1Max: type(uint128).max
+            })
+        );
+
+        // approve tokens to supa
+        if (!IERC20(token0).approve(address(supa), amount0) || !IERC20(token1).approve(address(supa), amount1)) {
+            revert ApprovalFailed();
+        }
+
+        // deposit tokens to credit account
+        if (amount0 > 0) {
+            supa.depositERC20ForWallet(token0, from, amount0);
+        }
+        if (amount1 > 0) {
+            supa.depositERC20ForWallet(token1, from, amount1);
+        }
+
+        return (true, amount0, amount1);
+    }
+
+    function _rebalance(uint256 tokenId, int24 tickLower, int24 tickUpper) internal {
+        // get current position values
+        (,, address token0, address token1, uint24 fee,,, uint128 liquidity,,,,) =
             INonfungiblePositionManager(manager).positions(tokenId);
 
         // remove liquidity
@@ -328,20 +397,86 @@ contract UniV3LPHelper is IERC721Receiver {
             })
         );
 
-        // approve tokens to supa
-        if (!IERC20(token0).approve(address(supa), amount0) || !IERC20(token1).approve(address(supa), amount1)) {
+        // get pool
+        IUniswapV3Pool pool = IUniswapV3Pool(IUniswapV3Factory(factory).getPool(token0, token1, fee));
+
+        // get current tick
+        (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
+
+        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(tickLower);
+        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
+
+        // get token amounts given tickLower tickUpper and liquidity
+        (uint256 amount0Desired, uint256 amount1Desired) =
+            LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
+
+        ISwapRouter.ExactInputSingleParams memory params;
+        if (amount0 > amount0Desired) {
+            // swap token0 for token1
+            params = ISwapRouter.ExactInputSingleParams({
+                tokenIn: token0,
+                tokenOut: token1,
+                fee: fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: amount0 - amount0Desired,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
+            if (!IERC20(token0).approve(swapRouter, params.amountIn)) {
+                revert ApprovalFailed();
+            }
+        } else if (amount1 > amount1Desired) {
+            // swap token1 for token0
+            params = ISwapRouter.ExactInputSingleParams({
+                tokenIn: token1,
+                tokenOut: token0,
+                fee: fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: amount1 - amount1Desired,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
+            if (!IERC20(token1).approve(swapRouter, params.amountIn)) {
+                revert ApprovalFailed();
+            }
+        } else {
+            revert PositionAlreadyBalanced();
+        }
+
+        // swap tokens
+        if (!IERC20(params.tokenIn).approve(swapRouter, params.amountIn)) {
+            revert ApprovalFailed();
+        }
+        ISwapRouter(swapRouter).exactInputSingle(params);
+
+        uint256 token0Balance = IERC20(token0).balanceOf(address(this));
+        uint256 token1Balance = IERC20(token1).balanceOf(address(this));
+
+        // approve tokens to manager
+        if (!IERC20(token0).approve(manager, amount0Desired) || !IERC20(token1).approve(manager, amount1Desired)) {
             revert ApprovalFailed();
         }
 
-        // deposit tokens to credit account
-        if (amount0 > 0) {
-            supa.depositERC20ForWallet(token0, from, amount0);
-        }
-        if (amount1 > 0) {
-            supa.depositERC20ForWallet(token1, from, amount1);
-        }
+        // reinvest
+        (uint256 newTokenId,,,) = INonfungiblePositionManager(manager).mint(
+            INonfungiblePositionManager.MintParams({
+                token0: token0,
+                token1: token1,
+                fee: fee,
+                tickLower: tickLower,
+                tickUpper: tickUpper,
+                amount0Desired: token0Balance,
+                amount1Desired: token1Balance,
+                amount0Min: 0,
+                amount1Min: 0,
+                recipient: address(this),
+                deadline: block.timestamp
+            })
+        );
 
-        return true;
+        emit Rebalance(msg.sender, tokenId, tickLower, tickUpper, token0Balance, token1Balance);
     }
 
     function divRound(int128 x, int128 y) internal pure returns (int128 result) {
