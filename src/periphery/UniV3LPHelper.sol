@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import "forge-std/console.sol";
-
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -36,12 +34,49 @@ contract UniV3LPHelper is IERC721Receiver {
     /// @notice Invalid data
     error InvalidData();
 
-    event MintAndDeposit(address wallet, uint256 indexed tokenId);
-    event Reinvest(address wallet, uint256 indexed tokenId, uint256 indexed amount0, uint256 indexed amount1);
-    event QuickWithdraw(address wallet, uint256 indexed tokenId, uint256 indexed amount0, uint256 indexed amount1);
+    /// @notice Emitted when an LP token is minted and deposited
+    /// @param wallet The wallet address
+    /// @param tokenId The LP token ID
+    event MintAndDeposit(address indexed wallet, uint256 indexed tokenId);
+
+    /// @notice Emitted when fees are collected and reinvested
+    /// @param wallet The wallet address
+    /// @param tokenId The LP token ID
+    /// @param amount0 The amount of token0 collected
+    /// @param amount1 The amount of token1 collected
+    event Reinvest(address indexed wallet, uint256 indexed tokenId, uint256 amount0, uint256 amount1);
+
+    /// @notice Emitted when liquidity is removed and fees are collected
+    /// @param wallet The wallet address
+    /// @param tokenId The LP token ID
+    /// @param amount0 The amount of token0 collected
+    /// @param amount1 The amount of token1 collected
+    event QuickWithdraw(address indexed wallet, uint256 indexed tokenId, uint256 amount0, uint256 amount1);
+
+    /// @notice Emitted when position is rebalanced
+    /// @param wallet The wallet address
+    /// @param oldTokenId The original LP token ID
+    /// @param newTokenId The new LP token ID
+    /// @param tickLower The lower tick
+    /// @param tickUpper The upper tick
+    /// @param amount0 The new token0 amount
+    /// @param amount1 The new token1 amount
     event Rebalance(
-        address wallet, uint256 indexed tokenId, int24 tickLower, int24 tickUpper, uint256 amount0, uint256 amount1
+        address indexed wallet,
+        uint256 indexed oldTokenId,
+        uint256 indexed newTokenId,
+        int24 tickLower,
+        int24 tickUpper,
+        uint256 amount0,
+        uint256 amount1
     );
+
+    /// @notice Emitted when swap and deposit is called
+    /// @param wallet The wallet address
+    /// @param amountIn The amount of tokenIn
+    /// @param amountOut The amount of tokenOut
+    /// @param path The swap path
+    event SwapAndDeposit(address indexed wallet, uint256 indexed amountIn, uint256 indexed amountOut, bytes path);
 
     constructor(address _supa, address _manager, address _factory, address _swapRouter) {
         supa = ISupa(_supa);
@@ -84,6 +119,79 @@ contract UniV3LPHelper is IERC721Receiver {
         // Deposit LP token to credit account
         supa.depositERC721ForWallet(manager, msg.sender, tokenId);
 
+        // send back excess tokens
+        uint256 token0Balance = IERC20(params.token0).balanceOf(address(this));
+        uint256 token1Balance = IERC20(params.token1).balanceOf(address(this));
+        supa.depositERC20ForWallet(params.token0, msg.sender, token0Balance);
+        supa.depositERC20ForWallet(params.token1, msg.sender, token1Balance);
+
+        emit MintAndDeposit(msg.sender, tokenId);
+    }
+
+    /// @notice Mint and deposit LP token to credit account
+    /// @param token0 The token0 address
+    /// @param token1 The token1 address
+    /// @param fee The fee
+    /// @param tickLower The lower tick
+    /// @param tickUpper The upper tick
+    /// @param amount0Desired The desired amount of token0
+    /// @param amount1Desired The desired amount of token1
+    /// @param amount0Min The minimum amount of token0
+    /// @param amount1Min The minimum amount of token1
+    /// @param recipient The recipient address
+    /// @param deadline The deadline
+    function mintAndDeposit(
+        address token0,
+        address token1,
+        uint24 fee,
+        int24 tickLower,
+        int24 tickUpper,
+        uint256 amount0Desired,
+        uint256 amount1Desired,
+        uint256 amount0Min,
+        uint256 amount1Min,
+        address recipient,
+        uint256 deadline
+    ) external payable returns (uint256 tokenId) {
+        // Transfer tokens to this contract
+        if (
+            !IERC20(token0).transferFrom(msg.sender, address(this), amount0Desired)
+                || !IERC20(token1).transferFrom(msg.sender, address(this), amount1Desired)
+        ) {
+            revert TransferFailed();
+        }
+
+        // Approve tokens to manager
+        if (!IERC20(token0).approve(manager, amount0Desired) || !IERC20(token1).approve(manager, amount1Desired)) {
+            revert ApprovalFailed();
+        }
+
+        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
+            token0: token0,
+            token1: token1,
+            fee: fee,
+            tickLower: tickLower,
+            tickUpper: tickUpper,
+            amount0Desired: amount0Desired,
+            amount1Desired: amount1Desired,
+            amount0Min: amount0Min,
+            amount1Min: amount1Min,
+            recipient: address(this),
+            deadline: deadline
+        });
+
+        // Mint LP token
+        (tokenId,,,) = INonfungiblePositionManager(manager).mint(params);
+
+        // Deposit LP token to credit account
+        supa.depositERC721ForWallet(manager, msg.sender, tokenId);
+
+        // send back excess tokens
+        uint256 token0Balance = IERC20(params.token0).balanceOf(address(this));
+        uint256 token1Balance = IERC20(params.token1).balanceOf(address(this));
+        supa.depositERC20ForWallet(params.token0, msg.sender, token0Balance);
+        supa.depositERC20ForWallet(params.token1, msg.sender, token1Balance);
+
         emit MintAndDeposit(msg.sender, tokenId);
     }
 
@@ -107,12 +215,10 @@ contract UniV3LPHelper is IERC721Receiver {
         // transfer LP token to this contract
         IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
 
-        (, uint256 amount0, uint256 amount1) = _quickWithdraw(tokenId, msg.sender);
+        _quickWithdraw(tokenId, msg.sender);
 
         // transfer lp token to msg.sender
         IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
-
-        emit QuickWithdraw(msg.sender, tokenId, amount0, amount1);
     }
 
     /// @notice Rebalance position with specified ticks
@@ -264,6 +370,34 @@ contract UniV3LPHelper is IERC721Receiver {
         supa.depositERC721ForWallet(manager, msg.sender, newTokenId);
     }
 
+    /// @notice Swaps tokens and deposits the output token to the supa contract
+    /// @param _path The path to swap
+    /// @param _amountIn The amount of the first token in the path to swap
+    /// @param _amountOutMinimum The minimum amount of the last token in the path to receive
+    function swapAndDeposit(bytes memory _path, uint256 _amountIn, uint256 _amountOutMaximum) external payable {
+        // approve the swap router to spend the fiirst token in the path
+        if (!IERC20(_path[0]).approve(swapRouter, _amountIn)) revert ApprovalFailed();
+
+        ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
+            path: _path,
+            recipient: address(this),
+            deadline: block.timestamp,
+            amountIn: _amountIn,
+            amountOutMaximum: _amountOutMaximum
+        });
+
+        // Make the swap
+        uint256 amountOut = ISwapRouter(swapRouter).exactInput(params);
+
+        // approve the supa contract to spend the last token in the path
+        if (!IERC20(_path[_path.length - 1]).approve(address(supa), amountOut)) revert ApprovalFailed();
+
+        // Deposit amountOut to the supa contract
+        supa.depositERC20ForWallet(_path[_path.length - 1], msg.sender, amountOut);
+
+        emit SwapAndDeposit(_path, _recipient, _amountIn, amountOut);
+    }
+
     /// @param tokenId The tokenId
     /// @param data The additional data passed with the call
     function onERC721Received(
@@ -329,7 +463,7 @@ contract UniV3LPHelper is IERC721Receiver {
         return (amount0, amount1);
     }
 
-    function _quickWithdraw(uint256 tokenId, address from) internal returns (bool, uint256 amount0, uint256 amount1) {
+    function _quickWithdraw(uint256 tokenId, address from) internal returns (bool) {
         // get current position values
         (,, address token0, address token1,,,, uint128 liquidity,,,,) =
             INonfungiblePositionManager(manager).positions(tokenId);
@@ -346,7 +480,7 @@ contract UniV3LPHelper is IERC721Receiver {
         );
 
         // collect tokens
-        (amount0, amount1) = INonfungiblePositionManager(manager).collect(
+        (uint256 amount0, uint256 amount1) = INonfungiblePositionManager(manager).collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: tokenId,
                 recipient: address(this),
@@ -368,7 +502,9 @@ contract UniV3LPHelper is IERC721Receiver {
             supa.depositERC20ForWallet(token1, from, amount1);
         }
 
-        return (true, amount0, amount1);
+        emit QuickWithdraw(from, tokenId, amount0, amount1);
+
+        return true;
     }
 
     function _rebalance(uint256 tokenId, int24 tickLower, int24 tickUpper) internal {
@@ -476,7 +612,7 @@ contract UniV3LPHelper is IERC721Receiver {
             })
         );
 
-        emit Rebalance(msg.sender, tokenId, tickLower, tickUpper, token0Balance, token1Balance);
+        emit Rebalance(msg.sender, tokenId, newTokenId, tickLower, tickUpper, token0Balance, token1Balance);
     }
 
     function divRound(int128 x, int128 y) internal pure returns (int128 result) {
