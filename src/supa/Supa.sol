@@ -8,7 +8,18 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
-import {ISupa, ISupaConfig, ISupaCore, ERC20Share, NFTTokenData, ERC20Pool, ERC20Info, ERC721Info, ContractData, ContractKind} from "../interfaces/ISupa.sol";
+import {
+    ISupa,
+    ISupaConfig,
+    ISupaCore,
+    ERC20Share,
+    NFTTokenData,
+    ERC20Pool,
+    ERC20Info,
+    ERC721Info,
+    ContractData,
+    ContractKind
+} from "../interfaces/ISupa.sol";
 import {SupaState} from "./SupaState.sol";
 import {WalletProxy} from "../wallet/WalletProxy.sol";
 import {IVersionManager} from "../interfaces/IVersionManager.sol";
@@ -120,11 +131,12 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param erc20 Address of the ERC20 token to be transferred
     /// @param to Address of the wallet that creditAccount should be top up
     /// @param amount The amount of `erc20` to be sent
-    function depositERC20ForWallet(
-        address erc20,
-        address to,
-        uint256 amount
-    ) external override walletExists(to) whenNotPaused {
+    function depositERC20ForWallet(address erc20, address to, uint256 amount)
+        external
+        override
+        walletExists(to)
+        whenNotPaused
+    {
         if (amount == 0) return;
         (, uint16 erc20Idx) = getERC20Info(IERC20(erc20));
         int256 signedAmount = FsMath.safeCastToSigned(amount);
@@ -150,10 +162,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @notice deposit `amount` of `erc20` from creditAccount tp wallet
     /// @param erc20 Address of the ERC20 token to be transferred
     /// @param amount The amount of `erc20` to be transferred
-    function withdrawERC20(
-        IERC20 erc20,
-        uint256 amount
-    ) external override onlyWallet whenNotPaused {
+    function withdrawERC20(IERC20 erc20, uint256 amount) external override onlyWallet whenNotPaused {
         (, uint16 erc20Idx) = getERC20Info(erc20);
         int256 signedAmount = FsMath.safeCastToSigned(amount);
         _creditAccountERC20ChangeBy(msg.sender, erc20Idx, -signedAmount);
@@ -196,10 +205,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// `onERC721Received` function of this contract
     /// @param erc721Contract The address of the ERC721 contract that the token belongs to
     /// @param tokenId The id of the token to be transferred
-    function depositERC721(
-        address erc721Contract,
-        uint256 tokenId
-    )
+    function depositERC721(address erc721Contract, uint256 tokenId)
         external
         override
         onlyWallet
@@ -209,12 +215,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     {
         address _owner = ERC721(erc721Contract).ownerOf(tokenId);
         emit ISupaCore.ERC721Deposited(erc721Contract, msg.sender, tokenId);
-        ERC721(erc721Contract).safeTransferFrom(
-            _owner,
-            address(this),
-            tokenId,
-            abi.encode(msg.sender)
-        );
+        ERC721(erc721Contract).safeTransferFrom(_owner, address(this), tokenId, abi.encode(msg.sender));
     }
 
     /// @notice deposit ERC721 `erc721Contract` token `tokenId` from wallet to creditAccount
@@ -223,11 +224,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param erc721Contract The address of the ERC721 contract that the token belongs to
     /// @param to The wallet address for which the NFT will be deposited
     /// @param tokenId The id of the token to be transferred
-    function depositERC721ForWallet(
-        address erc721Contract,
-        address to,
-        uint256 tokenId
-    )
+    function depositERC721ForWallet(address erc721Contract, address to, uint256 tokenId)
         external
         override
         walletExists(to)
@@ -243,10 +240,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @notice withdraw ERC721 `nftContract` token `tokenId` from creditAccount to wallet
     /// @param erc721 The address of the ERC721 contract that the token belongs to
     /// @param tokenId The id of the token to be transferred
-    function withdrawERC721(
-        address erc721,
-        uint256 tokenId
-    ) external override onlyWallet whenNotPaused {
+    function withdrawERC721(address erc721, uint256 tokenId) external override onlyWallet whenNotPaused {
         WalletLib.NFTId nftId = _getNFTId(erc721, tokenId);
 
         wallets[msg.sender].extractNFT(nftId, tokenDataByNFTId);
@@ -260,11 +254,13 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param erc20 Address of the ERC20 token to be transferred
     /// @param to wallet address, whose creditAccount is the transfer target
     /// @param amount The amount of `erc20` to be transferred
-    function transferERC20(
-        IERC20 erc20,
-        address to,
-        uint256 amount
-    ) external override onlyWallet whenNotPaused walletExists(to) {
+    function transferERC20(IERC20 erc20, address to, uint256 amount)
+        external
+        override
+        onlyWallet
+        whenNotPaused
+        walletExists(to)
+    {
         if (amount == 0) return;
         _transferERC20(erc20, msg.sender, to, FsMath.safeCastToSigned(amount));
     }
@@ -274,11 +270,13 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param erc721 The address of the ERC721 contract that the token belongs to
     /// @param tokenId The id of the token to be transferred
     /// @param to wallet address, whose creditAccount is the transfer target
-    function transferERC721(
-        address erc721,
-        uint256 tokenId,
-        address to
-    ) external override onlyWallet whenNotPaused walletExists(to) {
+    function transferERC721(address erc721, uint256 tokenId, address to)
+        external
+        override
+        onlyWallet
+        whenNotPaused
+        walletExists(to)
+    {
         WalletLib.NFTId nftId = _getNFTId(erc721, tokenId);
         _transferNFT(nftId, msg.sender, to);
     }
@@ -290,12 +288,14 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param to The address of the wallet to transfer to
     /// @param amount The amount of tokens to transfer
     /// @return true, when the transfer has been successfully finished without been reverted
-    function transferFromERC20(
-        address erc20,
-        address from,
-        address to,
-        uint256 amount
-    ) external override whenNotPaused walletExists(from) walletExists(to) returns (bool) {
+    function transferFromERC20(address erc20, address from, address to, uint256 amount)
+        external
+        override
+        whenNotPaused
+        walletExists(from)
+        walletExists(to)
+        returns (bool)
+    {
         address spender = msg.sender;
         _spendAllowance(erc20, from, spender, amount);
         _transferERC20(IERC20(erc20), from, to, FsMath.safeCastToSigned(amount));
@@ -307,12 +307,13 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param from The address of the wallet to transfer from
     /// @param to The address of the wallet to transfer to
     /// @param tokenId The id of the token to transfer
-    function transferFromERC721(
-        address collection,
-        address from,
-        address to,
-        uint256 tokenId
-    ) external override onlyWallet whenNotPaused walletExists(to) {
+    function transferFromERC721(address collection, address from, address to, uint256 tokenId)
+        external
+        override
+        onlyWallet
+        whenNotPaused
+        walletExists(to)
+    {
         WalletLib.NFTId nftId = _getNFTId(collection, tokenId);
         if (!_isApprovedOrOwner(msg.sender, nftId)) {
             revert NotApprovedOrOwner();
@@ -331,9 +332,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// obtained assets to cover all created debt
     ///   If creditAccount of `wallet` has less debt then collateral then the transaction will be reverted
     /// @param wallet The address of wallet whose creditAccount to be liquidate
-    function liquidate(
-        address wallet
-    ) external override onlyWallet whenNotPaused walletExists(wallet) {
+    function liquidate(address wallet) external override onlyWallet whenNotPaused walletExists(wallet) {
         (int256 totalValue, int256 collateral, int256 debt) = getRiskAdjustedPositionValues(wallet);
         if (collateral >= debt) {
             revert NotLiquidatable();
@@ -351,14 +350,8 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             // totalValue * (1 - liqFraction) - reward of the liquidator, and
             // totalValue * liqFraction - change, liquidator is sending back to liquidatable
             int256 percentUnderwater = (collateral * 1 ether) / debt;
-            int256 leftover = ((totalValue * config.liqFraction * percentUnderwater) / 1 ether) /
-                1 ether;
-            _transferERC20(
-                IERC20(erc20Infos[K_NUMERAIRE_IDX].erc20Contract),
-                msg.sender,
-                wallet,
-                leftover
-            );
+            int256 leftover = ((totalValue * config.liqFraction * percentUnderwater) / 1 ether) / 1 ether;
+            _transferERC20(IERC20(erc20Infos[K_NUMERAIRE_IDX].erc20Contract), msg.sender, wallet, leftover);
         }
         emit ISupaCore.WalletLiquidated(wallet, msg.sender, collateral, debt);
     }
@@ -402,12 +395,12 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param tokenId The NFT identifier which is being transferred
     /// @param data Additional data with no specified format
     /// @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-    function onERC721Received(
-        address /* operator */,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override whenNotPaused returns (bytes4) {
+    function onERC721Received(address, /* operator */ address from, uint256 tokenId, bytes calldata data)
+        external
+        override
+        whenNotPaused
+        returns (bytes4)
+    {
         WalletLib.NFTId nftId = _getNFTId(msg.sender, tokenId);
         if (data.length != 0) {
             from = abi.decode(data, (address));
@@ -418,6 +411,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         tokenDataByNFTId[nftId].tokenId = uint240(tokenId);
         wallets[from].insertNFT(nftId, tokenDataByNFTId);
         _tokenStorageCheck(from);
+        emit ISupaCore.ERC721Received(from, msg.sender, tokenId);
         return this.onERC721Received.selector;
     }
 
@@ -425,20 +419,15 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param approvals An array of ERC20 tokens with amounts, or ERC721 contracts with tokenIds
     /// @param spender The address of the spender
     /// @param data Additional data with no specified format, sent in call to `spender`
-    function approveAndCall(
-        Approval[] calldata approvals,
-        address spender,
-        bytes calldata data
-    ) external override onlyWallet whenNotPaused {
+    function approveAndCall(Approval[] calldata approvals, address spender, bytes calldata data)
+        external
+        override
+        onlyWallet
+        whenNotPaused
+    {
         uint256[] memory prev = new uint256[](approvals.length);
         for (uint256 i = 0; i < approvals.length; i++) {
-            prev[i] = _approve(
-                msg.sender,
-                spender,
-                approvals[i].ercContract,
-                approvals[i].amountOrTokenId,
-                spender
-            );
+            prev[i] = _approve(msg.sender, spender, approvals[i].ercContract, approvals[i].amountOrTokenId, spender);
         }
         if (!_checkOnApprovalReceived(msg.sender, 0, spender, data)) {
             revert WrongDataReturned();
@@ -463,6 +452,14 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return wallets[wallet].owner;
     }
 
+    ///
+    function getERC721DataFromNFTId(WalletLib.NFTId nftId) external view returns (address erc721, uint256 tokenId) {
+        uint16 erc721Idx;
+        (erc721Idx, tokenId) = getNFTData(nftId);
+        erc721 = erc721Infos[erc721Idx].erc721Contract;
+        return (erc721, tokenId);
+    }
+
     /// @notice returns the collateral, debt and total value of `walletAddress`.
     /// @dev Notice that both collateral and debt has some coefficients on the actual amount of deposit
     /// and loan assets! E.g.
@@ -473,9 +470,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @return totalValue The difference between equivalents of deposit and loan assets
     /// @return collateral The sum of deposited assets multiplied by their collateral factors
     /// @return debt The sum of borrowed assets multiplied by their borrow factors
-    function getRiskAdjustedPositionValues(
-        address walletAddress
-    )
+    function getRiskAdjustedPositionValues(address walletAddress)
         public
         view
         override
@@ -513,10 +508,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param collection The address of the ERC721 token
     /// @param tokenId The id of the token to query
     /// @return The wallet address that is allowed to transfer the ERC721 token
-    function getApproved(
-        address collection,
-        uint256 tokenId
-    ) public view override returns (address) {
+    function getApproved(address collection, uint256 tokenId) public view override returns (address) {
         WalletLib.NFTId nftId = _getNFTId(collection, tokenId);
         return tokenDataByNFTId[nftId].approvedSpender;
     }
@@ -534,11 +526,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param spender The wallet address who is allowed to spend `erc20` of `_owner`
     /// @return the remaining amount of tokens that `spender` will be allowed to spend on
     /// behalf of `owner` through {transferFrom}
-    function allowance(
-        address erc20,
-        address _owner,
-        address spender
-    ) public view override returns (uint256) {
+    function allowance(address erc20, address _owner, address spender) public view override returns (uint256) {
         if (_owner == spender) return type(uint256).max;
         return allowances[_owner][erc20][spender];
     }
@@ -555,9 +543,12 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
 
         uint256 ir = erc20Info.baseRate;
         uint256 utilization; // utilization of the pool
-        if (poolAssets <= POOL_ASSETS_CUTOFF)
-            utilization = 0; // if there are no assets, utilization is 0
-        else utilization = uint256((debt * 1e18) / ((collateral - debt) / leverage));
+        if (poolAssets <= POOL_ASSETS_CUTOFF) {
+            utilization = 0;
+        } // if there are no assets, utilization is 0
+        else {
+            utilization = uint256((debt * 1e18) / ((collateral - debt) / leverage));
+        }
 
         if (utilization <= erc20Info.targetUtilization) {
             ir += (utilization * erc20Info.slope1) / 1e15;
@@ -579,21 +570,20 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param wallet The address of a wallet who performed the `executeBatch`
     /// @return Whether the position is solvent.
     function isSolvent(address wallet) public view returns (bool) {
-        uint gasBefore = gasleft();
+        uint256 gasBefore = gasleft();
         int256 leverage = config.fractionalReserveLeverage;
         for (uint256 i = 0; i < erc20Infos.length; i++) {
             int256 totalDebt = erc20Infos[i].debt.tokens;
             int256 reserve = erc20Infos[i].collateral.tokens + totalDebt;
-            FsUtils.Assert(
-                IERC20(erc20Infos[i].erc20Contract).balanceOf(address(this)) >= uint256(reserve)
-            );
+            FsUtils.Assert(IERC20(erc20Infos[i].erc20Contract).balanceOf(address(this)) >= uint256(reserve));
             if (reserve < -totalDebt / leverage) {
                 revert InsufficientReserves();
             }
         }
         (, int256 collateral, int256 debt) = getRiskAdjustedPositionValues(wallet);
-        if (gasBefore - gasleft() > config.maxSolvencyCheckGasCost)
+        if (gasBefore - gasleft() > config.maxSolvencyCheckGasCost) {
             revert SolvencyCheckTooExpensive();
+        }
         return collateral >= debt;
     }
 
@@ -611,8 +601,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             allowances[_owner][ercContract][spender] = amountOrTokenId;
         } else if (data.kind == ContractKind.ERC721) {
             prev = amountOrTokenId;
-            tokenDataByNFTId[_getNFTId(ercContract, amountOrTokenId)]
-                .approvedSpender = erc721Spender;
+            tokenDataByNFTId[_getNFTId(ercContract, amountOrTokenId)].approvedSpender = erc721Spender;
         } else {
             FsUtils.Assert(false);
         }
@@ -620,12 +609,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
 
     /// @dev changes the quantity of `erc20` by `amount` that are allowed to transfer from creditAccount
     /// of wallet `_owner` by wallet `spender`
-    function _spendAllowance(
-        address erc20,
-        address _owner,
-        address spender,
-        uint256 amount
-    ) internal {
+    function _spendAllowance(address erc20, address _owner, address spender, uint256 amount) internal {
         uint256 currentAllowance = allowance(erc20, _owner, spender);
         if (currentAllowance != type(uint256).max) {
             if (currentAllowance < amount) {
@@ -657,9 +641,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
 
         Call memory call = Call({to: target, callData: data, value: msg.value});
 
-        try IERC1363SpenderExtended(spender).onApprovalReceived(msg.sender, amount, call) returns (
-            bytes4 retval
-        ) {
+        try IERC1363SpenderExtended(spender).onApprovalReceived(msg.sender, amount, call) returns (bytes4 retval) {
             return retval == IERC1363SpenderExtended.onApprovalReceived.selector;
         } catch (bytes memory reason) {
             if (reason.length == 0) {
@@ -706,11 +688,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         emit ISupaCore.ERC20Transfer(erc20, erc20Idx, from, to, amount);
     }
 
-    function _creditAccountERC20ChangeBy(
-        address walletAddress,
-        uint16 erc20Idx,
-        int256 amount
-    ) internal {
+    function _creditAccountERC20ChangeBy(address walletAddress, uint16 erc20Idx, int256 amount) internal {
         _updateInterest(erc20Idx);
         WalletLib.Wallet storage wallet = wallets[walletAddress];
         ERC20Share shares = wallet.erc20Share[erc20Idx];
@@ -720,10 +698,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         wallet.erc20Share[erc20Idx] = _insertPosition(newAmount, wallet, erc20Idx);
     }
 
-    function _creditAccountERC20Clear(
-        address walletAddress,
-        uint16 erc20Idx
-    ) internal returns (int256) {
+    function _creditAccountERC20Clear(address walletAddress, uint16 erc20Idx) internal returns (int256) {
         _updateInterest(erc20Idx);
         WalletLib.Wallet storage wallet = wallets[walletAddress];
         ERC20Share shares = wallet.erc20Share[erc20Idx];
@@ -733,21 +708,20 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return erc20Amount;
     }
 
-    function _extractPosition(
-        ERC20Share sharesWrapped,
-        ERC20Info storage erc20Info
-    ) internal returns (int256 position) {
+    function _extractPosition(ERC20Share sharesWrapped, ERC20Info storage erc20Info)
+        internal
+        returns (int256 position)
+    {
         int256 shares = ERC20Share.unwrap(sharesWrapped);
         ERC20Pool storage pool = shares > 0 ? erc20Info.collateral : erc20Info.debt;
         position = pool.extractPosition(sharesWrapped);
         return position;
     }
 
-    function _insertPosition(
-        int256 amount,
-        WalletLib.Wallet storage wallet,
-        uint16 erc20Idx
-    ) internal returns (ERC20Share) {
+    function _insertPosition(int256 amount, WalletLib.Wallet storage wallet, uint16 erc20Idx)
+        internal
+        returns (ERC20Share)
+    {
         if (amount == 0) {
             wallet.removeERC20IdxFromCreditAccount(erc20Idx);
         } else {
@@ -765,10 +739,9 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         erc20Info.timestamp = block.timestamp; // update timestamp to current timestamp
         int256 debt = -erc20Info.debt.tokens; // get the debt
         int256 interestRate = computeInterestRate(erc20Idx);
-        int256 interest = (debt * (FsMath.exp(interestRate * delta) - FsMath.FIXED_POINT_SCALE)) /
-            FsMath.FIXED_POINT_SCALE; // Get the interest
-        int256 treasuryInterest = (interest *
-            FsMath.safeCastToSigned(config.treasuryInterestFraction)) / 1 ether; // Get the treasury interest
+        int256 interest =
+            (debt * (FsMath.exp(interestRate * delta) - FsMath.FIXED_POINT_SCALE)) / FsMath.FIXED_POINT_SCALE; // Get the interest
+        int256 treasuryInterest = (interest * FsMath.safeCastToSigned(config.treasuryInterestFraction)) / 1 ether; // Get the treasury interest
         erc20Info.debt.tokens -= interest; // subtract interest from debt (increase)
         erc20Info.collateral.tokens += interest - treasuryInterest; // add interest to collateral (increase)
 
@@ -784,8 +757,8 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         } else {
             tokenCounter = FsMath.safeCastToUnsigned(wallet.tokenCounter);
         }
-        uint256 tokenStorage = (tokenCounter * tokenStorageConfig.erc20Multiplier) +
-            (nftCounter * tokenStorageConfig.erc721Multiplier);
+        uint256 tokenStorage =
+            (tokenCounter * tokenStorageConfig.erc20Multiplier) + (nftCounter * tokenStorageConfig.erc721Multiplier);
         if (tokenStorage > tokenStorageConfig.maxTokenStorage) {
             revert TokenStorageExceeded();
         }
@@ -800,16 +773,13 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return WalletLib.NFTId.wrap(erc721Idx | (tokenHash << 16) | ((tokenId >> 240) << 240));
     }
 
-    function _isApprovedOrOwner(
-        address spender,
-        WalletLib.NFTId nftId
-    ) internal view returns (bool) {
+    function _isApprovedOrOwner(address spender, WalletLib.NFTId nftId) internal view returns (bool) {
         WalletLib.Wallet storage p = wallets[msg.sender];
         (uint16 infoIndex, uint256 tokenId) = getNFTData(nftId);
         address collection = erc721Infos[infoIndex].erc721Contract;
         uint16 idx = tokenDataByNFTId[nftId].walletIdx;
-        bool isdepositERC721Owner = idx < p.nfts.length &&
-            WalletLib.NFTId.unwrap(p.nfts[idx]) == WalletLib.NFTId.unwrap(nftId);
+        bool isdepositERC721Owner =
+            idx < p.nfts.length && WalletLib.NFTId.unwrap(p.nfts[idx]) == WalletLib.NFTId.unwrap(nftId);
         return (isdepositERC721Owner || getApproved(collection, tokenId) == spender);
     }
 
