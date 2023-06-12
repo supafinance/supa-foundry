@@ -374,7 +374,7 @@ contract UniV3LPHelper is IERC721Receiver {
     /// @param _path The path to swap
     /// @param _amountIn The amount of the first token in the path to swap
     /// @param _amountOutMinimum The minimum amount of the last token in the path to receive
-    function swapAndDeposit(bytes memory _path, uint256 _amountIn, uint256 _amountOutMaximum) external payable {
+    function swapAndDeposit(bytes memory _path, uint256 _amountIn, uint256 _amountOutMinimum) external {
         // approve the swap router to spend the fiirst token in the path
         if (!IERC20(_path[0]).approve(swapRouter, _amountIn)) revert ApprovalFailed();
 
@@ -383,7 +383,7 @@ contract UniV3LPHelper is IERC721Receiver {
             recipient: address(this),
             deadline: block.timestamp,
             amountIn: _amountIn,
-            amountOutMaximum: _amountOutMaximum
+            _amountOutMinimum: _amountOutMinimum
         });
 
         // Make the swap
