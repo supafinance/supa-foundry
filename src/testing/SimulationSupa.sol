@@ -85,6 +85,8 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     error NotNFT();
     /// @notice NFT must be owned the the user or user's wallet
     error NotNFTOwner();
+    /// @notice Operation leaves wallet insolvent
+    error Insolvent();
     /// @notice Cannot withdraw debt
     error CannotWithdrawDebt();
     /// @notice Wallet is not liquidatable
@@ -377,6 +379,9 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @param calls An array of transaction calls
     function executeBatch(Call[] memory calls) external override onlyWallet whenNotPaused {
         WalletProxy(payable(msg.sender)).executeBatch(calls);
+        if (!isSolvent(msg.sender)) {
+            revert Insolvent();
+        }
     }
 
     /// @notice ERC721 transfer callback
@@ -406,6 +411,7 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         tokenDataByNFTId[nftId].tokenId = uint240(tokenId);
         wallets[from].insertNFT(nftId, tokenDataByNFTId);
         _tokenStorageCheck(from);
+        emit ISupaCore.ERC721Received(from, msg.sender, tokenId);
         return this.onERC721Received.selector;
     }
 
@@ -444,6 +450,17 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @return the owner address of the `wallet`. Owner is the one who created the `wallet`
     function getWalletOwner(address wallet) external view override returns (address) {
         return wallets[wallet].owner;
+    }
+
+    /// @notice Get the token data for a given NFT ID
+    /// @param nftId The NFT ID to get the token data for
+    /// @return erc721 The address of the ERC721 contract
+    /// @return tokenId The token ID
+    function getERC721DataFromNFTId(WalletLib.NFTId nftId) external view returns (address erc721, uint256 tokenId) {
+        uint16 erc721Idx;
+        (erc721Idx, tokenId) = getNFTData(nftId);
+        erc721 = erc721Infos[erc721Idx].erc721Contract;
+        return (erc721, tokenId);
     }
 
     /// @notice returns the collateral, debt and total value of `walletAddress`.
@@ -758,5 +775,12 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     // Config functions are handled by SupaConfig
     function _implementation() internal view override returns (address) {
         return supaConfigAddress;
+    }
+
+    function getCreditAccountERC20(address walletAddr, IERC20 erc20) external view returns (int256) {
+        WalletLib.Wallet storage wallet = wallets[walletAddr];
+        (ERC20Info storage erc20Info, uint16 erc20Idx) = getERC20Info(erc20);
+        ERC20Share erc20Share = wallet.erc20Share[erc20Idx];
+        return getBalance(erc20Share, erc20Info);
     }
 }
