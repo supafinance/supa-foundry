@@ -11,9 +11,13 @@ import {INonfungiblePositionManager} from "src/external/interfaces/INonfungibleP
 import {ISupa} from "src/interfaces/ISupa.sol";
 import {Call} from "src/lib/Call.sol";
 import {FixedPoint96} from "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
+import {SafeCast} from "src/lib/SafeCast.sol";
+import {Path} from "src/lib/Path.sol";
 
 /// @title Supa UniswapV3 LP Position Helper
 contract UniV3LPHelper is IERC721Receiver {
+    using Path for bytes;
+
     /// @notice The supa contract
     ISupa public supa;
     /// @notice The UniswapV3 NFT manager
@@ -75,8 +79,11 @@ contract UniV3LPHelper is IERC721Receiver {
     /// @param wallet The wallet address
     /// @param amountIn The amount of tokenIn
     /// @param amountOut The amount of tokenOut
-    /// @param path The swap path
-    event SwapAndDeposit(address indexed wallet, uint256 indexed amountIn, uint256 indexed amountOut, bytes path);
+    /// @param tokenIn The token swapped in
+    /// @param tokenOut The token swapped out
+    event SwapAndDeposit(
+        address indexed wallet, uint256 indexed amountIn, uint256 indexed amountOut, address tokenIn, address tokenOut
+    );
 
     constructor(address _supa, address _manager, address _factory, address _swapRouter) {
         supa = ISupa(_supa);
@@ -368,34 +375,122 @@ contract UniV3LPHelper is IERC721Receiver {
 
         // deposit LP token to credit account
         supa.depositERC721ForWallet(manager, msg.sender, newTokenId);
+
+        // return excess tokens
+        token0Balance = IERC20(token0).balanceOf(address(this));
+        token1Balance = IERC20(token1).balanceOf(address(this));
+
+        if (token0Balance > 0) {
+            IERC20(token0).transfer(msg.sender, token0Balance);
+        }
+        if (token1Balance > 0) {
+            IERC20(token1).transfer(msg.sender, token1Balance);
+        }
+
+        emit Rebalance(msg.sender, tokenId, newTokenId, tickLower, tickUpper, token0Balance, token1Balance);
+    }
+
+    function getMintAmounts(
+        address poolAddress,
+        int24 tickLower,
+        int24 tickUpper,
+        uint256 amount0Desired,
+        uint256 amount1Desired
+    ) external view returns (int256 amount0, int256 amount1) {
+        (uint160 sqrtPriceX96, int24 tick,,,,,) = IUniswapV3Pool(poolAddress).slot0();
+
+        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(tickLower);
+        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
+
+        int128 liquidity = int128(
+            LiquidityAmounts.getLiquidityForAmounts(
+                sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, amount0Desired, amount1Desired
+            )
+        );
+
+        if (tick < tickLower) {
+            // current tick is below the passed range; liquidity can only become in range by crossing from left to
+            // right, when we'll need _more_ token0 (it's becoming more valuable) so user must provide it
+            amount0 = SqrtPriceMath.getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, liquidity);
+        } else if (tick < tickUpper) {
+            // current tick is inside the passed range
+            amount0 = SqrtPriceMath.getAmount0Delta(sqrtPriceX96, sqrtRatioBX96, liquidity);
+            amount1 = SqrtPriceMath.getAmount1Delta(sqrtRatioAX96, sqrtPriceX96, liquidity);
+        } else {
+            // current tick is above the passed range; liquidity can only become in range by crossing from right to
+            // left, when we'll need _more_ token1 (it's becoming more valuable) so user must provide it
+            amount1 = SqrtPriceMath.getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, liquidity);
+        }
     }
 
     /// @notice Swaps tokens and deposits the output token to the supa contract
     /// @param _path The path to swap
     /// @param _amountIn The amount of the first token in the path to swap
     /// @param _amountOutMinimum The minimum amount of the last token in the path to receive
-    function swapAndDeposit(bytes memory _path, uint256 _amountIn, uint256 _amountOutMinimum) external {
+    function swapAndDeposit(
+        bytes memory _path,
+        uint256 _amountIn,
+        uint256 _amountOutMinimum,
+        address tokenIn,
+        address tokenOut
+    ) external {
+        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), _amountIn)) revert TransferFailed();
         // approve the swap router to spend the fiirst token in the path
-        if (!IERC20(_path[0]).approve(swapRouter, _amountIn)) revert ApprovalFailed();
+        if (!IERC20(tokenIn).approve(swapRouter, _amountIn)) revert ApprovalFailed();
 
-        ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
-            path: _path,
+        {
+            ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
+                path: _path,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _amountIn,
+                amountOutMinimum: _amountOutMinimum
+            });
+
+            // Make the swap
+            uint256 amountOut = ISwapRouter(swapRouter).exactInput(params);
+
+            // approve the supa contract to spend the last token in the path
+            if (!IERC20(tokenOut).approve(address(supa), amountOut)) revert ApprovalFailed();
+
+            // Deposit amountOut to the supa contract
+            supa.depositERC20ForWallet(tokenOut, msg.sender, amountOut);
+
+            emit SwapAndDeposit(msg.sender, _amountIn, amountOut, tokenIn, tokenOut);
+        }
+    }
+
+    /// @notice Swaps tokens and deposits the output token to the supa contract
+    /// @param _amountIn The amount of the first token in the path to swap
+    /// @param _amountOutMinimum The minimum amount of the last token in the path to receive
+    function swapAndDeposit(uint256 _amountIn, uint256 _amountOutMinimum, address tokenIn, address tokenOut, uint24 fee)
+        external
+    {
+        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), _amountIn)) revert TransferFailed();
+        // approve the swap router to spend the fiirst token in the path
+        if (!IERC20(tokenIn).approve(swapRouter, _amountIn)) revert ApprovalFailed();
+
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            fee: fee,
             recipient: address(this),
             deadline: block.timestamp,
             amountIn: _amountIn,
-            _amountOutMinimum: _amountOutMinimum
+            amountOutMinimum: _amountOutMinimum,
+            sqrtPriceLimitX96: 0
         });
 
         // Make the swap
-        uint256 amountOut = ISwapRouter(swapRouter).exactInput(params);
+        uint256 amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
 
         // approve the supa contract to spend the last token in the path
-        if (!IERC20(_path[_path.length - 1]).approve(address(supa), amountOut)) revert ApprovalFailed();
+        if (!IERC20(tokenOut).approve(address(supa), amountOut)) revert ApprovalFailed();
 
         // Deposit amountOut to the supa contract
-        supa.depositERC20ForWallet(_path[_path.length - 1], msg.sender, amountOut);
+        supa.depositERC20ForWallet(tokenOut, msg.sender, amountOut);
 
-        emit SwapAndDeposit(_path, _recipient, _amountIn, amountOut);
+        emit SwapAndDeposit(msg.sender, _amountIn, amountOut, tokenIn, tokenOut);
     }
 
     /// @param tokenId The tokenId
@@ -875,6 +970,13 @@ library TickMath {
 }
 
 library LiquidityAmounts {
+    /// @notice Downcasts uint256 to uint128
+    /// @param x The uint258 to be downcasted
+    /// @return y The passed value, downcasted to uint128
+    function toUint128(uint256 x) private pure returns (uint128 y) {
+        require((y = uint128(x)) == x);
+    }
+
     /// @notice Computes the amount of token0 for a given amount of liquidity and a price range
     /// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
     /// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
@@ -936,6 +1038,66 @@ library LiquidityAmounts {
             amount1 = getAmount1ForLiquidity(sqrtRatioAX96, sqrtRatioX96, liquidity);
         } else {
             amount1 = getAmount1ForLiquidity(sqrtRatioAX96, sqrtRatioBX96, liquidity);
+        }
+    }
+
+    /// @notice Computes the amount of liquidity received for a given amount of token0 and price range
+    /// @dev Calculates amount0 * (sqrt(upper) * sqrt(lower)) / (sqrt(upper) - sqrt(lower))
+    /// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
+    /// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
+    /// @param amount0 The amount0 being sent in
+    /// @return liquidity The amount of returned liquidity
+    function getLiquidityForAmount0(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, uint256 amount0)
+        internal
+        pure
+        returns (uint128 liquidity)
+    {
+        if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+        uint256 intermediate = FullMath.mulDiv(sqrtRatioAX96, sqrtRatioBX96, FixedPoint96.Q96);
+        return toUint128(FullMath.mulDiv(amount0, intermediate, sqrtRatioBX96 - sqrtRatioAX96));
+    }
+
+    /// @notice Computes the amount of liquidity received for a given amount of token1 and price range
+    /// @dev Calculates amount1 / (sqrt(upper) - sqrt(lower)).
+    /// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
+    /// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
+    /// @param amount1 The amount1 being sent in
+    /// @return liquidity The amount of returned liquidity
+    function getLiquidityForAmount1(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, uint256 amount1)
+        internal
+        pure
+        returns (uint128 liquidity)
+    {
+        if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+        return toUint128(FullMath.mulDiv(amount1, FixedPoint96.Q96, sqrtRatioBX96 - sqrtRatioAX96));
+    }
+
+    /// @notice Computes the maximum amount of liquidity received for a given amount of token0, token1, the current
+    /// pool prices and the prices at the tick boundaries
+    /// @param sqrtRatioX96 A sqrt price representing the current pool prices
+    /// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
+    /// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
+    /// @param amount0 The amount of token0 being sent in
+    /// @param amount1 The amount of token1 being sent in
+    /// @return liquidity The maximum amount of liquidity received
+    function getLiquidityForAmounts(
+        uint160 sqrtRatioX96,
+        uint160 sqrtRatioAX96,
+        uint160 sqrtRatioBX96,
+        uint256 amount0,
+        uint256 amount1
+    ) internal pure returns (uint128 liquidity) {
+        if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+
+        if (sqrtRatioX96 <= sqrtRatioAX96) {
+            liquidity = getLiquidityForAmount0(sqrtRatioAX96, sqrtRatioBX96, amount0);
+        } else if (sqrtRatioX96 < sqrtRatioBX96) {
+            uint128 liquidity0 = getLiquidityForAmount0(sqrtRatioX96, sqrtRatioBX96, amount0);
+            uint128 liquidity1 = getLiquidityForAmount1(sqrtRatioAX96, sqrtRatioX96, amount1);
+
+            liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
+        } else {
+            liquidity = getLiquidityForAmount1(sqrtRatioAX96, sqrtRatioBX96, amount1);
         }
     }
 }
@@ -1054,6 +1216,109 @@ library FullMath {
                 require(result < type(uint256).max, "result overflow");
                 result++;
             }
+        }
+    }
+}
+
+/// @title Functions based on Q64.96 sqrt price and liquidity
+/// @notice Contains the math that uses square root of price as a Q64.96 and liquidity to compute deltas
+library SqrtPriceMath {
+    using SafeCast for uint256;
+
+    /// @notice Gets the amount0 delta between two prices
+    /// @dev Calculates liquidity / sqrt(lower) - liquidity / sqrt(upper),
+    /// i.e. liquidity * (sqrt(upper) - sqrt(lower)) / (sqrt(upper) * sqrt(lower))
+    /// @param sqrtRatioAX96 A sqrt price
+    /// @param sqrtRatioBX96 Another sqrt price
+    /// @param liquidity The amount of usable liquidity
+    /// @param roundUp Whether to round the amount up or down
+    /// @return amount0 Amount of token0 required to cover a position of size liquidity between the two passed prices
+    function getAmount0Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, uint128 liquidity, bool roundUp)
+        internal
+        pure
+        returns (uint256 amount0)
+    {
+        unchecked {
+            if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+
+            uint256 numerator1 = uint256(liquidity) << FixedPoint96.RESOLUTION;
+            uint256 numerator2 = sqrtRatioBX96 - sqrtRatioAX96;
+
+            require(sqrtRatioAX96 > 0);
+
+            return roundUp
+                ? UnsafeMath.divRoundingUp(FullMath.mulDivRoundingUp(numerator1, numerator2, sqrtRatioBX96), sqrtRatioAX96)
+                : FullMath.mulDiv(numerator1, numerator2, sqrtRatioBX96) / sqrtRatioAX96;
+        }
+    }
+
+    /// @notice Gets the amount1 delta between two prices
+    /// @dev Calculates liquidity * (sqrt(upper) - sqrt(lower))
+    /// @param sqrtRatioAX96 A sqrt price
+    /// @param sqrtRatioBX96 Another sqrt price
+    /// @param liquidity The amount of usable liquidity
+    /// @param roundUp Whether to round the amount up, or down
+    /// @return amount1 Amount of token1 required to cover a position of size liquidity between the two passed prices
+    function getAmount1Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, uint128 liquidity, bool roundUp)
+        internal
+        pure
+        returns (uint256 amount1)
+    {
+        unchecked {
+            if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+
+            return roundUp
+                ? FullMath.mulDivRoundingUp(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96)
+                : FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96);
+        }
+    }
+
+    /// @notice Helper that gets signed token0 delta
+    /// @param sqrtRatioAX96 A sqrt price
+    /// @param sqrtRatioBX96 Another sqrt price
+    /// @param liquidity The change in liquidity for which to compute the amount0 delta
+    /// @return amount0 Amount of token0 corresponding to the passed liquidityDelta between the two prices
+    function getAmount0Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, int128 liquidity)
+        internal
+        pure
+        returns (int256 amount0)
+    {
+        unchecked {
+            return liquidity < 0
+                ? -getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
+                : getAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
+        }
+    }
+
+    /// @notice Helper that gets signed token1 delta
+    /// @param sqrtRatioAX96 A sqrt price
+    /// @param sqrtRatioBX96 Another sqrt price
+    /// @param liquidity The change in liquidity for which to compute the amount1 delta
+    /// @return amount1 Amount of token1 corresponding to the passed liquidityDelta between the two prices
+    function getAmount1Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, int128 liquidity)
+        internal
+        pure
+        returns (int256 amount1)
+    {
+        unchecked {
+            return liquidity < 0
+                ? -getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
+                : getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
+        }
+    }
+}
+
+/// @title Math functions that do not check inputs or outputs
+/// @notice Contains methods that perform common math functions but do not do any overflow or underflow checks
+library UnsafeMath {
+    /// @notice Returns ceil(x / y)
+    /// @dev division by 0 has unspecified behavior, and must be checked externally
+    /// @param x The dividend
+    /// @param y The divisor
+    /// @return z The quotient, ceil(x / y)
+    function divRoundingUp(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        assembly {
+            z := add(div(x, y), gt(mod(x, y), 0))
         }
     }
 }
