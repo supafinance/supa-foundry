@@ -14,4 +14,4 @@ contract DeployGelatoOperator is Script {
     }
 }
 
-// forge script script/deploy/gelatoOperator.s.sol:DeployGelatoOperator --rpc-url $GOERLI_RPC_URL --broadcast -vvvv
+// forge script script/deploy/periphery/gelatoOperator.s.sol:DeployGelatoOperator --rpc-url $GOERLI_RPC_URL --broadcast -vvvv

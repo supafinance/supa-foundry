@@ -14,4 +14,4 @@ contract DeployBoostModeHelper is Script {
     }
 }
 
-// forge script script/deploy/boostModeHelper.s.sol:DeployBoostModeHelper --rpc-url $GOERLI_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --verify -vvvv
+// forge script script/deploy/periphery/boostModeHelper.s.sol:DeployBoostModeHelper --rpc-url $GOERLI_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --verify -vvvv
