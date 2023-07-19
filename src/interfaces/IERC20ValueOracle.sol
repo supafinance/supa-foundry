@@ -8,6 +8,10 @@ interface IERC20ValueOracle {
     /// @param borrowFactor Borrow factor
     event RiskFactorsSet(int256 indexed collateralFactor, int256 indexed borrowFactor);
 
+    function collateralFactor() external view returns (int256 collateralFactor);
+
+    function borrowFactor() external view returns (int256 borrowFactor);
+
     function calcValue(int256 balance) external view returns (int256 value, int256 riskAdjustedValue);
 
     function getValues()
