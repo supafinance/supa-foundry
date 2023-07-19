@@ -18,7 +18,7 @@ contract UniV3Twap {
 
             (int56[] memory tickCumulatives,) = IUniswapV3Pool(uniswapV3Pool).observe(secondsAgos);
 
-            // tick(imprecise as it's an integer) to price
+            // tick to price
             sqrtPriceX96 = TickMath.getSqrtRatioAtTick(
                 int24((tickCumulatives[1] - tickCumulatives[0]) / int56(uint56(twapInterval)))
             );
