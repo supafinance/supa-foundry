@@ -33,9 +33,7 @@ library TickMath {
         uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
         require(absTick <= uint256(uint24(MAX_TICK)), "T");
 
-        uint256 ratio = absTick & 0x1 != 0
-            ? 0xfffcb933bd6fad37aa2d162d1a594001
-            : 0x100000000000000000000000000000000;
+        uint256 ratio = absTick & 0x1 != 0 ? 0xfffcb933bd6fad37aa2d162d1a594001 : 0x100000000000000000000000000000000;
         if (absTick & 0x2 != 0) ratio = (ratio * 0xfff97272373d413259a46990580e213a) >> 128;
         if (absTick & 0x4 != 0) ratio = (ratio * 0xfff2e50f5f656932ef12357cf3c7fdcc) >> 128;
         if (absTick & 0x8 != 0) ratio = (ratio * 0xffe5caca7e10e4e61c3624eaa0941cd0) >> 128;
@@ -88,6 +86,53 @@ contract UniV3Oracle is ImmutableGovernance, INFTValueOracle {
         collateralFactor = _collateralFactor;
     }
 
+    function getTokenAmounts(uint256 tokenId) external view returns (int256 amount0, int256 amount1) {
+        address token0;
+        address token1;
+        int256 liquidity;
+        int256 sqrtPrice;
+        int256 baseX;
+        int256 baseY;
+        {
+            (
+                ,
+                ,
+                address token0Tmp,
+                address token1Tmp,
+                uint24 fee,
+                int24 tickLower,
+                int24 tickUpper,
+                uint128 liquidityUnsigned,
+                ,
+                ,
+                ,
+            ) = manager.positions(tokenId);
+            liquidity = int256(uint256(liquidityUnsigned));
+            IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(token0Tmp, token1Tmp, fee));
+            (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
+            sqrtPrice = int256(uint256(sqrtPriceX96));
+            token0 = token0Tmp;
+            token1 = token1Tmp;
+            int256 lowerSqrtPrice = TickMath.getSqrtRatioAtTick(tickLower);
+            int256 upperSqrtPrice = TickMath.getSqrtRatioAtTick(tickUpper);
+            // Clamp the price into the range
+            sqrtPrice = FsMath.clip(sqrtPrice, lowerSqrtPrice, upperSqrtPrice);
+            baseX = (liquidity * Q96) / upperSqrtPrice;
+            baseY = (lowerSqrtPrice * liquidity) / Q96;
+        }
+        // X token0 amount, Y token1 amount
+        // L = sqrt(X * Y)  p = Y / X
+        // Thus sqrt(p) * L = Y and sqrt(p) / L = X
+
+        int256 amountY = (sqrtPrice * liquidity) / Q96 - baseY;
+        int256 amountX = (liquidity * Q96) / sqrtPrice - baseX;
+
+        amount0 = int256(amountX);
+        amount1 = int256(amountY);
+
+        return (amount0, amount1);
+    }
+
     function calcValue(uint256 tokenId) external view override returns (int256, int256) {
         address token0;
         address token1;
@@ -108,11 +153,10 @@ contract UniV3Oracle is ImmutableGovernance, INFTValueOracle {
                 ,
                 ,
                 ,
-
             ) = manager.positions(tokenId);
             liquidity = int256(uint256(liquidityUnsigned));
             IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(token0Tmp, token1Tmp, fee));
-            (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
+            (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
             sqrtPrice = int256(uint256(sqrtPriceX96));
             token0 = token0Tmp;
             token1 = token1Tmp;
