@@ -20,19 +20,19 @@ import {
     ContractData,
     ContractKind
 } from "../interfaces/ISupa.sol";
-import {SupaState} from "./SupaState.sol";
-import {WalletProxy} from "../wallet/WalletProxy.sol";
-import {IVersionManager} from "../interfaces/IVersionManager.sol";
-import {IERC1363SpenderExtended} from "../interfaces/IERC1363-extended.sol";
-import {WalletLib} from "../lib/WalletLib.sol";
-import {ERC20PoolLib} from "../lib/ERC20PoolLib.sol";
-import {Call} from "../lib/Call.sol";
-import {FsUtils} from "../lib/FsUtils.sol";
-import {FsMath} from "../lib/FsMath.sol";
+import {SupaState} from "src/supa/SupaState.sol";
+import {WalletProxy} from "src/wallet/WalletProxy.sol";
+import {IVersionManager} from "src/interfaces/IVersionManager.sol";
+import {IERC1363SpenderExtended} from "src/interfaces/IERC1363-extended.sol";
+import {WalletLib} from "src/lib/WalletLib.sol";
+import {ERC20PoolLib} from "src/lib/ERC20PoolLib.sol";
+import {Call} from "src/lib/Call.sol";
+import {FsUtils} from "src/lib/FsUtils.sol";
+import {FsMath} from "src/lib/FsMath.sol";
 
-import "../interfaces/IERC20ValueOracle.sol";
-import "../interfaces/INFTValueOracle.sol";
-import {PERMIT2, IPermit2} from "../external/interfaces/IPermit2.sol";
+import "src/interfaces/IERC20ValueOracle.sol";
+import "src/interfaces/INFTValueOracle.sol";
+import {PERMIT2, IPermit2} from "src/external/interfaces/IPermit2.sol";
 
 // ERC20 standard token
 // ERC721 single non-fungible token support
@@ -452,7 +452,10 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return wallets[wallet].owner;
     }
 
-    ///
+    /// @notice Get the token data for a given NFT ID
+    /// @param nftId The NFT ID to get the token data for
+    /// @return erc721 The address of the ERC721 contract
+    /// @return tokenId The token ID
     function getERC721DataFromNFTId(WalletLib.NFTId nftId) external view returns (address erc721, uint256 tokenId) {
         uint16 erc721Idx;
         (erc721Idx, tokenId) = getNFTData(nftId);

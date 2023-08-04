@@ -18,4 +18,4 @@ contract DeployUniV3LPHelper is Script {
     }
 }
 
-// forge script script/deploy/periphery/uniV3LPHelper.s.sol:DeployUniV3LPHelper --rpc-url $GOERLI_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --verify -vvvv
+// forge script script/deploy/periphery/uniV3LPHelper.s.sol:DeployUniV3LPHelper --rpc-url $GOERLI_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY -vvvv

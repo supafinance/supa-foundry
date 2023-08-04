@@ -27,6 +27,7 @@ contract GelatoOperator {
     /// @param _target The target Supa wallet
     /// @param _calls The calls to execute
     function execute(WalletProxy _target, Call[] calldata _calls) external onlyDedicatedSender {
+        // todo: need to pass an identifier to verify that the taskId was created by a trusted address.
         _target.executeBatch(_calls);
     }
 }

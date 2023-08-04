@@ -37,6 +37,8 @@ contract UniV3LPHelper is IERC721Receiver {
     error InvalidManager();
     /// @notice Invalid data
     error InvalidData();
+    /// @notice Thrown when percentage is greater than 100
+    error InvalidPercentage();
 
     /// @notice Emitted when an LP token is minted and deposited
     /// @param wallet The wallet address
@@ -222,7 +224,23 @@ contract UniV3LPHelper is IERC721Receiver {
         // transfer LP token to this contract
         IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
 
-        _quickWithdraw(tokenId, msg.sender);
+        _quickWithdraw(tokenId, msg.sender, 100);
+
+        // transfer lp token to msg.sender
+        IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
+    }
+
+    /// @notice Remove liquidity and collect fees
+    /// @param tokenId LP token ID
+    /// @param percentage The percentage of liquidity to withdraw
+    function quickWithdrawPercentage(uint256 tokenId, uint8 percentage) external {
+        if (percentage > 100) {
+            revert InvalidPercentage();
+        }
+        // transfer LP token to this contract
+        IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
+
+        _quickWithdraw(tokenId, msg.sender, percentage);
 
         // transfer lp token to msg.sender
         IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
@@ -501,25 +519,25 @@ contract UniV3LPHelper is IERC721Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external returns (bytes4) {
-        if (msg.sender != address(manager)) {
-            revert InvalidManager();
-        }
-        if (data[0] == 0x00) {
-            // reinvest
-            _reinvest(tokenId);
-            // deposit LP token to credit account
-            supa.depositERC721ForWallet(manager, from, tokenId);
-        } else if (data[0] == 0x01) {
-            // quick withdraw
-            bool success = _quickWithdraw(tokenId, from);
-            if (!success) {
-                revert("Quick withdraw failed");
-            }
-            // transfer lp token to msg.sender
-            IERC721(address(manager)).transferFrom(address(this), from, tokenId);
-        } else if (data[0] == 0x02) {
-            // rebalance
-        }
+//        if (msg.sender != address(manager)) {
+//            revert InvalidManager();
+//        }
+//        if (data[0] == 0x00) {
+//            // reinvest
+//            _reinvest(tokenId);
+//            // deposit LP token to credit account
+//            supa.depositERC721ForWallet(manager, from, tokenId);
+//        } else if (data[0] == 0x01) {
+//            // quick withdraw
+//            bool success = _quickWithdraw(tokenId, from, 100);
+//            if (!success) {
+//                revert("Quick withdraw failed");
+//            }
+//            // transfer lp token to msg.sender
+//            IERC721(address(manager)).transferFrom(address(this), from, tokenId);
+//        } else if (data[0] == 0x02) {
+//            // rebalance
+//        }
 
         return this.onERC721Received.selector;
     }
@@ -558,16 +576,18 @@ contract UniV3LPHelper is IERC721Receiver {
         return (amount0, amount1);
     }
 
-    function _quickWithdraw(uint256 tokenId, address from) internal returns (bool) {
+    function _quickWithdraw(uint256 tokenId, address from, uint8 percentage) internal returns (bool) {
         // get current position values
         (,, address token0, address token1,,,, uint128 liquidity,,,,) =
             INonfungiblePositionManager(manager).positions(tokenId);
+
+        uint128 liquidityToWithdraw = percentage == 100 ? liquidity : liquidity * percentage / 100;
 
         // remove liquidity
         INonfungiblePositionManager(manager).decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: tokenId,
-                liquidity: liquidity,
+                liquidity: liquidityToWithdraw,
                 amount0Min: 0,
                 amount1Min: 0,
                 deadline: block.timestamp
