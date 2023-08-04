@@ -115,7 +115,7 @@ contract WalletLogic is
     ///   * to - is the address of the contract whose function should be called
     ///   * callData - encoded function name and it's arguments
     ///   * value - the amount of ETH to sent with the call
-    function executeBatch(Call[] memory calls) external payable onlyOwnerOrOperator {
+    function executeBatch(Call[] calldata calls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
         CallLib.executeBatch(calls);
