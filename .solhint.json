@@ -1,8 +1,16 @@
 {
   "extends": "solhint:recommended",
   "rules": {
+    "avoid-low-level-calls": "off",
     "compiler-version": ["error", "^0.8.0"],
-    "func-visibility": ["warn", { "ignoreConstructors": true }],
-    "no-console": "warn"
+    "contract-name-camelcase": "off",
+    "const-name-snakecase": "off",
+    "func-name-mixedcase": "off",
+    "func-visibility": ["error", { "ignoreConstructors": true }],
+    "no-console": "warn",
+    "no-empty-blocks": "off",
+    "not-rely-on-time": "off",
+    "var-name-mixedcase": "off"
+
   }
 }
