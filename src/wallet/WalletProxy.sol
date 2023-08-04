@@ -24,25 +24,9 @@ contract WalletProxy is WalletState, Proxy {
     }
 
     constructor(
-        address _supa,
-        address[] memory erc20s,
-        address[] memory erc721s
+        address _supa
     ) WalletState(_supa) {
-        // Approve Supa and PERMIT2 to spend all ERC20s
-        for (uint256 i = 0; i < erc20s.length; i++) {
-            // slither-disable-next-line missing-zero-check
-            IERC20 erc20 = IERC20(FsUtils.nonNull(erc20s[i]));
-            erc20.approve(_supa, type(uint256).max);
-            erc20.approve(address(PERMIT2), type(uint256).max);
-            erc20.approve(address(TRANSFER_AND_CALL2), type(uint256).max);
-        }
-        // Approve Supa to spend all ERC721s
-        for (uint256 i = 0; i < erc721s.length; i++) {
-            // slither-disable-next-line missing-zero-check
-            IERC721 erc721 = IERC721(FsUtils.nonNull(erc721s[i]));
-            erc721.setApprovalForAll(_supa, true);
-            // Add future uniswap permit for ERC721 support
-        }
+        // solhint-disable-next-line no-empty-blocks
     }
 
     // Allow ETH transfers
