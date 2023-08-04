@@ -234,16 +234,7 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
     /// @notice creates a new wallet with sender as the owner and returns the wallet address
     /// @return wallet The address of the created wallet
     function createWallet() external override whenNotPaused returns (address wallet) {
-        address[] memory erc20s = new address[](erc20Infos.length);
-        for (uint256 i = 0; i < erc20Infos.length; i++) {
-            erc20s[i] = erc20Infos[i].erc20Contract;
-        }
-        address[] memory erc721s = new address[](erc721Infos.length);
-        for (uint256 i = 0; i < erc721Infos.length; i++) {
-            erc721s[i] = erc721Infos[i].erc721Contract;
-        }
-
-        wallet = address(new WalletProxy(address(this), erc20s, erc721s));
+        wallet = address(new WalletProxy{salt: keccak256(abi.encode(msg.sender, walletNonce[msg.sender]++))}(address(this)));
         wallets[wallet].owner = msg.sender;
 
         // add a version parameter if users should pick a specific version

@@ -27,6 +27,9 @@ contract SupaState is Pausable {
     /// @notice mapping between wallet address and Supa-specific wallet data
     mapping(address => WalletLib.Wallet) public wallets;
 
+    /// @notice mapping between account and their nonce for wallet creation
+    mapping(address account => uint256 nonce) public walletNonce;
+
     /// @notice mapping between wallet address and the proposed new owner
     /// @dev `proposedNewOwner` is address(0) when there is no pending change
     mapping(address => address) public walletProposedNewOwner;
