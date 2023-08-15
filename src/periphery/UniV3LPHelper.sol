@@ -96,6 +96,12 @@ contract UniV3LPHelper is IERC721Receiver {
         IERC721(manager).setApprovalForAll(_supa, true);
     }
 
+    /// @notice Allows this contract to deposit `token` to a credit account
+    /// @param token The token to approve
+    function approveTokenForSupa(address token) external {
+        IERC20(token).approve(address(supa), type(uint256).max);
+    }
+
     /// @notice Mint and deposit LP token to credit account
     /// @param params MintParams struct
     function mintAndDeposit(INonfungiblePositionManager.MintParams memory params)
@@ -394,15 +400,17 @@ contract UniV3LPHelper is IERC721Receiver {
         // deposit LP token to credit account
         supa.depositERC721ForWallet(manager, msg.sender, newTokenId);
 
-        // return excess tokens
-        token0Balance = IERC20(token0).balanceOf(address(this));
-        token1Balance = IERC20(token1).balanceOf(address(this));
+        {
+            // return excess tokens
+            uint256 returnToken0Balance = IERC20(token0).balanceOf(address(this));
+            uint256 returnToken1Balance = IERC20(token1).balanceOf(address(this));
 
-        if (token0Balance > 0) {
-            IERC20(token0).transfer(msg.sender, token0Balance);
-        }
-        if (token1Balance > 0) {
-            IERC20(token1).transfer(msg.sender, token1Balance);
+            if (returnToken0Balance > 0) {
+                supa.depositERC20ForWallet(token0, msg.sender, returnToken0Balance);
+            }
+            if (returnToken1Balance > 0) {
+                supa.depositERC20ForWallet(token1, msg.sender, returnToken1Balance);
+            }
         }
 
         emit Rebalance(msg.sender, tokenId, newTokenId, tickLower, tickUpper, token0Balance, token1Balance);
@@ -726,6 +734,17 @@ contract UniV3LPHelper is IERC721Receiver {
                 deadline: block.timestamp
             })
         );
+
+        // return excess tokens
+        token0Balance = IERC20(token0).balanceOf(address(this));
+        token1Balance = IERC20(token1).balanceOf(address(this));
+
+        if (token0Balance > 0) {
+            supa.depositERC20ForWallet(token0, msg.sender, token0Balance);
+        }
+        if (token1Balance > 0) {
+            supa.depositERC20ForWallet(token1, msg.sender, token1Balance);
+        }
 
         emit Rebalance(msg.sender, tokenId, newTokenId, tickLower, tickUpper, token0Balance, token1Balance);
     }

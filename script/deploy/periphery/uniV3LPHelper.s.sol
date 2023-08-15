@@ -12,8 +12,14 @@ contract DeployUniV3LPHelper is Script {
         address manager = vm.envAddress("NONFUNGIBLE_POSITION_MANAGER");
         address factory = vm.envAddress("UNISWAP_V3_FACTORY");
         address swapRouter = vm.envAddress("SWAP_ROUTER");
+        address weth = vm.envAddress("WETH_GOERLI");
+        address usdc = vm.envAddress("USDC_GOERLI");
+        address uni = vm.envAddress("UNI");
         vm.startBroadcast(deployerPrivateKey);
-        new UniV3LPHelper(supa, manager, factory, swapRouter);
+        UniV3LPHelper uniV3LpHelper = new UniV3LPHelper(supa, manager, factory, swapRouter);
+        uniV3LpHelper.approveTokenForSupa(weth);
+        uniV3LpHelper.approveTokenForSupa(usdc);
+        uniV3LpHelper.approveTokenForSupa(uni);
         vm.stopBroadcast();
     }
 }
