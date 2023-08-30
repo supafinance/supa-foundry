@@ -28,6 +28,25 @@ struct Call {
     uint256 value;
 }
 
+/// @notice Specify a batch of calls to be executed in sequence,
+/// @notice with the return values of some calls being passed as arguments to later calls.
+    struct LinkedCall {
+        Call call;
+        CallOffset[] offsets;
+    }
+
+/// @notice The info needed to link a return value to a call
+    struct CallOffset {
+        // index of the return variable in the return data
+        uint32 linkedReturnValue;
+        // indicates whether the return value is static or dynamic
+        bool isStatic;
+        // index of the call to be updated
+        uint32 call;
+        // offset in the call data where the return value should be spliced in
+        uint128 offset;
+    }
+
 library CallLib {
     using Address for address;
 
@@ -51,8 +70,8 @@ library CallLib {
      *
      * @param call The call to execute.
      */
-    function execute(Call memory call) internal {
-        call.to.functionCallWithValue(call.callData, call.value);
+    function execute(Call memory call) internal returns (bytes memory) {
+        return call.to.functionCallWithValue(call.callData, call.value);
     }
 
     /**

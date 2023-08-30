@@ -14,9 +14,10 @@ import {IVersionManager} from "../interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "../interfaces/ITransferReceiver2.sol";
 import {IWallet} from "../interfaces/IWallet.sol";
 import {IERC1363SpenderExtended} from "../interfaces/IERC1363-extended.sol";
-import {CallLib, Call} from "../lib/Call.sol";
+import {CallLib, Call, LinkedCall, CallOffset} from "../lib/Call.sol";
 import {NonceMapLib, NonceMap} from "../lib/NonceMap.sol";
 import {ImmutableVersion} from "../lib/ImmutableVersion.sol";
+import {BytesLib} from "../lib/BytesLib.sol";
 
 // Calls to the contract not coming from Supa itself are routed to this logic
 // contract. This allows for flexible extra addition to your wallet.
@@ -32,6 +33,7 @@ contract WalletLogic is
     IERC1363SpenderExtended
 {
     using NonceMapLib for NonceMap;
+    using BytesLib for bytes;
 
     bytes private constant EXECUTEBATCH_TYPESTRING =
         "ExecuteBatch(Call[] calls,uint256 nonce,uint256 deadline)";
@@ -294,5 +296,77 @@ contract WalletLogic is
 
     function valueNonce(uint256 nonce) external view returns (bool) {
         return nonceMap.getNonce(nonce);
+    }
+
+    /// @notice Execute a batch of calls with linked return values.
+    /// @param linkedCalls The calls to execute.
+    function executeBatchLink(LinkedCall[] memory linkedCalls) external payable onlyOwnerOrOperator {
+        bool saveForwardNFT = forwardNFT;
+        forwardNFT = false;
+
+        // get the first call
+        Call memory call;
+
+        // loop through the calls
+        uint256 l = linkedCalls.length;
+        for (uint256 i = 0; i < l;) {
+            // get the next call to execute
+            call = linkedCalls[i].call;
+            // execute the call and store the return data
+            bytes memory returnData = CallLib.execute(call);
+
+            // loop through the offsets (the number of return values to be passed in the next call)
+            uint256 offsetLength = linkedCalls[i].offsets.length;
+            for (uint256 j = 0; j < offsetLength;) {
+                CallOffset memory callOffset = linkedCalls[i].offsets[j];
+                // get the call index, offset, and linked return value
+                uint32 callIndex = callOffset.call;
+                uint128 offset = callOffset.offset;
+                uint32 linkedReturnValue = callOffset.linkedReturnValue;
+                bool isStatic = callOffset.isStatic;
+
+                bytes memory spliceCalldata;
+
+                 if (isStatic) {
+                     // Get the variable's offset from the return data
+                     uint256 linkedReturnValueOffset = linkedReturnValue * 32;
+
+                     // get the variable of interest from the return data
+                     spliceCalldata = returnData.slice(linkedReturnValueOffset, 32);
+                 } else {
+                     uint256 pointer = uint256(bytes32(returnData.slice(linkedReturnValue * 32, 32)));
+                     uint256 len = uint256(bytes32(returnData.slice(pointer, 32)));
+                     spliceCalldata = returnData.slice(pointer + 32, len);
+                 }
+
+                // revert if call has already been executed
+                if (callIndex <= i) {
+                    revert InvalidData();
+                }
+
+                bytes memory callData = linkedCalls[callIndex].call.callData;
+
+                // splice the variable into the next call's calldata
+                bytes memory prebytes = callData.slice(0, offset);
+                bytes memory postbytes = callData.slice(offset + 32, callData.length - offset - 32);
+                bytes memory newCallData = prebytes.concat(spliceCalldata.concat(postbytes));
+
+                linkedCalls[callIndex].call.callData = newCallData;
+                // increment the return value index
+                unchecked {
+                    j++;
+                }
+            }
+            // increment the call index
+            unchecked {
+                i++;
+            }
+        }
+
+        forwardNFT = saveForwardNFT;
+
+        if (!supa.isSolvent(address(this))) {
+            revert Insolvent();
+        }
     }
 }
