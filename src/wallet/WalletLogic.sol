@@ -53,7 +53,7 @@ contract WalletLogic is
             )
         );
 
-    string private constant VERSION = "1.0.0";
+    string private constant VERSION = "0.1.0";
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
