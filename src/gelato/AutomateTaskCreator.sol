@@ -14,6 +14,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 abstract contract AutomateTaskCreator is AutomateReady {
     using SafeERC20 for IERC20;
 
+    event TaskCancelled(bytes32 indexed taskId);
+
     address public immutable fundsOwner;
     IGelato1Balance public constant gelato1Balance = IGelato1Balance(0x7506C12a824d73D9b08564d5Afc22c949434755e);
 
@@ -48,6 +50,7 @@ abstract contract AutomateTaskCreator is AutomateReady {
 
     function _cancelTask(bytes32 _taskId) internal {
         automate.cancelTask(_taskId);
+        emit TaskCancelled(_taskId);
     }
 
     function _resolverModuleArg(address _resolverAddress, bytes memory _resolverData)
