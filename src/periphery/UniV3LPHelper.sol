@@ -43,7 +43,9 @@ contract UniV3LPHelper is IERC721Receiver {
     /// @notice Emitted when an LP token is minted and deposited
     /// @param wallet The wallet address
     /// @param tokenId The LP token ID
-    event MintAndDeposit(address indexed wallet, uint256 indexed tokenId);
+    /// @param amount0 The amount of token0 deposited
+    /// @param amount1 The amount of token1 deposited
+    event MintAndDeposit(address indexed wallet, uint256 indexed tokenId, uint256 amount0, uint256 amount1);
 
     /// @notice Emitted when fees are collected and reinvested
     /// @param wallet The wallet address
@@ -94,53 +96,6 @@ contract UniV3LPHelper is IERC721Receiver {
         swapRouter = _swapRouter;
 
         IERC721(manager).setApprovalForAll(_supa, true);
-    }
-
-    /// @notice Allows this contract to deposit `token` to a credit account
-    /// @param token The token to approve
-    function approveTokenForSupa(address token) external {
-        IERC20(token).approve(address(supa), type(uint256).max);
-    }
-
-    /// @notice Mint and deposit LP token to credit account
-    /// @param params MintParams struct
-    function mintAndDeposit(INonfungiblePositionManager.MintParams memory params)
-        external
-        payable
-        returns (uint256 tokenId)
-    {
-        // Transfer tokens to this contract
-        if (
-            !IERC20(params.token0).transferFrom(msg.sender, address(this), params.amount0Desired)
-                || !IERC20(params.token1).transferFrom(msg.sender, address(this), params.amount1Desired)
-        ) {
-            revert TransferFailed();
-        }
-
-        // Approve tokens to manager
-        if (
-            !IERC20(params.token0).approve(manager, params.amount0Desired)
-                || !IERC20(params.token1).approve(manager, params.amount1Desired)
-        ) {
-            revert ApprovalFailed();
-        }
-
-        // Update recipient to this contract
-        params.recipient = address(this);
-
-        // Mint LP token
-        (tokenId,,,) = INonfungiblePositionManager(manager).mint(params);
-
-        // Deposit LP token to credit account
-        supa.depositERC721ForWallet(manager, msg.sender, tokenId);
-
-        // send back excess tokens
-        uint256 token0Balance = IERC20(params.token0).balanceOf(address(this));
-        uint256 token1Balance = IERC20(params.token1).balanceOf(address(this));
-        supa.depositERC20ForWallet(params.token0, msg.sender, token0Balance);
-        supa.depositERC20ForWallet(params.token1, msg.sender, token1Balance);
-
-        emit MintAndDeposit(msg.sender, tokenId);
     }
 
     /// @notice Mint and deposit LP token to credit account
@@ -207,7 +162,10 @@ contract UniV3LPHelper is IERC721Receiver {
         supa.depositERC20ForWallet(params.token0, msg.sender, token0Balance);
         supa.depositERC20ForWallet(params.token1, msg.sender, token1Balance);
 
-        emit MintAndDeposit(msg.sender, tokenId);
+        uint256 amount0 = amount0Desired - token0Balance;
+        uint256 amount1 = amount1Desired - token1Balance;
+
+        emit MintAndDeposit(msg.sender, tokenId, amount0, amount1);
     }
 
     /// @notice Collect fees and reinvest
@@ -406,9 +364,11 @@ contract UniV3LPHelper is IERC721Receiver {
             uint256 returnToken1Balance = IERC20(token1).balanceOf(address(this));
 
             if (returnToken0Balance > 0) {
+                IERC20(token0).approve(address(supa), returnToken0Balance);
                 supa.depositERC20ForWallet(token0, msg.sender, returnToken0Balance);
             }
             if (returnToken1Balance > 0) {
+                IERC20(token1).approve(address(supa), returnToken1Balance);
                 supa.depositERC20ForWallet(token1, msg.sender, returnToken1Balance);
             }
         }
@@ -527,25 +487,25 @@ contract UniV3LPHelper is IERC721Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external returns (bytes4) {
-//        if (msg.sender != address(manager)) {
-//            revert InvalidManager();
-//        }
-//        if (data[0] == 0x00) {
-//            // reinvest
-//            _reinvest(tokenId);
-//            // deposit LP token to credit account
-//            supa.depositERC721ForWallet(manager, from, tokenId);
-//        } else if (data[0] == 0x01) {
-//            // quick withdraw
-//            bool success = _quickWithdraw(tokenId, from, 100);
-//            if (!success) {
-//                revert("Quick withdraw failed");
-//            }
-//            // transfer lp token to msg.sender
-//            IERC721(address(manager)).transferFrom(address(this), from, tokenId);
-//        } else if (data[0] == 0x02) {
-//            // rebalance
-//        }
+        //        if (msg.sender != address(manager)) {
+        //            revert InvalidManager();
+        //        }
+        //        if (data[0] == 0x00) {
+        //            // reinvest
+        //            _reinvest(tokenId);
+        //            // deposit LP token to credit account
+        //            supa.depositERC721ForWallet(manager, from, tokenId);
+        //        } else if (data[0] == 0x01) {
+        //            // quick withdraw
+        //            bool success = _quickWithdraw(tokenId, from, 100);
+        //            if (!success) {
+        //                revert("Quick withdraw failed");
+        //            }
+        //            // transfer lp token to msg.sender
+        //            IERC721(address(manager)).transferFrom(address(this), from, tokenId);
+        //        } else if (data[0] == 0x02) {
+        //            // rebalance
+        //        }
 
         return this.onERC721Received.selector;
     }
