@@ -139,6 +139,30 @@ contract WalletTest is Test {
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
     }
 
+    function testExecuteSignedBatchReplay() public {
+        SigUtils sigUtils = new SigUtils();
+        uint256 userPrivateKey = 0xB0B;
+        address user = vm.addr(userPrivateKey);
+        vm.prank(user);
+        userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
+        WalletProxy userWallet2 = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
+
+        Call[] memory calls = new Call[](0);
+        uint256 nonce = 0;
+        uint256 deadline = type(uint256).max;
+
+        bytes32 digest = sigUtils.getTypedDataHash(address(userWallet), calls, nonce, deadline);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // address recovered = ecrecover(digest, v, r, s);
+
+        WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
+        vm.expectRevert(WalletLogic.InvalidSignature.selector);
+        WalletLogic(address(userWallet2)).executeSignedBatch(calls, nonce, deadline, signature);
+    }
+
     function testTransferAndCall2ToProxy() public {
         // TODO
 
