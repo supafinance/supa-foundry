@@ -16,17 +16,20 @@ abstract contract AutomateTaskCreator is AutomateReady {
 
     event TaskCancelled(bytes32 indexed taskId);
 
+    ///@dev Only deposit ETH on goerli for now.
+    error OnlyGoerli();
+
     address public immutable fundsOwner;
     IGelato1Balance public constant gelato1Balance = IGelato1Balance(0x7506C12a824d73D9b08564d5Afc22c949434755e);
 
-    constructor(address _automate, address _fundsOwner) AutomateReady(_automate, address(this)) {
-        fundsOwner = _fundsOwner;
-    }
+    constructor(address _automate, address _taskCreator) AutomateReady(_automate, address(this)) {}
 
     function _depositFunds1Balance(uint256 _amount, address _token, address _sponsor) internal {
         if (_token == ETH) {
             ///@dev Only deposit ETH on goerli for now.
-            require(block.chainid == 5, "Only deposit ETH on goerli");
+            if (block.chainid != 5) {
+                revert OnlyGoerli();
+            }
             gelato1Balance.depositNative{value: _amount}(_sponsor);
         } else {
             ///@dev Only deposit USDC on polygon for now.

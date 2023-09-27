@@ -12,7 +12,7 @@ import {MockNFTOracle} from "src/testing/MockNFTOracle.sol";
 import {Supa, ISupa} from "src/supa/Supa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
 import {VersionManager, IVersionManager} from "src/supa/VersionManager.sol";
-import {WalletLogic, LinkedCall, CallOffset} from "src/wallet/WalletLogic.sol";
+import {WalletLogic, LinkedCall, ReturnDataLink} from "src/wallet/WalletLogic.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
 import {Call, CallLib} from "src/lib/Call.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
@@ -91,11 +91,11 @@ contract WalletTest is Test {
         deal({token: address(weth), to: address(userWallet), give: 10 ether});
 
         LinkedCall[] memory linkedCalls = new LinkedCall[](2);
-        CallOffset[] memory callOffsets = new CallOffset[](1);
-        callOffsets[0] = CallOffset({
-            linkedReturnValue: 0,
+        ReturnDataLink[] memory links = new ReturnDataLink[](1);
+        links[0] = ReturnDataLink({
+            returnValueOffset: 0,
             isStatic: true,
-            call: 1,
+            callIndex: 0,
             offset: 4
         });
         linkedCalls[0] = LinkedCall({
@@ -104,7 +104,7 @@ contract WalletTest is Test {
                 callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet)),
                 value: 0
             }),
-            offsets: callOffsets
+            links: new ReturnDataLink[](0)
         });
         linkedCalls[1] = LinkedCall({
             call: Call({
@@ -112,7 +112,41 @@ contract WalletTest is Test {
                 callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether),
                 value: 0
             }),
-            offsets: new CallOffset[](0)
+            links: links
+        });
+
+        WalletLogic(address(userWallet)).executeBatchLink(linkedCalls);
+    }
+
+    function testExecuteBatchLinkMulticall() public {
+        userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
+
+        deal({token: address(weth), to: address(this), give: 10 ether});
+        deal({token: address(weth), to: address(userWallet), give: 10 ether});
+
+        LinkedCall[] memory linkedCalls = new LinkedCall[](2);
+        ReturnDataLink[] memory links = new ReturnDataLink[](1);
+        links[0] = ReturnDataLink({
+            returnValueOffset: 0,
+            isStatic: true,
+            callIndex: 0,
+            offset: 4
+        });
+        linkedCalls[0] = LinkedCall({
+            call: Call({
+            to: address(supa),
+            callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet)),
+            value: 0
+        }),
+            links: new ReturnDataLink[](0)
+        });
+        linkedCalls[1] = LinkedCall({
+            call: Call({
+            to: address(weth),
+            callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether),
+            value: 0
+        }),
+            links: links
         });
 
         WalletLogic(address(userWallet)).executeBatchLink(linkedCalls);

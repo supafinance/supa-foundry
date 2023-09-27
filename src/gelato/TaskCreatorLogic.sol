@@ -9,7 +9,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {SupaState} from "src/supa/SupaState.sol";
 
 /// @title Task Creator for Supa Automations
-contract TaskCreator {
+contract TaskCreatorLogic is AutomateTaskCreator {
     using GelatoBytes for bytes;
 
     /// @notice Thrown when `msg.sender` is not the task owner
@@ -48,7 +48,7 @@ contract TaskCreator {
         _;
     }
 
-    constructor(address _supa) {
+    constructor(address _supa, address _automate, address _taskCreatorProxy) AutomateTaskCreator(_automate, _taskCreatorProxy, address(0)) {
         supa = SupaState(_supa);
     }
 
@@ -92,7 +92,7 @@ contract TaskCreator {
 
         moduleData.args[0] = _proxyModuleArg();
         moduleData.args[1] = _web3FunctionModuleArg(
-        // the CID is the hash of the W3f deployed on IPFS
+            // the CID is the hash of the W3f deployed on IPFS
             cid,
             // the arguments to the W3f are this contracts address
             // currently W3fs accept string, number, bool as arguments
@@ -119,7 +119,12 @@ contract TaskCreator {
         emit TaskCreated(taskId, msg.sender, autoInstanceId, cid);
     }
 
-
+    /// @notice Fund executions by depositing to 1Balance
+    /// @param token The token to deposit
+    /// @param amount The amount to deposit
+    function depositFunds1Balance(address token, uint256 amount) external payable {
+        _depositFunds1Balance(amount, token, address(this));
+    }
 
     /// @notice Get the task id for a given automation instance id and cid
     /// @param autoInstanceId The id of the automation instance

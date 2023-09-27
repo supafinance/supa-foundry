@@ -18,6 +18,7 @@ contract TaskCreator is AutomateTaskCreator {
     /// @notice Thrown when `msg.sender` is not a supa wallet
     error NotSupaWallet();
 
+    /// @notice Emitted when a task is created
     event TaskCreated(bytes32 indexed taskId, address indexed taskOwner, uint256 autoInstanceId, string cid);
 
     /// @notice The supa address
@@ -48,7 +49,7 @@ contract TaskCreator is AutomateTaskCreator {
         _;
     }
 
-    constructor(address _supa, address _automate) AutomateTaskCreator(_automate, address(0)) {
+    constructor(address _supa, address _automate) AutomateTaskCreator(_automate, address(this), address(0)) {
         supa = SupaState(_supa);
     }
 
@@ -81,6 +82,48 @@ contract TaskCreator is AutomateTaskCreator {
     /// @param autoInstanceId The id of the automation instance
     /// @param cid The cid of the W3f to execute
     /// @return taskId The id of the created task
+    function createTask(uint256 autoInstanceId, string memory cid, uint256 interval) external onlySupaWallet returns (bytes32 taskId) {
+        ModuleData memory moduleData = ModuleData({modules: new Module[](2), args: new bytes[](2)});
+
+        // Proxy module creates a dedicated proxy for this contract
+        // ensures that only contract created tasks can call certain fuctions
+        // restrict functions by using the onlyDedicatedMsgSender modifier
+        moduleData.modules[0] = Module.PROXY;
+        moduleData.modules[1] = Module.WEB3_FUNCTION;
+
+        moduleData.args[0] = _proxyModuleArg();
+        moduleData.args[1] = _web3FunctionModuleArg(
+        // the CID is the hash of the W3f deployed on IPFS
+            cid,
+            // the arguments to the W3f are this contract's address
+            // currently W3fs accept string, number, bool as arguments
+            // thus we must convert the address to a string
+            abi.encode(Strings.toHexString(msg.sender), autoInstanceId)
+        );
+
+        // execData passed to the proxy by the Automate contract
+        // "batchExecuteCall" forwards calls from the proxy to this contract
+        bytes memory execData = abi.encodeWithSelector(IOpsProxy.batchExecuteCall.selector);
+
+        // target address is this contracts dedicatedMsgSender proxy
+        taskId = _createTask(
+            dedicatedMsgSender,
+            execData,
+            moduleData,
+            // zero address as fee token indicates
+            // that the contract will use 1Balance for fee payment
+            address(0)
+        );
+
+        taskOwner[taskId] = msg.sender;
+
+        emit TaskCreated(taskId, msg.sender, autoInstanceId, cid);
+    }
+
+    /// @notice Create an automation task
+    /// @param autoInstanceId The id of the automation instance
+    /// @param cid The cid of the W3f to execute
+    /// @return taskId The id of the created task
     function createTask(uint256 autoInstanceId, string memory cid) external onlySupaWallet returns (bytes32 taskId) {
         ModuleData memory moduleData = ModuleData({modules: new Module[](2), args: new bytes[](2)});
 
@@ -94,7 +137,7 @@ contract TaskCreator is AutomateTaskCreator {
         moduleData.args[1] = _web3FunctionModuleArg(
             // the CID is the hash of the W3f deployed on IPFS
             cid,
-            // the arguments to the W3f are this contracts address
+            // the arguments to the W3f are this contract's address
             // currently W3fs accept string, number, bool as arguments
             // thus we must convert the address to a string
             abi.encode(Strings.toHexString(msg.sender), autoInstanceId)

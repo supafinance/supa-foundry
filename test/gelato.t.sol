@@ -63,8 +63,9 @@ contract GelatoTest is Test {
         versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(proxyLogic));
         versionManager.markRecommendedVersion(VERSION);
 
+        taskCreatorProxy = new TaskCreatorProxy();
         taskCreator = new TaskCreator(address(supa), address(automate));
-        taskCreatorProxy = new TaskCreatorProxy(address(taskCreator));
+
     }
 
     // function testAddOperator() public {

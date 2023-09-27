@@ -32,20 +32,20 @@ struct Call {
 /// @notice with the return values of some calls being passed as arguments to later calls.
     struct LinkedCall {
         Call call;
-        CallOffset[] offsets;
+        ReturnDataLink[] links;
     }
 
-/// @notice The info needed to link a return value to a call
-    struct CallOffset {
-        // index of the return variable in the return data
-        uint32 linkedReturnValue;
-        // indicates whether the return value is static or dynamic
-        bool isStatic;
-        // index of the call to be updated
-        uint32 call;
-        // offset in the call data where the return value should be spliced in
-        uint128 offset;
-    }
+/// @notice Metadata to splice a return value into a call.
+struct ReturnDataLink {
+    // index of the call with the return value
+    uint32 callIndex;
+    // offset of the return value in the return data
+    uint32 returnValueOffset;
+    // indicates whether the return value is static or dynamic
+    bool isStatic;
+    // offset in the callData where the return value should be spliced in
+    uint128 offset;
+}
 
 library CallLib {
     using Address for address;

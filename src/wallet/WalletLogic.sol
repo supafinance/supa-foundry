@@ -14,7 +14,7 @@ import {IVersionManager} from "../interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "../interfaces/ITransferReceiver2.sol";
 import {IWallet} from "../interfaces/IWallet.sol";
 import {IERC1363SpenderExtended} from "../interfaces/IERC1363-extended.sol";
-import {CallLib, Call, LinkedCall, CallOffset} from "../lib/Call.sol";
+import {CallLib, Call, LinkedCall, ReturnDataLink} from "../lib/Call.sol";
 import {NonceMapLib, NonceMap} from "../lib/NonceMap.sol";
 import {ImmutableVersion} from "../lib/ImmutableVersion.sol";
 import {BytesLib} from "../lib/BytesLib.sol";
@@ -53,7 +53,7 @@ contract WalletLogic is
             )
         );
 
-    string private constant VERSION = "1.0.0";
+    string private constant VERSION = "1.2.0";
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
@@ -304,59 +304,70 @@ contract WalletLogic is
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
 
+        // todo: add checks for linkedCalls
+        // 1. callIndex must be less than the current call
+
         // get the first call
         Call memory call;
+
+        // create a bytes array with length equal to the number of calls
+        bytes[] memory returnDataArray = new bytes[](linkedCalls.length);
 
         // loop through the calls
         uint256 l = linkedCalls.length;
         for (uint256 i = 0; i < l;) {
+
             // get the next call to execute
             call = linkedCalls[i].call;
-            // execute the call and store the return data
-            bytes memory returnData = CallLib.execute(call);
 
             // loop through the offsets (the number of return values to be passed in the next call)
-            uint256 offsetLength = linkedCalls[i].offsets.length;
-            for (uint256 j = 0; j < offsetLength;) {
-                CallOffset memory callOffset = linkedCalls[i].offsets[j];
+            uint256 linksLength = linkedCalls[i].links.length;
+            for (uint256 j = 0; j < linksLength;) {
+
+                ReturnDataLink memory link = linkedCalls[i].links[j];
+
                 // get the call index, offset, and linked return value
-                uint32 callIndex = callOffset.call;
-                uint128 offset = callOffset.offset;
-                uint32 linkedReturnValue = callOffset.linkedReturnValue;
-                bool isStatic = callOffset.isStatic;
+                uint32 callIndex = link.callIndex;
+                uint128 offset = link.offset;
+                uint32 returnValueOffset = link.returnValueOffset;
+                bool isStatic = link.isStatic;
 
-                bytes memory spliceCalldata;
-
-                 if (isStatic) {
-                     // Get the variable's offset from the return data
-                     uint256 linkedReturnValueOffset = linkedReturnValue * 32;
-
-                     // get the variable of interest from the return data
-                     spliceCalldata = returnData.slice(linkedReturnValueOffset, 32);
-                 } else {
-                     uint256 pointer = uint256(bytes32(returnData.slice(linkedReturnValue * 32, 32)));
-                     uint256 len = uint256(bytes32(returnData.slice(pointer, 32)));
-                     spliceCalldata = returnData.slice(pointer + 32, len);
-                 }
-
-                // revert if call has already been executed
-                if (callIndex <= i) {
+                // revert if call has NOT already been executed
+                if (callIndex > i) {
                     revert InvalidData();
                 }
 
-                bytes memory callData = linkedCalls[callIndex].call.callData;
+                bytes memory spliceCalldata;
+
+                if (isStatic) {
+                    // get the variable of interest from the return data
+                    spliceCalldata = returnDataArray[callIndex].slice(returnValueOffset, 32);
+                } else {
+                    uint256 pointer = uint256(bytes32(returnDataArray[callIndex].slice(returnValueOffset, 32)));
+                    uint256 len = uint256(bytes32(returnDataArray[callIndex].slice(pointer, 32)));
+                    spliceCalldata = returnDataArray[callIndex].slice(pointer + 32, len);
+                }
+
+                bytes memory callData = call.callData;
 
                 // splice the variable into the next call's calldata
                 bytes memory prebytes = callData.slice(0, offset);
                 bytes memory postbytes = callData.slice(offset + 32, callData.length - offset - 32);
                 bytes memory newCallData = prebytes.concat(spliceCalldata.concat(postbytes));
 
-                linkedCalls[callIndex].call.callData = newCallData;
+                call.callData = newCallData;
+
                 // increment the return value index
                 unchecked {
                     j++;
                 }
             }
+
+            // execute the call and store the return data
+            bytes memory returnData = CallLib.execute(call);
+            // add the return data to the array
+            returnDataArray[i] = returnData;
+
             // increment the call index
             unchecked {
                 i++;
