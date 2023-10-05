@@ -48,7 +48,7 @@ contract TaskCreatorLogic is AutomateTaskCreator {
         _;
     }
 
-    constructor(address _supa, address _automate, address _taskCreatorProxy) AutomateTaskCreator(_automate, _taskCreatorProxy, address(0)) {
+    constructor(address _supa, address _automate, address _taskCreatorProxy) AutomateTaskCreator(_automate, _taskCreatorProxy) {
         supa = SupaState(_supa);
     }
 

@@ -49,7 +49,7 @@ contract TaskCreator is AutomateTaskCreator {
         _;
     }
 
-    constructor(address _supa, address _automate) AutomateTaskCreator(_automate, address(this), address(0)) {
+    constructor(address _supa, address _automate) AutomateTaskCreator(_automate, address(this)) {
         supa = SupaState(_supa);
     }
 

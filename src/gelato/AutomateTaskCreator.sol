@@ -19,7 +19,6 @@ abstract contract AutomateTaskCreator is AutomateReady {
     ///@dev Only deposit ETH on goerli for now.
     error OnlyGoerli();
 
-    address public immutable fundsOwner;
     IGelato1Balance public constant gelato1Balance = IGelato1Balance(0x7506C12a824d73D9b08564d5Afc22c949434755e);
 
     constructor(address _automate, address _taskCreator) AutomateReady(_automate, address(this)) {}

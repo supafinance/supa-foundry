@@ -17,10 +17,17 @@ import {WalletProxy} from "src/wallet/WalletProxy.sol";
 import {Call, CallLib} from "src/lib/Call.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
 
+import { UniswapV3Factory } from "@uniswap/v3-core/contracts/UniswapV3Factory.sol";
+import {SwapRouter} from "@uniswap/v3-periphery/contracts/SwapRouter.sol";
+import { ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import { Multicall } from "@uniswap/v3-periphery/contracts/base/Multicall.sol";
+
 import {SigUtils, ECDSA} from "test/utils/SigUtils.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract WalletTest is Test {
+    uint256 goerliFork;
     IPermit2 public permit2;
     TransferAndCall2 public transferAndCall2;
 
@@ -42,74 +49,157 @@ contract WalletTest is Test {
     WalletProxy public treasuryWallet;
     WalletProxy public userWallet;
 
+    UniswapV3Factory public factory;
+    SwapRouter public swapRouter;
+
     bytes32 public constant FS_SALT = bytes32(0x1234567890123456789012345678901234567890123456789012345678901234);
 
-    string public constant VERSION = "1.0.0";
+    string public constant VERSION = "1.2.0";
 
     function setUp() public {
-        address owner = address(this);
+        string memory GOERLI_RPC_URL = vm.envString("GOERLI_RPC_URL");
 
-        usdc = new TestERC20("Circle USD", "USDC", 6);
-        weth = new TestERC20("Wrapped Ether", "WETH", 18);
-        nft = new TestNFT("Test NFT", "TNFT", 0);
-        unregisteredNFT = new TestNFT("Unregistered NFT", "UNFT", 0);
+        goerliFork = vm.createFork(GOERLI_RPC_URL, 9_771_000);
+        vm.selectFork(goerliFork);
 
-        usdcChainlink = new MockERC20Oracle(owner);
-        ethChainlink = new MockERC20Oracle(owner);
+        supa = Supa(payable(0x053553B8979B9FefF6e5764A294e2231D018B3A9));
 
-        nftOracle = new MockNFTOracle();
 
-        versionManager = new VersionManager(owner);
-        supaConfig = new SupaConfig(owner);
-        supa = new Supa(address(supaConfig), address(versionManager));
+//        address owner = address(this);
+//
+//        usdc = new TestERC20("Circle USD", "USDC", 6);
+//        weth = new TestERC20("Wrapped Ether", "WETH", 18);
+//        nft = new TestNFT("Test NFT", "TNFT", 0);
+//        unregisteredNFT = new TestNFT("Unregistered NFT", "UNFT", 0);
+//
+//        usdcChainlink = new MockERC20Oracle(owner);
+//        ethChainlink = new MockERC20Oracle(owner);
+//
+//        nftOracle = new MockNFTOracle();
+        versionManager = VersionManager(0xfE6939D2B10FDc83c756B1Ab3d6bF7D580dAd2B6);
+//        versionManager = new VersionManager(owner);
+//        supaConfig = new SupaConfig(owner);
+//        supa = new Supa(address(supaConfig), address(versionManager));
         proxyLogic = new WalletLogic(address(supa));
-
-        ISupaConfig(address(supa)).setConfig(
-            ISupaConfig.Config({
-                treasuryWallet: address(0),
-                treasuryInterestFraction: 0,
-                maxSolvencyCheckGasCost: 10_000_000,
-                liqFraction: 8e17,
-                fractionalReserveLeverage: 10
-            })
-        );
-
+//
+//        ISupaConfig(address(supa)).setConfig(
+//            ISupaConfig.Config({
+//                treasuryWallet: address(0),
+//                treasuryInterestFraction: 0,
+//                maxSolvencyCheckGasCost: 10_000_000,
+//                liqFraction: 8e17,
+//                fractionalReserveLeverage: 10
+//            })
+//        );
+//
+        vm.prank(0xc9B6088732E83ef013873e2f04d032F1a7a2E42D);
         versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(proxyLogic));
+        vm.prank(0xc9B6088732E83ef013873e2f04d032F1a7a2E42D);
         versionManager.markRecommendedVersion(VERSION);
-
-        transferAndCall2 = TransferAndCall2(0x1554b484D2392672F0375C56d80e91c1d070a007);
-        vm.etch(address(transferAndCall2), type(TransferAndCall2).creationCode);
-        // transferAndCall2 = new TransferAndCall2{salt: FS_SALT}();
-        usdc.approve(address(transferAndCall2), type(uint256).max);
-        weth.approve(address(transferAndCall2), type(uint256).max);
+//
+//        transferAndCall2 = TransferAndCall2(0x1554b484D2392672F0375C56d80e91c1d070a007);
+//        vm.etch(address(transferAndCall2), type(TransferAndCall2).creationCode);
+//        // transferAndCall2 = new TransferAndCall2{salt: FS_SALT}();
+//        usdc.approve(address(transferAndCall2), type(uint256).max);
+//        weth.approve(address(transferAndCall2), type(uint256).max);
     }
 
-    function testExecuteBatchLink() public {
+    function testExecuteBatchLinkMulticall() public {
+        vm.selectFork(goerliFork);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
-        deal({token: address(weth), to: address(this), give: 10 ether});
-        deal({token: address(weth), to: address(userWallet), give: 10 ether});
+        factory = UniswapV3Factory(payable(0x1F98431c8aD98523631AE4a59f267346ea31F984));
 
-        LinkedCall[] memory linkedCalls = new LinkedCall[](2);
-        ReturnDataLink[] memory links = new ReturnDataLink[](1);
-        links[0] = ReturnDataLink({
-            returnValueOffset: 0,
-            isStatic: true,
-            callIndex: 0,
-            offset: 4
+        address goerliWeth = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
+        address goerliUsdc = 0x18e526F710B8d504A735927f5Eb8BdF2F4386811;
+
+        address pool = factory.getPool(address(goerliWeth), address(goerliUsdc), 3000);
+        console.log('pool:', pool);
+        if (pool == address(0)) {
+            factory.createPool(address(goerliWeth), address(goerliUsdc), 3000);
+        }
+
+        swapRouter = new SwapRouter(address(factory), goerliWeth);
+
+        deal({token: goerliWeth, to: address(this), give: 10 ether});
+        deal({token: goerliWeth, to: address(userWallet), give: 100 ether});
+
+        uint256 wethBalance = IERC20(goerliWeth).balanceOf(address(userWallet));
+        console.log('wethBalance:', wethBalance);
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({
+            to: goerliWeth,
+            callData: abi.encodeWithSelector(IERC20.approve.selector, address(swapRouter), type(uint256).max),
+            value: 0
         });
+
+        calls[1] = Call({
+            to: goerliUsdc,
+            callData: abi.encodeWithSelector(IERC20.approve.selector, address(swapRouter), type(uint256).max),
+            value: 0
+        });
+
+        bytes[] memory multicallData = new bytes[](1);
+        ISwapRouter.ExactInputSingleParams memory exactInputSingle = ISwapRouter.ExactInputSingleParams({
+            tokenIn: goerliWeth,
+            tokenOut: goerliUsdc,
+            fee: 3000,
+            recipient: address(userWallet),
+            deadline: type(uint256).max,
+            amountIn: 0.1 ether,
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(SwapRouter.exactInputSingle.selector, exactInputSingle);
+
+//        calls[2] = Call({
+//            to: address(swapRouter),
+//            callData: abi.encodeWithSelector(Multicall.multicall.selector, multicallData),
+//            value: 0
+//        });
+
+//        swapRouter.multicall(multicallData);
+
+        WalletLogic(address(userWallet)).executeBatch(calls);
+
+        // FIRST LINKED CALL
+        LinkedCall[] memory linkedCalls = new LinkedCall[](2); // todo: change to 2 for second call
+        ReturnDataLink[] memory links = new ReturnDataLink[](1);
         linkedCalls[0] = LinkedCall({
             call: Call({
-                to: address(supa),
-                callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet)),
+                to: address(swapRouter),
+                callData: abi.encodeWithSelector(Multicall.multicall.selector, multicallData),
                 value: 0
             }),
             links: new ReturnDataLink[](0)
         });
+
+
+        // SECOND LINKED CALL
+        links[0] = ReturnDataLink({
+            returnValueOffset: 128,
+            isStatic: true,
+            callIndex: 0,
+            offset: 296
+        });
+        bytes[] memory multicallData2 = new bytes[](1);
+//        15258789062500
+        ISwapRouter.ExactInputSingleParams memory exactInputSingle2 = ISwapRouter.ExactInputSingleParams({
+            tokenIn: goerliUsdc,
+            tokenOut: goerliWeth,
+            fee: 3000,
+            recipient: address(userWallet),
+            deadline: type(uint256).max,
+            amountIn: 1 ether,
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0
+        });
+        multicallData2[0] = abi.encodeWithSelector(SwapRouter.exactInputSingle.selector, exactInputSingle2);
         linkedCalls[1] = LinkedCall({
             call: Call({
-                to: address(weth),
-                callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether),
+                to: address(swapRouter),
+                callData: abi.encodeWithSelector(Multicall.multicall.selector, multicallData2),
                 value: 0
             }),
             links: links
@@ -118,7 +208,7 @@ contract WalletTest is Test {
         WalletLogic(address(userWallet)).executeBatchLink(linkedCalls);
     }
 
-    function testExecuteBatchLinkMulticall() public {
+    function testExecuteBatchLinkTransfer() public {
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
         deal({token: address(weth), to: address(this), give: 10 ether});
