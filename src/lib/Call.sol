@@ -10,10 +10,10 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
  *
  * We often need to pass calls around, so this is a common representation to use.
  */
-struct CallWithoutValue {
-    address to;
-    bytes callData;
-}
+    struct CallWithoutValue {
+        address to;
+        bytes callData;
+    }
 
 /**
  * @title A serialized contract method call, with value.
@@ -22,11 +22,30 @@ struct CallWithoutValue {
  *
  * We often need to pass calls around, so this is a common representation to use.
  */
-struct Call {
-    address to;
-    bytes callData;
-    uint256 value;
-}
+    struct Call {
+        address to;
+        bytes callData;
+        uint256 value;
+    }
+
+/// @notice Specify a batch of calls to be executed in sequence,
+/// @notice with the return values of some calls being passed as arguments to later calls.
+    struct LinkedCall {
+        Call call;
+        ReturnDataLink[] links;
+    }
+
+/// @notice Metadata to splice a return value into a call.
+    struct ReturnDataLink {
+        // index of the call with the return value
+        uint32 callIndex;
+        // offset of the return value in the return data
+        uint32 returnValueOffset;
+        // indicates whether the return value is static or dynamic
+        bool isStatic;
+        // offset in the callData where the return value should be spliced in
+        uint128 offset;
+    }
 
 /// @notice Specify a batch of calls to be executed in sequence,
 /// @notice with the return values of some calls being passed as arguments to later calls.
@@ -53,7 +72,7 @@ library CallLib {
     bytes internal constant CALL_TYPESTRING = "Call(address to,bytes callData,uint256 value)";
     bytes32 constant CALL_TYPEHASH = keccak256(CALL_TYPESTRING);
     bytes internal constant CALLWITHOUTVALUE_TYPESTRING =
-        "CallWithoutValue(address to,bytes callData)";
+    "CallWithoutValue(address to,bytes callData)";
     bytes32 constant CALLWITHOUTVALUE_TYPEHASH = keccak256(CALLWITHOUTVALUE_TYPESTRING);
 
     /**

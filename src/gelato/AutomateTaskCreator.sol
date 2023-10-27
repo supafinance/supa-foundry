@@ -2,7 +2,7 @@
 pragma solidity >=0.8.19;
 
 import {AutomateReady} from "./AutomateReady.sol";
-import {ModuleData, IGelato1Balance} from "./Types.sol";
+import {ModuleData, IGelato1Balance, TriggerType} from "./Types.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -21,7 +21,7 @@ abstract contract AutomateTaskCreator is AutomateReady {
 
     IGelato1Balance public constant gelato1Balance = IGelato1Balance(0x7506C12a824d73D9b08564d5Afc22c949434755e);
 
-    constructor(address _automate, address _taskCreator) AutomateReady(_automate, address(this)) {}
+    constructor(address _automate, address _taskCreator) AutomateReady(_automate, _taskCreator) {}
 
     function _depositFunds1Balance(uint256 _amount, address _token, address _sponsor) internal {
         if (_token == ETH) {
@@ -63,10 +63,6 @@ abstract contract AutomateTaskCreator is AutomateReady {
         return abi.encode(_resolverAddress, _resolverData);
     }
 
-    function _timeModuleArg(uint256 _startTime, uint256 _interval) internal pure returns (bytes memory) {
-        return abi.encode(uint128(_startTime), uint128(_interval));
-    }
-
     function _proxyModuleArg() internal pure returns (bytes memory) {
         return bytes("");
     }
@@ -81,5 +77,25 @@ abstract contract AutomateTaskCreator is AutomateReady {
         returns (bytes memory)
     {
         return abi.encode(_web3FunctionHash, _web3FunctionArgsHex);
+    }
+
+    function _timeTriggerModuleArg(uint128 _start, uint128 _interval)
+    internal
+    pure
+    returns (bytes memory)
+    {
+        bytes memory triggerConfig = abi.encode(_start, _interval);
+
+        return abi.encode(TriggerType.TIME, triggerConfig);
+    }
+
+    function _cronTriggerModuleArg(string memory _expression)
+    internal
+    pure
+    returns (bytes memory)
+    {
+        bytes memory triggerConfig = abi.encode(_expression);
+
+        return abi.encode(TriggerType.CRON, triggerConfig);
     }
 }

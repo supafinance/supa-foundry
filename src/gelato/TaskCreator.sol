@@ -49,7 +49,7 @@ contract TaskCreator is AutomateTaskCreator {
         _;
     }
 
-    constructor(address _supa, address _automate) AutomateTaskCreator(_automate, address(this)) {
+    constructor(address _supa, address _automate, address _taskCreatorProxy) AutomateTaskCreator(_automate, _taskCreatorProxy) {
         supa = SupaState(_supa);
     }
 
@@ -80,58 +80,20 @@ contract TaskCreator is AutomateTaskCreator {
 
     /// @notice Create an automation task
     /// @param autoInstanceId The id of the automation instance
+    /// @param operatorAddress The address of the operator
     /// @param cid The cid of the W3f to execute
+    /// @param interval The interval at which to execute the task
     /// @return taskId The id of the created task
-    function createTask(uint256 autoInstanceId, string memory cid, uint256 interval) external onlySupaWallet returns (bytes32 taskId) {
-        ModuleData memory moduleData = ModuleData({modules: new Module[](2), args: new bytes[](2)});
+    function createTask(uint256 autoInstanceId, address operatorAddress, string memory cid, uint256 interval) external onlySupaWallet returns (bytes32 taskId) {
+        ModuleData memory moduleData = ModuleData({modules: new Module[](3), args: new bytes[](3)});
 
         // Proxy module creates a dedicated proxy for this contract
         // ensures that only contract created tasks can call certain fuctions
         // restrict functions by using the onlyDedicatedMsgSender modifier
-        moduleData.modules[0] = Module.PROXY;
-        moduleData.modules[1] = Module.WEB3_FUNCTION;
+        moduleData.modules[0] = Module.PROXY;  // 0
+        moduleData.modules[1] = Module.WEB3_FUNCTION; // 4
+        moduleData.modules[2] = Module.TRIGGER; // 5
 
-        moduleData.args[0] = _proxyModuleArg();
-        moduleData.args[1] = _web3FunctionModuleArg(
-        // the CID is the hash of the W3f deployed on IPFS
-            cid,
-            // the arguments to the W3f are this contract's address
-            // currently W3fs accept string, number, bool as arguments
-            // thus we must convert the address to a string
-            abi.encode(Strings.toHexString(msg.sender), autoInstanceId)
-        );
-
-        // execData passed to the proxy by the Automate contract
-        // "batchExecuteCall" forwards calls from the proxy to this contract
-        bytes memory execData = abi.encodeWithSelector(IOpsProxy.batchExecuteCall.selector);
-
-        // target address is this contracts dedicatedMsgSender proxy
-        taskId = _createTask(
-            dedicatedMsgSender,
-            execData,
-            moduleData,
-            // zero address as fee token indicates
-            // that the contract will use 1Balance for fee payment
-            address(0)
-        );
-
-        taskOwner[taskId] = msg.sender;
-
-        emit TaskCreated(taskId, msg.sender, autoInstanceId, cid);
-    }
-
-    /// @notice Create an automation task
-    /// @param autoInstanceId The id of the automation instance
-    /// @param cid The cid of the W3f to execute
-    /// @return taskId The id of the created task
-    function createTask(uint256 autoInstanceId, string memory cid) external onlySupaWallet returns (bytes32 taskId) {
-        ModuleData memory moduleData = ModuleData({modules: new Module[](2), args: new bytes[](2)});
-
-        // Proxy module creates a dedicated proxy for this contract
-        // ensures that only contract created tasks can call certain fuctions
-        // restrict functions by using the onlyDedicatedMsgSender modifier
-        moduleData.modules[0] = Module.PROXY;
-        moduleData.modules[1] = Module.WEB3_FUNCTION;
 
         moduleData.args[0] = _proxyModuleArg();
         moduleData.args[1] = _web3FunctionModuleArg(
@@ -140,8 +102,10 @@ contract TaskCreator is AutomateTaskCreator {
             // the arguments to the W3f are this contract's address
             // currently W3fs accept string, number, bool as arguments
             // thus we must convert the address to a string
-            abi.encode(Strings.toHexString(msg.sender), autoInstanceId)
+            abi.encode(Strings.toHexString(msg.sender), autoInstanceId, Strings.toHexString(operatorAddress))
         );
+        moduleData.args[2] = _timeTriggerModuleArg(uint128(block.timestamp), uint128(interval));
+
 
         // execData passed to the proxy by the Automate contract
         // "batchExecuteCall" forwards calls from the proxy to this contract
@@ -167,79 +131,6 @@ contract TaskCreator is AutomateTaskCreator {
     /// @param amount The amount to deposit
     function depositFunds1Balance(address token, uint256 amount) external payable {
         _depositFunds1Balance(amount, token, address(this));
-    }
-
-    /// @notice Get the task id for a given automation instance id and cid
-    /// @param autoInstanceId The id of the automation instance
-    /// @param cid The cid of the W3f to execute
-    /// @return taskId The id of the task
-    function getTaskId(uint256 autoInstanceId, string memory cid) external view returns (bytes32 taskId) {
-        ModuleData memory moduleData = ModuleData({modules: new Module[](2), args: new bytes[](2)});
-
-        // Proxy module creates a dedicated proxy for this contract
-        // ensures that only contract created tasks can call certain fuctions
-        // restrict functions by using the onlyDedicatedMsgSender modifier
-        moduleData.modules[0] = Module.PROXY;
-        moduleData.modules[1] = Module.WEB3_FUNCTION;
-
-        moduleData.args[0] = _proxyModuleArg();
-        moduleData.args[1] = _web3FunctionModuleArg(
-        // the CID is the hash of the W3f deployed on IPFS
-            cid,
-            // the arguments to the W3f are this contracts address
-            // currently W3fs accept string, number, bool as arguments
-            // thus we must convert the address to a string
-            abi.encode(Strings.toHexString(msg.sender), autoInstanceId)
-        );
-
-        // execData passed to the proxy by the Automate contract
-        // "batchExecuteCall" forwards calls from the proxy to this contract
-        bytes memory execData = abi.encodeWithSelector(IOpsProxy.batchExecuteCall.selector);
-        taskId = automate.getTaskId(
-            msg.sender,
-            dedicatedMsgSender,
-            execData.memorySliceSelector(),
-            moduleData,
-            address(0)
-        );
-        return taskId;
-    }
-
-    /// @notice Get the task id for a given automation instance id and cid
-    /// @param taskCreator The address of the task creator
-    /// @param autoInstanceId The id of the automation instance
-    /// @param cid The cid of the W3f to execute
-    /// @return taskId The id of the task
-    function getTaskId(address taskCreator, uint256 autoInstanceId, string memory cid) external view returns (bytes32 taskId) {
-        ModuleData memory moduleData = ModuleData({modules: new Module[](2), args: new bytes[](2)});
-
-        // Proxy module creates a dedicated proxy for this contract
-        // ensures that only contract created tasks can call certain fuctions
-        // restrict functions by using the onlyDedicatedMsgSender modifier
-        moduleData.modules[0] = Module.PROXY;
-        moduleData.modules[1] = Module.WEB3_FUNCTION;
-
-        moduleData.args[0] = _proxyModuleArg();
-        moduleData.args[1] = _web3FunctionModuleArg(
-        // the CID is the hash of the W3f deployed on IPFS
-            cid,
-            // the arguments to the W3f are this contracts address
-            // currently W3fs accept string, number, bool as arguments
-            // thus we must convert the address to a string
-            abi.encode(Strings.toHexString(msg.sender), autoInstanceId)
-        );
-
-        // execData passed to the proxy by the Automate contract
-        // "batchExecuteCall" forwards calls from the proxy to this contract
-        bytes memory execData = abi.encodeWithSelector(IOpsProxy.batchExecuteCall.selector);
-        taskId = automate.getTaskId(
-            taskCreator,
-            dedicatedMsgSender,
-            execData.memorySliceSelector(),
-            moduleData,
-            address(0)
-        );
-        return taskId;
     }
 
     function _onlyTaskOwner(bytes32 taskId) internal {

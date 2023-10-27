@@ -302,9 +302,6 @@ contract UniV3LPHelper is IERC721Receiver {
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
-            if (!IERC20(token0).approve(swapRouter, params.amountIn)) {
-                revert ApprovalFailed();
-            }
         } else if (amount1 > amount1Desired) {
             // swap token1 for token0
             params = ISwapRouter.ExactInputSingleParams({
@@ -317,9 +314,6 @@ contract UniV3LPHelper is IERC721Receiver {
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
-            if (!IERC20(token1).approve(swapRouter, params.amountIn)) {
-                revert ApprovalFailed();
-            }
         } else {
             revert PositionAlreadyBalanced();
         }
@@ -355,8 +349,8 @@ contract UniV3LPHelper is IERC721Receiver {
             })
         );
 
-        // deposit LP token to credit account
-        supa.depositERC721ForWallet(manager, msg.sender, newTokenId);
+        // transfer LP token to msg.sender
+        IERC721(address(manager)).transferFrom(address(this), msg.sender, newTokenId);
 
         {
             // return excess tokens
@@ -364,12 +358,12 @@ contract UniV3LPHelper is IERC721Receiver {
             uint256 returnToken1Balance = IERC20(token1).balanceOf(address(this));
 
             if (returnToken0Balance > 0) {
-                IERC20(token0).approve(address(supa), returnToken0Balance);
-                supa.depositERC20ForWallet(token0, msg.sender, returnToken0Balance);
+                // transfer token0 to msg.sender
+                IERC20(token0).transfer(msg.sender, returnToken0Balance);
             }
             if (returnToken1Balance > 0) {
-                IERC20(token1).approve(address(supa), returnToken1Balance);
-                supa.depositERC20ForWallet(token1, msg.sender, returnToken1Balance);
+                // transfer token1 to msg.sender
+                IERC20(token1).transfer(msg.sender, returnToken1Balance);
             }
         }
 
