@@ -51,7 +51,7 @@ contract WalletLogic is
             )
         );
 
-    string private constant VERSION = "1.0.0";
+    string private constant VERSION = "1.3.2";
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
@@ -74,6 +74,8 @@ contract WalletLogic is
     error OnlyThisAddress();
     /// @notice The wallet is insolvent
     error Insolvent();
+    /// @notice Transfer failed
+    error TransferFailed();
 
     modifier onlyOwner() {
         if (supa.getWalletOwner(address(this)) != msg.sender) {
@@ -92,6 +94,13 @@ contract WalletLogic is
         _;
     }
 
+    modifier onlyThisAddress() {
+        if (msg.sender != address(this)) {
+            revert OnlyThisAddress();
+        }
+        _;
+    }
+
     modifier onlySupa() {
         if (msg.sender != address(supa)) {
             revert OnlySupa();
@@ -105,6 +114,14 @@ contract WalletLogic is
     constructor(
         address _supa
     ) EIP712("Supa wallet", VERSION) ImmutableVersion(VERSION) WalletState(_supa) {}
+
+    /// @notice Transfer ETH
+    function transfer(address to, uint256 value) public payable onlyThisAddress {
+    (bool success, ) = to.call{value: value}("");
+        if (!success) {
+            revert TransferFailed();
+        }
+    }
 
     /// @notice makes a batch of different calls from the name of wallet owner. Eventual state of
     /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral on
@@ -209,8 +226,8 @@ contract WalletLogic is
             if (data.length != 1) revert InvalidData();
             // deposit in the supa wallet
             for (uint256 i = 0; i < transfers.length; i++) {
-                ITransferReceiver2.Transfer memory transfer = transfers[i];
-                supa.depositERC20(IERC20(transfer.token), transfer.amount);
+                ITransferReceiver2.Transfer memory transfer_ = transfers[i];
+                supa.depositERC20(IERC20(transfer_.token), transfer_.amount);
             }
         } else if (data[0] == 0x02) {
             // execute signed batch
