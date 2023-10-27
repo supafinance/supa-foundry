@@ -7,7 +7,7 @@ import {TaskCreatorLogic} from "src/gelato/TaskCreatorLogic.sol";
 /// @notice Deploys {TaskCreator}
 contract DeployTaskCreatorLogic is BaseScript {
     function run() public virtual {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey = vm.envUint("supa_test_deployer`");
         address supa = vm.envAddress("SUPA");
         address automate = vm.envAddress("AUTOMATE");
         address payable taskCreatorProxy = payable(vm.envAddress("TASK_CREATOR_PROXY"));
