@@ -2,6 +2,7 @@
 src = 'src'
 out = 'out'
 libs = ['lib']
+#auto_detect_solc = true
 solc-version = "0.8.20"
 via_ir = true
 optimizer = true

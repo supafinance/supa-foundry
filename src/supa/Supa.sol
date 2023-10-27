@@ -159,7 +159,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         _tokenStorageCheck(msg.sender);
     }
 
-    /// @notice deposit `amount` of `erc20` from creditAccount tp wallet
+    /// @notice deposit `amount` of `erc20` from creditAccount to wallet
     /// @param erc20 Address of the ERC20 token to be transferred
     /// @param amount The amount of `erc20` to be transferred
     function withdrawERC20(IERC20 erc20, uint256 amount) external override onlyWallet whenNotPaused {

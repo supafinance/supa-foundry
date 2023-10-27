@@ -9,7 +9,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {SupaState} from "src/supa/SupaState.sol";
 
 /// @title Task Creator for Supa Automations
-contract TaskCreator is AutomateTaskCreator {
+contract TaskCreatorLogic is AutomateTaskCreator {
     using GelatoBytes for bytes;
 
     /// @notice Thrown when `msg.sender` is not the task owner
@@ -18,7 +18,6 @@ contract TaskCreator is AutomateTaskCreator {
     /// @notice Thrown when `msg.sender` is not a supa wallet
     error NotSupaWallet();
 
-    /// @notice Emitted when a task is created
     event TaskCreated(bytes32 indexed taskId, address indexed taskOwner, uint256 autoInstanceId, string cid);
 
     /// @notice The supa address
@@ -80,32 +79,26 @@ contract TaskCreator is AutomateTaskCreator {
 
     /// @notice Create an automation task
     /// @param autoInstanceId The id of the automation instance
-    /// @param operatorAddress The address of the operator
     /// @param cid The cid of the W3f to execute
-    /// @param interval The interval at which to execute the task
     /// @return taskId The id of the created task
-    function createTask(uint256 autoInstanceId, address operatorAddress, string memory cid, uint256 interval) external onlySupaWallet returns (bytes32 taskId) {
-        ModuleData memory moduleData = ModuleData({modules: new Module[](3), args: new bytes[](3)});
+    function createTask(uint256 autoInstanceId, string memory cid) external onlySupaWallet returns (bytes32 taskId) {
+        ModuleData memory moduleData = ModuleData({modules: new Module[](2), args: new bytes[](2)});
 
         // Proxy module creates a dedicated proxy for this contract
         // ensures that only contract created tasks can call certain fuctions
         // restrict functions by using the onlyDedicatedMsgSender modifier
-        moduleData.modules[0] = Module.PROXY;  // 0
-        moduleData.modules[1] = Module.WEB3_FUNCTION; // 4
-        moduleData.modules[2] = Module.TRIGGER; // 5
-
+        moduleData.modules[0] = Module.PROXY;
+        moduleData.modules[1] = Module.WEB3_FUNCTION;
 
         moduleData.args[0] = _proxyModuleArg();
         moduleData.args[1] = _web3FunctionModuleArg(
             // the CID is the hash of the W3f deployed on IPFS
             cid,
-            // the arguments to the W3f are this contract's address
+            // the arguments to the W3f are this contracts address
             // currently W3fs accept string, number, bool as arguments
             // thus we must convert the address to a string
-            abi.encode(Strings.toHexString(msg.sender), autoInstanceId, Strings.toHexString(operatorAddress))
+            abi.encode(Strings.toHexString(msg.sender), autoInstanceId)
         );
-        moduleData.args[2] = _timeTriggerModuleArg(uint128(block.timestamp), uint128(interval));
-
 
         // execData passed to the proxy by the Automate contract
         // "batchExecuteCall" forwards calls from the proxy to this contract

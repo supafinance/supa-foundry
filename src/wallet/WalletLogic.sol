@@ -14,9 +14,10 @@ import {IVersionManager} from "../interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "../interfaces/ITransferReceiver2.sol";
 import {IWallet} from "../interfaces/IWallet.sol";
 import {IERC1363SpenderExtended} from "../interfaces/IERC1363-extended.sol";
-import {CallLib, Call} from "../lib/Call.sol";
+import {CallLib, Call, LinkedCall, ReturnDataLink} from "../lib/Call.sol";
 import {NonceMapLib, NonceMap} from "../lib/NonceMap.sol";
 import {ImmutableVersion} from "../lib/ImmutableVersion.sol";
+import {BytesLib} from "../lib/BytesLib.sol";
 
 // Calls to the contract not coming from Supa itself are routed to this logic
 // contract. This allows for flexible extra addition to your wallet.
@@ -32,6 +33,7 @@ contract WalletLogic is
     IERC1363SpenderExtended
 {
     using NonceMapLib for NonceMap;
+    using BytesLib for bytes;
 
     bytes private constant EXECUTEBATCH_TYPESTRING =
         "ExecuteBatch(Call[] calls,uint256 nonce,uint256 deadline)";
@@ -311,5 +313,88 @@ contract WalletLogic is
 
     function valueNonce(uint256 nonce) external view returns (bool) {
         return nonceMap.getNonce(nonce);
+    }
+
+    /// @notice Execute a batch of calls with linked return values.
+    /// @param linkedCalls The calls to execute.
+    function executeBatchLink(LinkedCall[] memory linkedCalls) external payable onlyOwnerOrOperator {
+        bool saveForwardNFT = forwardNFT;
+        forwardNFT = false;
+
+        // todo: add checks for linkedCalls
+        // 1. callIndex must be less than the current call
+
+        // get the first call
+        Call memory call;
+
+        // create a bytes array with length equal to the number of calls
+        bytes[] memory returnDataArray = new bytes[](linkedCalls.length);
+
+        // loop through the calls
+        uint256 l = linkedCalls.length;
+        for (uint256 i = 0; i < l;) {
+
+            // get the next call to execute
+            call = linkedCalls[i].call;
+
+            // loop through the offsets (the number of return values to be passed in the next call)
+            uint256 linksLength = linkedCalls[i].links.length;
+            for (uint256 j = 0; j < linksLength;) {
+
+                ReturnDataLink memory link = linkedCalls[i].links[j];
+
+                // get the call index, offset, and linked return value
+                uint32 callIndex = link.callIndex;
+                uint128 offset = link.offset;
+                uint32 returnValueOffset = link.returnValueOffset;
+                bool isStatic = link.isStatic;
+
+                // revert if call has NOT already been executed
+                if (callIndex > i) {
+                    revert InvalidData();
+                }
+
+                bytes memory spliceCalldata;
+
+                if (isStatic) {
+                    // get the variable of interest from the return data
+                    spliceCalldata = returnDataArray[callIndex].slice(returnValueOffset, 32);
+                } else {
+                    uint256 pointer = uint256(bytes32(returnDataArray[callIndex].slice(returnValueOffset, 32)));
+                    uint256 len = uint256(bytes32(returnDataArray[callIndex].slice(pointer, 32)));
+                    spliceCalldata = returnDataArray[callIndex].slice(pointer + 32, len);
+                }
+
+                bytes memory callData = call.callData;
+
+                // splice the variable into the next call's calldata
+                bytes memory prebytes = callData.slice(0, offset);
+                bytes memory postbytes = callData.slice(offset + 32, callData.length - offset - 32);
+                bytes memory newCallData = prebytes.concat(spliceCalldata.concat(postbytes));
+
+                call.callData = newCallData;
+
+                // increment the return value index
+                unchecked {
+                    j++;
+                }
+            }
+
+            // execute the call and store the return data
+            bytes memory returnData = CallLib.execute(call);
+            // add the return data to the array
+            returnDataArray[i] = returnData;
+
+            // increment the call index
+            unchecked {
+                i++;
+            }
+        }
+
+        forwardNFT = saveForwardNFT;
+
+        if (!supa.isSolvent(address(this))) {
+            revert Insolvent();
+        }
     }
 }
