@@ -372,6 +372,11 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         emit OperatorRemoved(msg.sender, operator);
     }
 
+    /// @notice Unused function. Will be used in future versions
+    function migrateWallet(address wallet, address owner) external override {
+        revert("Not implemented");
+    }
+
     /// @notice Execute a batch of calls
     /// @dev execute a batch of commands on Supa from the name of wallet owner. Eventual state of
     /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral
