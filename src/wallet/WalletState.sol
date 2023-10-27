@@ -35,7 +35,7 @@ abstract contract WalletState {
         if (_supa == address(0) || _supa == address(supa)) {
             revert AddressZero();
         }
-        supa = _supa;
+        supa = ISupa(_supa);
 
         // 3. Call the new supa to update the wallet owner
         supa.migrateWallet(address(this), currentOwner);
