@@ -8,6 +8,14 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Call, CallLib} from "src/lib/Call.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
 
+    struct Wallet {
+        address addr;
+        uint256 publicKeyX;
+        uint256 publicKeyY;
+        uint256 privateKey;
+    }
+
+
 contract SigUtils {
     bytes32 private constant _TYPE_HASH =
         keccak256(

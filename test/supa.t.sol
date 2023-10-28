@@ -96,7 +96,7 @@ contract SupaTest is Test {
             0, // baseRate
             5, // slope1
             480, // slope2
-            8e17 // targetUtilization
+            0.8 ether // targetUtilization
         );
         ISupaConfig(address(supa)).addERC20Info(
             address(token1),
@@ -107,13 +107,13 @@ contract SupaTest is Test {
             0, // baseRate
             5, // slope1
             480, // slope2
-            8e17 // targetUtilization
+            0.8 ether // targetUtilization
         );
 
         ISupaConfig(address(supa)).addERC721Info(address(nft0), address(nft0Oracle));
 
         // add to version manager
-        string memory version = "1.0.0";
+        string memory version = logic.VERSION();
         versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(logic));
         versionManager.markRecommendedVersion(version);
     }

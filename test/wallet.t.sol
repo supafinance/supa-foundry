@@ -22,7 +22,7 @@ import {SwapRouter} from "@uniswap/v3-periphery/contracts/SwapRouter.sol";
 import { ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { Multicall } from "@uniswap/v3-periphery/contracts/base/Multicall.sol";
 
-import {SigUtils, ECDSA} from "test/utils/SigUtils.sol";
+import {SigUtils, ECDSA, Wallet} from "test/utils/SigUtils.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -54,8 +54,6 @@ contract WalletTest is Test {
 
     bytes32 public constant FS_SALT = bytes32(0x1234567890123456789012345678901234567890123456789012345678901234);
 
-    string public constant VERSION = "1.2.0";
-
     function setUp() public {
         string memory GOERLI_RPC_URL = vm.envString("GOERLI_RPC_URL");
 
@@ -81,18 +79,18 @@ contract WalletTest is Test {
 //        supaConfig = new SupaConfig(owner);
 //        supa = new Supa(address(supaConfig), address(versionManager));
         proxyLogic = new WalletLogic(address(supa));
-//
-//        ISupaConfig(address(supa)).setConfig(
-//            ISupaConfig.Config({
-//                treasuryWallet: address(0),
-//                treasuryInterestFraction: 0,
-//                maxSolvencyCheckGasCost: 10_000_000,
-//                liqFraction: 8e17,
-//                fractionalReserveLeverage: 10
-//            })
-//        );
-//
-        vm.prank(0xc9B6088732E83ef013873e2f04d032F1a7a2E42D);
+        string memory VERSION = proxyLogic.VERSION();
+
+        ISupaConfig(address(supa)).setConfig(
+            ISupaConfig.Config({
+                treasuryWallet: address(0),
+                treasuryInterestFraction: 0,
+                maxSolvencyCheckGasCost: 10_000_000,
+                liqFraction: 8e17,
+                fractionalReserveLeverage: 10
+            })
+        );
+
         versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(proxyLogic));
         vm.prank(0xc9B6088732E83ef013873e2f04d032F1a7a2E42D);
         versionManager.markRecommendedVersion(VERSION);
@@ -244,10 +242,11 @@ contract WalletTest is Test {
 
     function testValidExecuteSignedBatch() public {
         SigUtils sigUtils = new SigUtils();
-        uint256 userPrivateKey = 0xB0B;
-        address user = vm.addr(userPrivateKey);
-        vm.prank(user);
+        Wallet memory wallet = vm.createWallet(uint256(keccak256(bytes("1"))));
+        vm.prank(wallet.addr);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
+
+        address walletOwner = supa.getWalletOwner(address(userWallet));
 
         Call[] memory calls = new Call[](0);
         uint256 nonce = 0;
@@ -255,10 +254,10 @@ contract WalletTest is Test {
 
         bytes32 digest = sigUtils.getTypedDataHash(address(userWallet), calls, nonce, deadline);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(wallet, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        // address recovered = ecrecover(digest, v, r, s);
+        address recovered = ecrecover(digest, v, r, s);
 
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
     }
@@ -324,8 +323,9 @@ contract WalletTest is Test {
 
     function testUpgradeInvalidVersion(string memory invalidVersionName) public {
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
+        string memory VERSION = proxyLogic.VERSION();
         if (keccak256(abi.encodePacked(invalidVersionName)) == keccak256(abi.encodePacked(VERSION))) {
-            invalidVersionName = "1.0.1";
+            invalidVersionName = "1.0.0-invalid";
         }
         vm.expectRevert();
         _upgradeWalletImplementation(invalidVersionName);
