@@ -56,14 +56,14 @@ contract SupaTest is Test {
         versionManager = new VersionManager(owner);
         supaConfig = new SupaConfig(owner);
         supa = new Supa(address(supaConfig), address(versionManager));
-        logic = new WalletLogic(address(supa));
+        logic = new WalletLogic();
 
         ISupaConfig(address(supa)).setConfig(
             ISupaConfig.Config({
                 treasuryWallet: address(0),
-                treasuryInterestFraction: 5e16,
-                maxSolvencyCheckGasCost: 1e6,
-                liqFraction: 8e17,
+                treasuryInterestFraction: 0.05 ether,
+                maxSolvencyCheckGasCost: 10_000_000,
+                liqFraction: 0.8 ether,
                 fractionalReserveLeverage: 9
             })
         );
@@ -439,8 +439,15 @@ contract SupaTest is Test {
         uint256 nftCounter = SupaConfig(address(supa)).getCreditAccountERC721Counter(address(userWallet));
         assertEq(nftCounter, 0);
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](1);
+        Call[] memory calls = new Call[](2);
         calls[0] = (
+            Call({
+            to: address(nft0),
+            callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
+            value: 0
+        })
+        );
+        calls[1] = (
             Call({
                 to: address(supa),
                 callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
@@ -459,19 +466,27 @@ contract SupaTest is Test {
         uint256 nftCounter = SupaConfig(address(supa)).getCreditAccountERC721Counter(address(userWallet));
         assertEq(nftCounter, 0);
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](1);
+        Call[] memory calls = new Call[](2);
         calls[0] = (
             Call({
-                to: address(supa),
-                callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
-                value: 0
-            })
+            to: address(nft0),
+            callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
+            value: 0
+        })
+        );
+        calls[1] = (
+            Call({
+            to: address(supa),
+            callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
+            value: 0
+        })
         );
 
         userWallet.executeBatch(calls);
         nftCounter = SupaConfig(address(supa)).getCreditAccountERC721Counter(address(userWallet));
         assertEq(nftCounter, 1);
-        calls[0] = (
+        Call[] memory secondCalls = new Call[](1);
+        secondCalls[0] = (
             Call({
                 to: address(supa),
                 callData: abi.encodeWithSignature("withdrawERC721(address,uint256)", address(nft0), 0),
@@ -479,7 +494,7 @@ contract SupaTest is Test {
             })
         );
 
-        userWallet.executeBatch(calls);
+        userWallet.executeBatch(secondCalls);
         nftCounter = SupaConfig(address(supa)).getCreditAccountERC721Counter(address(userWallet));
         assertEq(nftCounter, 0);
     }
@@ -510,13 +525,20 @@ contract SupaTest is Test {
         supa.depositERC20ForWallet(address(token0), address(userWallet), 100 * 1 ether);
 
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](1);
+        Call[] memory calls = new Call[](2);
         calls[0] = (
             Call({
-                to: address(supa),
-                callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
-                value: 0
-            })
+            to: address(nft0),
+            callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
+            value: 0
+        })
+        );
+        calls[1] = (
+            Call({
+            to: address(supa),
+            callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
+            value: 0
+        })
         );
 
         vm.expectRevert(Supa.TokenStorageExceeded.selector);
@@ -558,8 +580,15 @@ contract SupaTest is Test {
             ISupaConfig.TokenStorageConfig({maxTokenStorage: 10, erc20Multiplier: 10, erc721Multiplier: 1})
         );
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](1);
+        Call[] memory calls = new Call[](2);
         calls[0] = (
+            Call({
+                to: address(nft0),
+                callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
+                value: 0
+            })
+        );
+        calls[1] = (
             Call({
                 to: address(supa),
                 callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),

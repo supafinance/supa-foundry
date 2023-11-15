@@ -43,7 +43,7 @@ contract SetupLocalHost is Script {
         Supa supa = new Supa(address(supaConfig), address(versionManager));
         TransferAndCall2 transferAndCall2 = new TransferAndCall2();
 
-        WalletLogic walletLogic = new WalletLogic(address(supa));
+        WalletLogic walletLogic = new WalletLogic();
 
         versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(walletLogic));
         versionManager.markRecommendedVersion("1.0.0");

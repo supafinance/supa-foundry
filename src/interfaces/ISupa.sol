@@ -330,7 +330,7 @@ interface ISupaCore {
 
     function removeOperator(address operator) external;
 
-    function migrateWallet(address wallet, address owner) external;
+    function migrateWallet(address wallet, address owner, address implementation) external;
 
     /// @notice Returns the approved address for a token, or zero if no address set
     /// @param collection The address of the ERC721 token

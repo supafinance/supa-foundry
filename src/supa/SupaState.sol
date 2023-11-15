@@ -67,7 +67,8 @@ contract SupaState is Pausable {
     ISupaConfig.TokenStorageConfig public tokenStorageConfig;
 
     modifier onlyWallet() {
-        if (wallets[msg.sender].owner == address(0) || address(WalletState(msg.sender).supa()) != address(this)) {
+//        if (wallets[msg.sender].owner == address(0) || address(WalletState(msg.sender).supa()) != address(this)) {
+            if (wallets[msg.sender].owner == address(0)) {
             revert OnlyWallet();
         }
         _;

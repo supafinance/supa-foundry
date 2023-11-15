@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import {Script} from "forge-std/Script.sol";
 import {TaskCreatorProxy} from "src/gelato/TaskCreatorProxy.sol";
-import {TaskCreatorLogic} from "src/gelato/TaskCreatorLogic.sol";
+import {TaskCreator} from "src/gelato/TaskCreator.sol";
 
 contract UpgradeGelatoProxy is Script {
     function run() external {
@@ -13,10 +13,13 @@ contract UpgradeGelatoProxy is Script {
         address automate = vm.envAddress("AUTOMATE");
         address supa = vm.envAddress("SUPA");
 
+        // todo: update depending on the network
+        address usdc = vm.envAddress("USDC_GOERLI");
+
         vm.startBroadcast(deployerPrivateKey);
         TaskCreatorProxy taskCreatorProxy = TaskCreatorProxy(taskCreatorProxyAddress);
-        TaskCreatorLogic taskCreatorLogic = new TaskCreatorLogic(supa, automate, address(taskCreatorProxy));
-        taskCreatorProxy.upgrade(address(taskCreatorLogic));
+        TaskCreator taskCreator = new TaskCreator(supa, automate, address(taskCreatorProxy), usdc);
+        taskCreatorProxy.upgrade(address(taskCreator));
         vm.stopBroadcast();
     }
 }

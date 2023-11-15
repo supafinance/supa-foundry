@@ -98,11 +98,11 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
 
     // We will initialize the system so that 0 is the base currency
     // in which the system calculates value.
-    uint16 constant K_NUMERAIRE_IDX = 0;
+    uint16 constant private K_NUMERAIRE_IDX = 0;
 
-    uint256 constant POOL_ASSETS_CUTOFF = 100; // Wei amounts to prevent division by zero
+    uint256 constant private POOL_ASSETS_CUTOFF = 100; // Wei amounts to prevent division by zero
 
-    address immutable supaConfigAddress;
+    address immutable private supaConfigAddress;
 
     modifier onlyRegisteredNFT(address nftContract, uint256 tokenId) {
         // how can we be sure that Oracle would have a price for any possible tokenId?
@@ -373,7 +373,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     }
 
     /// @notice Unused function. Will be used in future versions
-    function migrateWallet(address wallet, address owner) external override {
+    function migrateWallet(address wallet, address owner, address implementation) external override {
         revert("Not implemented");
     }
 
