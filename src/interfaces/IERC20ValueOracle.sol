@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIt
+pragma solidity ^0.8.19;
 
 /// @title ERC20 value oracle interface
 interface IERC20ValueOracle {
