@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
@@ -28,13 +28,6 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
         uint256 value;
     }
 
-/// @notice Specify a batch of calls to be executed in sequence,
-/// @notice with the return values of some calls being passed as arguments to later calls.
-    struct LinkedCall {
-        Call call;
-        ReturnDataLink[] links;
-    }
-
 /// @notice Metadata to splice a return value into a call.
     struct ReturnDataLink {
         // index of the call with the return value
@@ -53,18 +46,6 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
         Call call;
         ReturnDataLink[] links;
     }
-
-/// @notice Metadata to splice a return value into a call.
-struct ReturnDataLink {
-    // index of the call with the return value
-    uint32 callIndex;
-    // offset of the return value in the return data
-    uint32 returnValueOffset;
-    // indicates whether the return value is static or dynamic
-    bool isStatic;
-    // offset in the callData where the return value should be spliced in
-    uint128 offset;
-}
 
 library CallLib {
     using Address for address;

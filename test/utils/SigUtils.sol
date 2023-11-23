@@ -8,6 +8,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Call, CallLib} from "src/lib/Call.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
 
+
 contract SigUtils {
     bytes32 private constant _TYPE_HASH =
         keccak256(
@@ -46,7 +47,7 @@ contract SigUtils {
 
     function walletDomain(address wallet) internal view returns (bytes32) {
         bytes32 _hashedName = keccak256(bytes("Supa wallet"));
-        bytes32 _hashedVersion = keccak256(bytes("1.0.0"));
+        bytes32 _hashedVersion = keccak256(bytes("1.3.2"));
         bytes32 _domainSeparatorV4 = keccak256(
             abi.encode(_TYPE_HASH, _hashedName, _hashedVersion, block.chainid, wallet)
         );

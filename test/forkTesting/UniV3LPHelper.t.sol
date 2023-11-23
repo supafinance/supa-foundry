@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 
@@ -22,54 +22,6 @@ import {Call} from "src/lib/Call.sol";
 import {MockERC20Oracle} from "src/testing/MockERC20Oracle.sol";
 import {ERC20ChainlinkValueOracle} from "src/oracles/ERC20ChainlinkValueOracle.sol";
 import {UniV3Oracle} from "src/oracles/UniV3Oracle.sol";
-
-contract LiveUniV3LPHelperTest is Test {
-    uint256 goerliFork;
-    string GOERLI_RPC_URL = vm.envString("GOERLI_RPC_URL");
-
-    address supaAddress = vm.envAddress("SUPA");
-    address nonfungiblePositionManager = vm.envAddress("NONFUNGIBLE_POSITION_MANAGER");
-    address factory = vm.envAddress("UNISWAP_V3_FACTORY");
-    address swapRouter = vm.envAddress("SWAP_ROUTER");
-    UniV3LPHelper public uniV3LPHelper;
-    WalletProxy public userWallet = WalletProxy(payable(0x763b978Ae1B31Cb4D6E2c95cFf7e1806725e475B));
-
-    function setUp() public {
-        goerliFork = vm.createFork(GOERLI_RPC_URL);
-        vm.selectFork(goerliFork);
-        uniV3LPHelper = new UniV3LPHelper(supaAddress, nonfungiblePositionManager, factory, swapRouter);
-    }
-
-    function testRebalanceSoM() public {
-        console.log("enter testRebalanceSoM");
-        // get the tokenId
-        uint256 tokenId = 60310;
-
-        address user = 0xd6451958cFefD7EE2dE840Ab2bA55039702C8bD1;
-        vm.startPrank(user);
-
-        // Rebalance
-        Call[] memory calls = new Call[](3);
-        calls[0] = Call({
-            to: supaAddress,
-            callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
-            value: 0
-        });
-        calls[1] = Call({
-            to: address(nonfungiblePositionManager),
-            callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
-            value: 0
-        });
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
-            callData: abi.encodeWithSignature("rebalanceSameTickSizing(uint256)", tokenId),
-            value: 0
-        });
-
-        userWallet.executeBatch(calls);
-        vm.stopPrank();
-    }
-}
 
 contract UniV3LPHelperTest is Test {
     uint256 mainnetFork;
@@ -105,7 +57,7 @@ contract UniV3LPHelperTest is Test {
         versionManager = new VersionManager(owner);
         supaConfig = new SupaConfig(owner);
         supa = new Supa(address(supaConfig), address(versionManager));
-        logic = new WalletLogic(address(supa));
+        logic = new WalletLogic();
 
         ISupaConfig(address(supa)).setConfig(
             ISupaConfig.Config({

@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {ERC20Pool, ERC20Share} from "../interfaces/ISupa.sol";
 import {FsUtils} from "../lib/FsUtils.sol";

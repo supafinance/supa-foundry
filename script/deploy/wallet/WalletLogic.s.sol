@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
@@ -11,7 +11,7 @@ contract DeployWalletLogic is Script {
         address supa = vm.envAddress("SUPA");
         address owner = vm.envAddress("OWNER");
         vm.startBroadcast(owner);
-        WalletLogic walletLogic = new WalletLogic(supa);
+        WalletLogic walletLogic = new WalletLogic();
         VersionManager versionManager = VersionManager(address(IVersionManager(SupaState(supa).versionManager())));
         versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(walletLogic));
         versionManager.markRecommendedVersion("1.3.2");

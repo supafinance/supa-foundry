@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Call} from "../lib/Call.sol";
@@ -329,6 +329,8 @@ interface ISupaCore {
     function addOperator(address operator) external;
 
     function removeOperator(address operator) external;
+
+    function migrateWallet(address wallet, address owner, address implementation) external;
 
     /// @notice Returns the approved address for a token, or zero if no address set
     /// @param collection The address of the ERC721 token

@@ -5,18 +5,40 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5d4f8e33-0e59-42aa-8b86-a9ddd380f4c0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gelato/AutomateReady.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/AutomateReady.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gelato/AutomateTaskCreator.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/AutomateTaskCreator.sol" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/script/PayGasNative.s.sol" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/script/setup/gelato/SetPowerPerExecution.s.sol" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/script/setup/increasePowerCredits.s.sol" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/gelato/interfaces/ITaskCreator.sol" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/testing/MigrationSupa.sol" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/tokens/SupaBeta.sol" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/walletMigration.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/foundry.toml" beforeDir="false" afterPath="$PROJECT_DIR$/foundry.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/forge-std" beforeDir="false" afterPath="$PROJECT_DIR$/lib/forge-std" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreator.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreator.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreatorLogic.s.sol" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreatorProxy.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreatorProxy.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/deploy/wallet/WalletLogic.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/wallet/WalletLogic.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/setup/SetupLocalhost.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/setup/SetupLocalhost.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/setup/UpgradeGelatoProxy.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/setup/UpgradeGelatoProxy.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/setupSupa.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/setupSupa.s.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gelato/TaskCreator.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/TaskCreator.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gelato/TaskCreatorLogic.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/TaskCreatorLogic.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gelato/TaskCreatorLogic.sol" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gelato/TaskCreatorProxy.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/TaskCreatorProxy.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gelato/Types.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/Types.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/Call.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/Call.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/periphery/UniV3LPHelper.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/periphery/UniV3LPHelper.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interfaces/ISupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/interfaces/ISupa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/ImmutableVersion.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/ImmutableVersion.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/Supa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/Supa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/SupaState.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/SupaState.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testing/SimulationSupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/testing/SimulationSupa.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/wallet/WalletState.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletState.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/forkTesting/UniV3LPHelper.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/forkTesting/UniV3LPHelper.t.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test/gelato.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/gelato.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/supa.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/supa.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/utils/SigUtils.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/utils/SigUtils.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/wallet.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/wallet.t.sol" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,6 +51,9 @@
   <component name="MacroExpansionManager">
     <option name="directoryName" value="lax7wfht" />
   </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -38,20 +63,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/ammonwerner/supa/supa-foundry",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "yarn",
-    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;ammon/deterministic-wallets&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/ammonwerner/supa/supa-foundry&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;yarn&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/gelato" />
@@ -85,6 +110,12 @@
       <workItem from="1693956302287" duration="3739000" />
       <workItem from="1694459003667" duration="774000" />
       <workItem from="1694630423839" duration="3666000" />
+      <workItem from="1698941370327" duration="3867000" />
+      <workItem from="1698981753934" duration="7570000" />
+      <workItem from="1699235026824" duration="19791000" />
+      <workItem from="1699470998316" duration="29010000" />
+      <workItem from="1699828520608" duration="598000" />
+      <workItem from="1699980111425" duration="4600000" />
     </task>
     <servers />
   </component>

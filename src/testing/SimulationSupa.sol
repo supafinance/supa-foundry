@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {Proxy} from "@openzeppelin/contracts/proxy/Proxy.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -372,6 +372,11 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         emit OperatorRemoved(msg.sender, operator);
     }
 
+    /// @notice Unused function. Will be used in future versions
+    function migrateWallet(address, address, address) external override pure {
+        revert("Not implemented");
+    }
+
     /// @notice Execute a batch of calls
     /// @dev execute a batch of commands on Supa from the name of wallet owner. Eventual state of
     /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral
@@ -570,9 +575,8 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @dev when called by the end of `executeBatch`, isSolvent checks the potential target state
     /// of Supa. Calling this function separately would check current state of Supa, that is always
     /// solvable, and so the return value would always be `true`, unless the `wallet` is liquidatable
-    /// @param wallet The address of a wallet who performed the `executeBatch`
     /// @return Whether the position is solvent.
-    function isSolvent(address wallet) public view returns (bool) {
+    function isSolvent(address) public pure returns (bool) {
         return true;
     }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
 import {Supa, SupaState} from "src/supa/Supa.sol";
@@ -30,7 +30,7 @@ contract SetupSupa is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        WalletLogic walletLogic = new WalletLogic(supaAddress);
+        WalletLogic walletLogic = new WalletLogic();
 
         VersionManager versionManager = VersionManager(address(IVersionManager(SupaState(supaAddress).versionManager())));
         versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(walletLogic));

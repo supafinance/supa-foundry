@@ -1,19 +1,15 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {Proxy} from "@openzeppelin/contracts/proxy/Proxy.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC721, IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {
-    ISupa,
-    ISupaConfig,
     ISupaCore,
     ERC20Share,
-    NFTTokenData,
     ERC20Pool,
     ERC20Info,
     ERC721Info,
@@ -30,9 +26,8 @@ import {Call} from "src/lib/Call.sol";
 import {FsUtils} from "src/lib/FsUtils.sol";
 import {FsMath} from "src/lib/FsMath.sol";
 
-import "src/interfaces/IERC20ValueOracle.sol";
-import "src/interfaces/INFTValueOracle.sol";
-import {PERMIT2, IPermit2} from "src/external/interfaces/IPermit2.sol";
+import {IERC20ValueOracle} from "src/interfaces/IERC20ValueOracle.sol";
+import {INFTValueOracle} from "src/interfaces/INFTValueOracle.sol";
 
 // ERC20 standard token
 // ERC721 single non-fungible token support
@@ -98,11 +93,11 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
 
     // We will initialize the system so that 0 is the base currency
     // in which the system calculates value.
-    uint16 constant K_NUMERAIRE_IDX = 0;
+    uint16 constant private K_NUMERAIRE_IDX = 0;
 
-    uint256 constant POOL_ASSETS_CUTOFF = 100; // Wei amounts to prevent division by zero
+    uint256 constant private POOL_ASSETS_CUTOFF = 100; // Wei amounts to prevent division by zero
 
-    address immutable supaConfigAddress;
+    address immutable private supaConfigAddress;
 
     modifier onlyRegisteredNFT(address nftContract, uint256 tokenId) {
         // how can we be sure that Oracle would have a price for any possible tokenId?
@@ -370,6 +365,12 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     function removeOperator(address operator) external override onlyWallet {
         operatorApprovals[msg.sender][operator] = false;
         emit OperatorRemoved(msg.sender, operator);
+    }
+
+    /// @notice Unused function. Will be used in future versions
+    /// @dev (address wallet, address owner, address implementation)
+    function migrateWallet(address, address, address) external override pure {
+        revert("Not implemented");
     }
 
     /// @notice Execute a batch of calls

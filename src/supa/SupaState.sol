@@ -1,14 +1,15 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC721, IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {ISupaConfig, ERC20Pool, ERC20Share, NFTTokenData, ERC20Info, ERC721Info, ContractData, ContractKind} from "../interfaces/ISupa.sol";
-import {IVersionManager} from "../interfaces/IVersionManager.sol";
-import {WalletLib} from "../lib/WalletLib.sol";
-import {ERC20PoolLib} from "../lib/ERC20PoolLib.sol";
+import {IVersionManager} from "src/interfaces/IVersionManager.sol";
+import {WalletLib} from "src/lib/WalletLib.sol";
+import {ERC20PoolLib} from "src/lib/ERC20PoolLib.sol";
+import {WalletState} from "src/wallet/WalletState.sol";
 
 /// @title Supa State
 /// @notice Contract holds the configuration state for Supa
@@ -26,6 +27,9 @@ contract SupaState is Pausable {
     IVersionManager public versionManager;
     /// @notice mapping between wallet address and Supa-specific wallet data
     mapping(address => WalletLib.Wallet) public wallets;
+
+    /// @notice mapping between account and their nonce for wallet creation
+    mapping(address account => uint256 nonce) public walletNonce;
 
     /// @notice mapping between wallet address and the proposed new owner
     /// @dev `proposedNewOwner` is address(0) when there is no pending change
@@ -63,7 +67,8 @@ contract SupaState is Pausable {
     ISupaConfig.TokenStorageConfig public tokenStorageConfig;
 
     modifier onlyWallet() {
-        if (wallets[msg.sender].owner == address(0)) {
+//        if (wallets[msg.sender].owner == address(0) || address(WalletState(msg.sender).supa()) != address(this)) {
+            if (wallets[msg.sender].owner == address(0)) {
             revert OnlyWallet();
         }
         _;

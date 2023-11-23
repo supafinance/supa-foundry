@@ -3,7 +3,7 @@ src = 'src'
 out = 'out'
 libs = ['lib']
 #auto_detect_solc = true
-solc-version = "0.8.20"
+solc-version = "0.8.19" # Used for L2 compatibility
 via_ir = true
 optimizer = true
 optimizer-runs = 100_000
@@ -13,3 +13,4 @@ optimizer-runs = 100_000
 [etherscan]
 mainnet = { key = "${ETHERSCAN_API_KEY}" }
 goerli = { key = "${ETHERSCAN_API_KEY}" }
+arbitrum = { key = "${ARBISCAN_API_KEY}" }

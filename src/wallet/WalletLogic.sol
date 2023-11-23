@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -12,6 +12,8 @@ import {WalletState} from "./WalletState.sol";
 import {Liquifier} from "../supa/Liquifier.sol";
 import {IVersionManager} from "../interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "../interfaces/ITransferReceiver2.sol";
+import {ISupa} from "../interfaces/ISupa.sol";
+import {WalletProxy} from "./WalletProxy.sol";
 import {IWallet} from "../interfaces/IWallet.sol";
 import {IERC1363SpenderExtended} from "../interfaces/IERC1363-extended.sol";
 import {CallLib, Call, LinkedCall, ReturnDataLink} from "../lib/Call.sol";
@@ -22,14 +24,14 @@ import {BytesLib} from "../lib/BytesLib.sol";
 // Calls to the contract not coming from Supa itself are routed to this logic
 // contract. This allows for flexible extra addition to your wallet.
 contract WalletLogic is
-    WalletState,
+//    WalletState,
     ImmutableVersion,
     IERC721Receiver,
     IERC1271,
     ITransferReceiver2,
     EIP712,
     IWallet,
-    Liquifier,
+//    Liquifier,
     IERC1363SpenderExtended
 {
     using NonceMapLib for NonceMap;
@@ -53,7 +55,7 @@ contract WalletLogic is
             )
         );
 
-    string private constant VERSION = "1.2.0";
+    string public constant VERSION = "1.3.2";
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
@@ -76,9 +78,11 @@ contract WalletLogic is
     error OnlyThisAddress();
     /// @notice The wallet is insolvent
     error Insolvent();
+    /// @notice Transfer failed
+    error TransferFailed();
 
     modifier onlyOwner() {
-        if (supa.getWalletOwner(address(this)) != msg.sender) {
+        if (_supa().getWalletOwner(address(this)) != msg.sender) {
             revert OnlyOwner();
         }
         _;
@@ -86,16 +90,23 @@ contract WalletLogic is
 
     modifier onlyOwnerOrOperator() {
         if (
-            supa.getWalletOwner(address(this)) != msg.sender &&
-            !supa.isOperator(address(this), msg.sender)
+            _supa().getWalletOwner(address(this)) != msg.sender &&
+            !_supa().isOperator(address(this), msg.sender)
         ) {
             revert NotOwnerOrOperator();
         }
         _;
     }
 
+    modifier onlyThisAddress() {
+        if (msg.sender != address(this)) {
+            revert OnlyThisAddress();
+        }
+        _;
+    }
+
     modifier onlySupa() {
-        if (msg.sender != address(supa)) {
+        if (msg.sender != address(_supa())) {
             revert OnlySupa();
         }
         _;
@@ -105,8 +116,16 @@ contract WalletLogic is
     // storage and thus can be used in a proxy contract constructor.
     // Version number should be in sync with VersionManager version.
     constructor(
-        address _supa
-    ) EIP712("Supa wallet", VERSION) ImmutableVersion(VERSION) WalletState(_supa) {}
+    ) EIP712("Supa wallet", VERSION) ImmutableVersion(VERSION) {
+    }
+
+    /// @notice Transfer ETH
+    function transfer(address to, uint256 value) external payable onlyThisAddress {
+        (bool success, ) = to.call{value: value}("");
+        if (!success) {
+            revert TransferFailed();
+        }
+    }
 
     /// @notice makes a batch of different calls from the name of wallet owner. Eventual state of
     /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral on
@@ -117,13 +136,13 @@ contract WalletLogic is
     ///   * to - is the address of the contract whose function should be called
     ///   * callData - encoded function name and it's arguments
     ///   * value - the amount of ETH to sent with the call
-    function executeBatch(Call[] memory calls) external payable onlyOwnerOrOperator {
+    function executeBatch(Call[] calldata calls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
         CallLib.executeBatch(calls);
         forwardNFT = saveForwardNFT;
 
-        if (!supa.isSolvent(address(this))) {
+        if (!_supa().isSolvent(address(this))) {
             revert Insolvent();
         }
     }
@@ -143,13 +162,13 @@ contract WalletLogic is
         );
         if (
             !SignatureChecker.isValidSignatureNow(
-                supa.getWalletOwner(address(this)),
+            _supa().getWalletOwner(address(this)),
                 digest,
                 signature
             )
         ) revert InvalidSignature();
 
-        supa.executeBatch(calls);
+        _supa().executeBatch(calls);
     }
 
     function forwardNFTs(bool _forwardNFT) external {
@@ -177,7 +196,7 @@ contract WalletLogic is
         bytes memory data
     ) public virtual override returns (bytes4) {
         if (forwardNFT) {
-            IERC721(msg.sender).safeTransferFrom(address(this), address(supa), tokenId, data);
+            IERC721(msg.sender).safeTransferFrom(address(this), address(_supa()), tokenId, data);
         }
         return this.onERC721Received.selector;
     }
@@ -202,17 +221,17 @@ contract WalletLogic is
             /* just deposit in the proxy, nothing to do */
         } else if (data[0] == 0x00) {
             // execute batch
-            if (msg.sender != supa.getWalletOwner(address(this))) {
+            if (msg.sender != _supa().getWalletOwner(address(this))) {
                 revert OnlyOwner();
             }
             Call[] memory calls = abi.decode(data[1:], (Call[]));
-            supa.executeBatch(calls);
+            _supa().executeBatch(calls);
         } else if (data[0] == 0x01) {
             if (data.length != 1) revert InvalidData();
             // deposit in the supa wallet
             for (uint256 i = 0; i < transfers.length; i++) {
-                ITransferReceiver2.Transfer memory transfer = transfers[i];
-                supa.depositERC20(IERC20(transfer.token), transfer.amount);
+                ITransferReceiver2.Transfer memory transfer_ = transfers[i];
+                _supa().depositERC20(IERC20(transfer_.token), transfer_.amount);
             }
         } else if (data[0] == 0x02) {
             // execute signed batch
@@ -245,13 +264,13 @@ contract WalletLogic is
             );
             if (
                 !SignatureChecker.isValidSignatureNow(
-                    supa.getWalletOwner(address(this)),
+                _supa().getWalletOwner(address(this)),
                     digest,
                     signature
                 )
             ) revert InvalidSignature();
 
-            supa.executeBatch(calls);
+            _supa().executeBatch(calls);
         } else {
             revert("Invalid data - allowed are '', '0x00...', '0x01' and '0x02...'");
         }
@@ -271,13 +290,13 @@ contract WalletLogic is
         Call[] memory calls = new Call[](1);
         calls[0] = call;
 
-        supa.executeBatch(calls);
+        _supa().executeBatch(calls);
 
         return this.onApprovalReceived.selector;
     }
 
     function owner() external view returns (address) {
-        return supa.getWalletOwner(address(this));
+        return _supa().getWalletOwner(address(this));
     }
 
     /// @inheritdoc IERC1271
@@ -286,7 +305,7 @@ contract WalletLogic is
         bytes memory signature
     ) public view override returns (bytes4 magicValue) {
         magicValue = SignatureChecker.isValidSignatureNow(
-            supa.getWalletOwner(address(this)),
+            _supa().getWalletOwner(address(this)),
             hash,
             signature
         )
@@ -376,8 +395,12 @@ contract WalletLogic is
 
         forwardNFT = saveForwardNFT;
 
-        if (!supa.isSolvent(address(this))) {
+        if (!_supa().isSolvent(address(this))) {
             revert Insolvent();
         }
+    }
+
+    function _supa() internal view returns (ISupa) {
+        return WalletProxy(payable(address(this))).supa();
     }
 }

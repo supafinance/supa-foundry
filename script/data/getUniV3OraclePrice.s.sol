@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
-import "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 import {UniV3Oracle} from "src/oracles/UniV3Oracle.sol";
 
 contract getUniV3OraclePrice is Script {

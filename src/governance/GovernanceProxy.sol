@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {FsUtils} from "../lib/FsUtils.sol";
@@ -13,17 +13,22 @@ import {CallLib, CallWithoutValue} from "../lib/Call.sol";
 // interact with the "execute" method. Proposing new governance or accepting
 // governance is done through calls to "execute", simplifying voting
 // contracts that govern this proxy.
+/// @title Supa Governance Proxy
 contract GovernanceProxy {
     using Address for address;
 
-    // This address controls the proxy and is allowed to execute
-    // contract calls from this contracts account.
+    /* 
+    * @dev This address controls the proxy and is allowed to execute
+    * @dev contract calls from this contracts account.
+    */
     address public governance;
-    // To avoid losing governance by accidentally transferring governance
-    // to a wrong address we use a propose mechanism, where the proposed
-    // governance can also execute and by this action finalize the
-    // the transfer of governance. This prevents accidentally transferring
-    // control to an invalid address.
+    /* 
+    * @dev To avoid losing governance by accidentally transferring governance
+    * @dev to a wrong address we use a propose mechanism, where the proposed
+    * @dev governance can also execute and by this action finalize the
+    * @dev the transfer of governance. This prevents accidentally transferring
+    * @dev control to an invalid address.
+    */
     address public proposedGovernance;
 
     event NewGovernanceProposed(address newGovernance);

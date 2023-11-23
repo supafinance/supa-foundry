@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
 import {ERC1155Burnable, ERC1155} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 

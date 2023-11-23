@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import {Supa, ISupa, WalletLib, SupaState, ISupaCore, IERC20, ERC20Info} from "src/supa/Supa.sol";
+import {Supa, WalletLib, SupaState, ISupaCore, IERC20, ERC20Info} from "src/supa/Supa.sol";
+import {ISupa} from "src/interfaces/ISupa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
 
 import {Call} from "src/lib/Call.sol";
