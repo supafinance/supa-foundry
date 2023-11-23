@@ -247,8 +247,9 @@ contract WalletTest is Test {
 
     function testValidExecuteSignedBatch() public {
         SigUtils sigUtils = new SigUtils();
-        VmSafe.Wallet memory wallet = vm.createWallet(uint256(keccak256(bytes("1"))));
-        vm.prank(wallet.addr);
+        uint256 privateKey = 0xB0B;
+        address wallet = vm.addr(privateKey);
+        vm.prank(wallet);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
         ISupa walletSupa = userWallet.supa();
@@ -261,7 +262,7 @@ contract WalletTest is Test {
 
         bytes32 digest = sigUtils.getTypedDataHash(address(userWallet), calls, nonce, deadline);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(wallet, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
         address recovered = ecrecover(digest, v, r, s);
