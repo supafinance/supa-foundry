@@ -10,7 +10,7 @@
     "no-console": "warn",
     "no-empty-blocks": "off",
     "not-rely-on-time": "off",
-    "var-name-mixedcase": "off"
-
+    "var-name-mixedcase": "off",
+    "double-quotes": "off",
   }
 }

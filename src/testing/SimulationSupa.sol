@@ -373,7 +373,7 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     }
 
     /// @notice Unused function. Will be used in future versions
-    function migrateWallet(address wallet, address owner, address implementation) external override {
+    function migrateWallet(address, address, address) external override pure {
         revert("Not implemented");
     }
 
@@ -575,9 +575,8 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @dev when called by the end of `executeBatch`, isSolvent checks the potential target state
     /// of Supa. Calling this function separately would check current state of Supa, that is always
     /// solvable, and so the return value would always be `true`, unless the `wallet` is liquidatable
-    /// @param wallet The address of a wallet who performed the `executeBatch`
     /// @return Whether the position is solvent.
-    function isSolvent(address wallet) public view returns (bool) {
+    function isSolvent(address) public pure returns (bool) {
         return true;
     }
 

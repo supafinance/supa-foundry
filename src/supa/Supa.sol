@@ -3,17 +3,13 @@ pragma solidity ^0.8.19;
 
 import {Proxy} from "@openzeppelin/contracts/proxy/Proxy.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC721, IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {
-    ISupa,
-    ISupaConfig,
     ISupaCore,
     ERC20Share,
-    NFTTokenData,
     ERC20Pool,
     ERC20Info,
     ERC721Info,
@@ -30,9 +26,8 @@ import {Call} from "src/lib/Call.sol";
 import {FsUtils} from "src/lib/FsUtils.sol";
 import {FsMath} from "src/lib/FsMath.sol";
 
-import "src/interfaces/IERC20ValueOracle.sol";
-import "src/interfaces/INFTValueOracle.sol";
-import {PERMIT2, IPermit2} from "src/external/interfaces/IPermit2.sol";
+import {IERC20ValueOracle} from "src/interfaces/IERC20ValueOracle.sol";
+import {INFTValueOracle} from "src/interfaces/INFTValueOracle.sol";
 
 // ERC20 standard token
 // ERC721 single non-fungible token support

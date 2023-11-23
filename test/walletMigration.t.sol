@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {Test, console} from "forge-std/Test.sol";
-import { Vm, VmSafe } from "forge-std/Vm.sol";
+import {Vm, VmSafe} from "forge-std/Vm.sol";
 
 import {IPermit2} from "src/external/interfaces/IPermit2.sol";
 import {TransferAndCall2} from "src/supa/TransferAndCall2.sol";
@@ -10,9 +10,11 @@ import {TestERC20} from "src/testing/TestERC20.sol";
 import {TestNFT} from "src/testing/TestNFT.sol";
 import {MockERC20Oracle} from "src/testing/MockERC20Oracle.sol";
 import {MockNFTOracle} from "src/testing/MockNFTOracle.sol";
-import {Supa, ISupa} from "src/supa/Supa.sol";
-import { MigrationSupa } from "src/testing/MigrationSupa.sol";
+import {Supa} from "src/supa/Supa.sol";
+import {ISupa } from "src/interfaces/ISupa.sol";
+import {MigrationSupa} from "src/testing/MigrationSupa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
+import {SupaState} from "src/supa/SupaState.sol";
 import {VersionManager, IVersionManager} from "src/supa/VersionManager.sol";
 import {WalletLogic, LinkedCall, ReturnDataLink} from "src/wallet/WalletLogic.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
@@ -56,6 +58,9 @@ contract WalletMigrationTest is Test {
     MockERC20Oracle public token1Oracle;
 
     bytes32 public constant FS_SALT = bytes32(0x1234567890123456789012345678901234567890123456789012345678901234);
+
+    uint256 public mainnetFork;
+    uint256 public goerliFork;
 
     // todo: test if old supa implementation needs to be aware of migration to prevent attacks
 
@@ -146,8 +151,8 @@ contract WalletMigrationTest is Test {
         vm.startPrank(user);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
         userWallet.updateSupa(address(newSupa));
-        console.log('newSupa:', address(newSupa));
-        console.log('userWallet.supa():', address(userWallet.supa()));
+        console.log("newSupa:", address(newSupa));
+        console.log("userWallet.supa():", address(userWallet.supa()));
         _mintTokens(address(userWallet), _amount0, _amount1);
 
         // construct calls
@@ -232,7 +237,6 @@ contract WalletMigrationTest is Test {
         vm.startPrank(wallet.addr);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
         userWallet.updateSupa(address(newSupa));
-        ISupa walletSupa = userWallet.supa();
 
         address walletOwner = supa.getWalletOwner(address(userWallet));
 
@@ -246,6 +250,8 @@ contract WalletMigrationTest is Test {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         address recovered = ecrecover(digest, v, r, s);
+
+        assertEq(recovered, walletOwner);
 
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
         vm.stopPrank();
@@ -380,6 +386,54 @@ contract WalletMigrationTest is Test {
         vm.prank(newOwner);
         vm.expectRevert();
         ISupa(address(supa)).executeTransferWalletOwnership(address(userWallet));
+    }
+
+    function testDeterministicWalletAddress() public {
+        bytes32 salt = bytes32(0x1234567890123456789012345678901234567890123456789012345678901234);
+        string memory MAINNET_RPC_URL = vm.envString("MAINNET_RPC_URL");
+        mainnetFork = vm.createFork(MAINNET_RPC_URL);
+        vm.selectFork(mainnetFork);
+
+        VersionManager mainnetVersionManager = new VersionManager{salt: salt}(address(this));
+        SupaConfig mainnetSupaConfig = new SupaConfig{salt: salt}(address(this));
+        Supa mainnetSupa = new Supa{salt: salt}(address(mainnetSupaConfig), address(mainnetVersionManager));
+        WalletLogic mainnetProxyLogic = new WalletLogic{salt: salt}();
+        string memory VERSION = mainnetProxyLogic.VERSION();
+        mainnetVersionManager.addVersion(IVersionManager.Status.PRODUCTION, address(mainnetProxyLogic));
+        mainnetVersionManager.markRecommendedVersion(VERSION);
+
+        uint256 nonce = SupaState(address(mainnetSupa)).walletNonce(address(this));
+        assertEq(nonce, 0);
+        address mainnetWallet1 = ISupaConfig(address(mainnetSupa)).createWallet();
+        address mainnetWallet2 = ISupaConfig(address(mainnetSupa)).createWallet();
+        address mainnetWallet3 = ISupaConfig(address(mainnetSupa)).createWallet();
+        nonce = SupaState(address(mainnetSupa)).walletNonce(address(this));
+        assertEq(nonce, 3);
+
+        // todo: change to arbitrum
+        string memory GOERLI_RPC_URL = vm.envString("GOERLI_RPC_URL");
+        goerliFork = vm.createFork(GOERLI_RPC_URL);
+        vm.selectFork(goerliFork);
+
+        VersionManager goerliVersionManager = new VersionManager{salt: salt}(address(this));
+        SupaConfig goerliSupaConfig = new SupaConfig{salt: salt}(address(this));
+        Supa goerliSupa = new Supa{salt: salt}(address(goerliSupaConfig), address(goerliVersionManager));
+        WalletLogic goerliProxyLogic = new WalletLogic{salt: salt}();
+        goerliVersionManager.addVersion(IVersionManager.Status.PRODUCTION, address(goerliProxyLogic));
+        goerliVersionManager.markRecommendedVersion(VERSION);
+
+        nonce = SupaState(address(goerliSupa)).walletNonce(address(this));
+        assertEq(nonce, 0);
+        address goerliWallet1 = ISupaConfig(address(goerliSupa)).createWallet();
+        address goerliWallet2 = ISupaConfig(address(goerliSupa)).createWallet();
+        address goerliWallet3 = ISupaConfig(address(goerliSupa)).createWallet();
+        nonce = SupaState(address(goerliSupa)).walletNonce(address(this));
+        assertEq(nonce, 3);
+
+        assertEq(address(mainnetSupa), address(goerliSupa));
+        assertEq(mainnetWallet1, goerliWallet1);
+        assertEq(mainnetWallet2, goerliWallet2);
+        assertEq(mainnetWallet3, goerliWallet3);
     }
 
     function _upgradeWalletImplementation(WalletProxy _userWallet, string memory versionName) internal {
