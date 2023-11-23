@@ -107,7 +107,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
     /// @param user The user to purchase power for
     /// @param amount The amount of USDC to send
     function purchasePowerExactUsdc(address user, uint256 amount) external {
-        uint256 powerCreditsToPurchase = _calculatePowerPurchase(amount);
+        uint256 powerCreditsToPurchase = calculatePowerPurchase(amount);
 
         _mint(user, powerCreditsToPurchase);
 
@@ -149,20 +149,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
     /// @dev Can only be called by the task owner
     /// @param taskId The id of the task to cancel
     function cancelTask(bytes32 taskId) external onlyTaskOwner(taskId) {
-        (address owner,) = supa.wallets(msg.sender);
-        UserPowerData memory powerData = userPowerData[owner];
-        uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
-        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether / 1 ether;
-        if (powerUsed > super.balanceOf(owner)) {
-            powerUsed = super.balanceOf(owner);
-        }
-
-        _burn(owner, powerUsed);
-        userPowerData[owner] = UserPowerData({
-            lastUpdate: block.timestamp,
-            taskExecsPerSecond: powerData.taskExecsPerSecond - taskExecFrequency[taskId]
-        });
-
+        _burnUsedCredits(msg.sender, taskId);
         _cancelTask(taskId);
 
         // refund the deposit
@@ -174,21 +161,8 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
     /// @param taskId The id of the task to cancel
     function cancelInsolventTask(bytes32 taskId) external {
         address taskOwner_ = taskOwner[taskId];
-        (address owner,) = supa.wallets(taskOwner_);
-        UserPowerData memory powerData = userPowerData[owner];
-        uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
-        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether / 1 ether;
-        if (powerUsed > super.balanceOf(owner)) {
-            powerUsed = super.balanceOf(owner);
-        } else {
-            revert TaskNotInsolvent(taskId);
-        }
 
-        _burn(owner, powerUsed);
-        userPowerData[owner] = UserPowerData({
-            lastUpdate: block.timestamp,
-            taskExecsPerSecond: powerData.taskExecsPerSecond - taskExecFrequency[taskId]
-        });
+        if (!_burnUsedCredits(taskOwner_, taskId)) revert TaskNotInsolvent(taskId);
 
         _cancelTask(taskId);
 
@@ -215,7 +189,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         (address owner,) = supa.wallets(msg.sender);
         UserPowerData memory powerData = userPowerData[owner];
         uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
-        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether / 1 ether;
+        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether;
 
         if (powerUsed > super.balanceOf(owner)) {
             revert InsufficientPower(owner);
@@ -305,7 +279,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         (address owner,) = supa.wallets(msg.sender);
         UserPowerData memory powerData = userPowerData[owner];
         uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
-        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether / 1 ether;
+        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether;
 
         if (powerUsed > super.balanceOf(owner)) {
             revert InsufficientPower(owner);
@@ -380,7 +354,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         (address owner,) = supa.wallets(msg.sender);
         UserPowerData memory powerData = userPowerData[owner];
         uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
-        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether / 1 ether;
+        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether;
         if (powerUsed > super.balanceOf(owner)) {
             revert("Not enough credits");
         }
@@ -489,36 +463,14 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         return dailyBurn;
     }
 
-    function _onlyTaskOwner(bytes32 taskId) internal {
-        address _taskOwner = taskOwner[taskId];
-        if (msg.sender != _taskOwner) {
-            (address walletOwner,) = supa.wallets(_taskOwner);
-            if (msg.sender != walletOwner) {
-                revert NotTaskOwner();
-            }
-        }
-    }
-
-    function _calculatePowerPurchase(uint256 usdcAmount) internal view returns (uint256) {
-        uint256 rateToUse = 0;
-
-        for (uint256 i = 0; i < tiers.length; i++) {
-            if (usdcAmount > tiers[i].limit) {
-                rateToUse = tiers[i].rate;
-            } else {
-                break;
-            }
-        }
-
-        return usdcAmount * rateToUse;
-    }
-
-    function calculateUsdcForPower(uint256 powerAmount) public view returns (uint256) {
+    /// @notice Calculate the USDC required to purchase `powerAmount` power credits
+    /// @param powerAmount The amount of power credits to purchase
+    /// @return usdcRequired The amount of USDC required to purchase `powerAmount` power credits
+    function calculateUsdcForPower(uint256 powerAmount) public view returns (uint256 usdcRequired) {
         if (tiers.length == 0) {
             revert TiersNotSet();
         }
 
-        uint256 usdcRequired = 0;
         uint256 remainingPower = powerAmount;
 
         // Start from the highest tier and work down
@@ -542,7 +494,53 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         return usdcRequired;
     }
 
+    function calculatePowerPurchase(uint256 usdcAmount) public view returns (uint256 powerToPurchase) {
+        uint256 rateToUse = 0;
+
+        for (uint256 i = 0; i < tiers.length; i++) {
+            if (usdcAmount > tiers[i].limit) {
+                rateToUse = tiers[i].rate;
+            } else {
+                break;
+            }
+        }
+
+        powerToPurchase = usdcAmount * rateToUse;
+        return powerToPurchase;
+    }
+
+    /// @notice Get all power credit usdc tiers
+    /// @return tiers The tiers
     function getAllTiers() public view returns (Tier[] memory) {
         return tiers;
+    }
+
+    function _burnUsedCredits(address _taskOwner, bytes32 _taskId) internal returns (bool insolvent) {
+        (address owner,) = supa.wallets(_taskOwner);
+        UserPowerData memory powerData = userPowerData[owner];
+        uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
+        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether;
+        if (powerUsed > super.balanceOf(owner)) {
+            powerUsed = super.balanceOf(owner);
+            insolvent = true;
+        }
+
+        _burn(owner, powerUsed);
+        userPowerData[owner] = UserPowerData({
+            lastUpdate: block.timestamp,
+            taskExecsPerSecond: powerData.taskExecsPerSecond - taskExecFrequency[_taskId]
+        });
+
+        return insolvent;
+    }
+
+    function _onlyTaskOwner(bytes32 taskId) internal view {
+        address _taskOwner = taskOwner[taskId];
+        if (msg.sender != _taskOwner) {
+            (address walletOwner,) = supa.wallets(_taskOwner);
+            if (msg.sender != walletOwner) {
+                revert NotTaskOwner();
+            }
+        }
     }
 }

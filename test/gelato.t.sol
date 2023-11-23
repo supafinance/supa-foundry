@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-import {Test, Vm, console} from "forge-std/Test.sol";
+import {Test, Vm} from "forge-std/Test.sol";
 
 import {GelatoOperator} from "src/periphery/GelatoOperator.sol";
 
@@ -32,8 +32,8 @@ contract GelatoTest is Test {
     WalletLogic public proxyLogic;
     WalletProxy public userWallet;
 
-    uint256 mainnetFork;
-    string MAINNET_RPC_URL = vm.envString("MAINNET_RPC_URL");
+    uint256 private mainnetFork;
+    string private MAINNET_RPC_URL = vm.envString("MAINNET_RPC_URL");
 
 
     function setUp() public {
@@ -178,7 +178,7 @@ contract GelatoTest is Test {
         Call[] memory calls = new Call[](1);
         calls[0] = Call({
             to: address(taskCreatorProxy),
-            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256)", 0, address(1), cid, 1000),
+            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
         vm.expectRevert(abi.encodeWithSelector(TaskCreatorErrors.UnauthorizedCID.selector, cid));
@@ -197,7 +197,7 @@ contract GelatoTest is Test {
             give: 1000 ether
         });
 
-        Call[] memory calls = new Call[](2);
+        Call[] memory calls = new Call[](3);
         calls[0] = Call({
             to: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
@@ -205,12 +205,19 @@ contract GelatoTest is Test {
         });
         calls[1] = Call({
             to: address(taskCreatorProxy),
-            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256)", 0, address(1), cid, 1000),
+            callData: abi.encodeWithSignature("purchasePowerExactUsdc(address,uint256)", msg.sender, 1 ether),
+            value: 0
+        });
+        calls[2] = Call({
+            to: address(taskCreatorProxy),
+            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
         userWallet.executeBatch(calls);
 
         assertEq(IERC20(usdc).balanceOf(address(userWallet)), 999 ether);
+        uint256 powerCreditAmount = TaskCreator(address(taskCreatorProxy)).calculatePowerPurchase(1 ether);
+        assertEq(TaskCreator(address(taskCreatorProxy)).balanceOf(address(userWallet)), powerCreditAmount);
         address owner = supa.getWalletOwner(address(userWallet));
         (uint256 lastUpdate, uint256 taskExecsPerSecond) = TaskCreator(address(taskCreatorProxy)).userPowerData(owner);
         assert(lastUpdate > 0);
@@ -237,7 +244,7 @@ contract GelatoTest is Test {
         string memory newCid = "QmPmKTEBA39PPVu8LVgAgXdj3rUUQv2WUZ92X6woDF154q";
         bytes memory signature = hex"4fe283a2e7984beda941908f1ae4fee87556ee4669318d0226bc7202d9eda5d15ff308f053da8bd431ea059cfba0e8866942c69274a899e83f0aff572c5116e41c";
 
-        Call[] memory calls = new Call[](2);
+        Call[] memory calls = new Call[](3);
         calls[0] = Call({
             to: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
@@ -245,12 +252,19 @@ contract GelatoTest is Test {
         });
         calls[1] = Call({
             to: address(taskCreatorProxy),
-            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,address,bytes)", 0, address(1), newCid, 1000, admin, signature),
+            callData: abi.encodeWithSignature("purchasePowerExactUsdc(address,uint256)", msg.sender, 1 ether),
+            value: 0
+        });
+        calls[2] = Call({
+            to: address(taskCreatorProxy),
+            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool,address,bytes)", 0, address(1), newCid, 1000, false, admin, signature),
             value: 0
         });
         userWallet.executeBatch(calls);
 
         assertEq(IERC20(usdc).balanceOf(address(userWallet)), 999 ether);
+        uint256 powerCreditAmount = TaskCreator(address(taskCreatorProxy)).calculatePowerPurchase(1 ether);
+        assertEq(TaskCreator(address(taskCreatorProxy)).balanceOf(address(userWallet)), powerCreditAmount);
         address owner = supa.getWalletOwner(address(userWallet));
         (uint256 lastUpdate, uint256 taskExecsPerSecond) = TaskCreator(address(taskCreatorProxy)).userPowerData(owner);
         assert(lastUpdate > 0);
@@ -288,7 +302,7 @@ contract GelatoTest is Test {
         linkedCalls[1] = LinkedCall({
         call: Call({
             to: address(taskCreatorProxy),
-            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256)", 0, address(1), cid, 1000),
+            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         }),
             links: new ReturnDataLink[](0)
@@ -307,7 +321,7 @@ contract GelatoTest is Test {
     }
 
     function testCancelSolventTask() public {
-        string memory cid = 'QmPtdg15JttHPzV592jy1AhjoByTAE8tCeTFRYjLMjAExk';
+        string memory cid = "QmPtdg15JttHPzV592jy1AhjoByTAE8tCeTFRYjLMjAExk";
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
         _setupTaskCreator(cid);
@@ -326,7 +340,7 @@ contract GelatoTest is Test {
         });
         calls[1] = Call({
             to: address(taskCreatorProxy),
-            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256)", 0, address(1), cid, 1000),
+            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
 
@@ -342,7 +356,7 @@ contract GelatoTest is Test {
     }
 
     function testCancelInsolventTask() public {
-        string memory cid = 'QmPtdg15JttHPzV592jy1AhjoByTAE8tCeTFRYjLMjAExk';
+        string memory cid = "QmPtdg15JttHPzV592jy1AhjoByTAE8tCeTFRYjLMjAExk";
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
         _setupTaskCreator(cid);
@@ -361,7 +375,7 @@ contract GelatoTest is Test {
         });
         calls[1] = Call({
             to: address(taskCreatorProxy),
-            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256)", 0, address(1), cid, 1000),
+            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
 
@@ -379,7 +393,7 @@ contract GelatoTest is Test {
     }
 
     function testCancelTask_NotOwner() public {
-        string memory cid = 'QmPtdg15JttHPzV592jy1AhjoByTAE8tCeTFRYjLMjAExk';
+        string memory cid = "QmPtdg15JttHPzV592jy1AhjoByTAE8tCeTFRYjLMjAExk";
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
         _setupTaskCreator(cid);
@@ -398,7 +412,7 @@ contract GelatoTest is Test {
         });
         calls[1] = Call({
             to: address(taskCreatorProxy),
-            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256)", 0, address(1), cid, 1000),
+            callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
 
@@ -420,5 +434,7 @@ contract GelatoTest is Test {
         TaskCreator(address(taskCreatorProxy)).addAllowlistCid(cid);
         TaskCreator(address(taskCreatorProxy)).setDepositAmount(1 ether);
         TaskCreator(address(taskCreatorProxy)).setPowerPerExecution(1 ether);
+        TaskCreator(address(taskCreatorProxy)).setFeeCollector(address(1));
+
     }
 }

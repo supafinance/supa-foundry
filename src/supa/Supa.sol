@@ -373,7 +373,8 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     }
 
     /// @notice Unused function. Will be used in future versions
-    function migrateWallet(address wallet, address owner, address implementation) external override {
+    /// @dev (address wallet, address owner, address implementation)
+    function migrateWallet(address, address, address) external override pure {
         revert("Not implemented");
     }
 
