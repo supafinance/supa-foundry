@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
-import "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 import {SimulationSupa} from "src/testing/SimulationSupa.sol";
 import {SupaConfig} from "src/supa/SupaConfig.sol";
 import {VersionManager} from "src/supa/VersionManager.sol";

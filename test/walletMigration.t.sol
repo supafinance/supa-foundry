@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 import {Test, console} from "forge-std/Test.sol";
 import { Vm, VmSafe } from "forge-std/Vm.sol";
@@ -254,7 +254,7 @@ contract WalletMigrationTest is Test {
     function testExecuteSignedBatchReplay() public {
         SigUtils sigUtils = new SigUtils();
         uint256 userPrivateKey = 0xB0B;
-        address user = vm.addr(userPrivateKey);
+        user = vm.addr(userPrivateKey);
         vm.startPrank(user);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
         userWallet.updateSupa(address(newSupa));
@@ -382,14 +382,14 @@ contract WalletMigrationTest is Test {
         ISupa(address(supa)).executeTransferWalletOwnership(address(userWallet));
     }
 
-    function _upgradeWalletImplementation(WalletProxy userWallet, string memory versionName) internal {
+    function _upgradeWalletImplementation(WalletProxy _userWallet, string memory versionName) internal {
         Call[] memory calls = new Call[](1);
         calls[0] = Call({
             to: address(newSupa),
             callData: abi.encodeWithSignature("upgradeWalletImplementation(string)", versionName),
             value: 0
         });
-        userWallet.executeBatch(calls);
+        _userWallet.executeBatch(calls);
     }
 
     function _sortTransfers(ITransferReceiver2.Transfer[] memory transfers) internal pure {
