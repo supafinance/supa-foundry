@@ -4,34 +4,20 @@ pragma solidity ^0.8.19;
 // Inspired by the following contract: https://github.com/OpenBazaar/smart-contracts/blob/22d3f190163102f9ceee95ac705001c82ca55624/contracts/registry/ContractManager.sol
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {FsUtils} from "../lib/FsUtils.sol";
-import {ImmutableGovernance} from "../lib/ImmutableGovernance.sol";
-import {ImmutableVersion} from "../lib/ImmutableVersion.sol";
-import {IVersionManager} from "../interfaces/IVersionManager.sol";
+
+import {FsUtils} from "src/lib/FsUtils.sol";
+import {ImmutableGovernance} from "src/lib/ImmutableGovernance.sol";
+import {ImmutableVersion} from "src/lib/ImmutableVersion.sol";
+import {IVersionManager} from "src/interfaces/IVersionManager.sol";
+
+import {Errors} from "src/libraries/Errors.sol";
 
 /// @title Supa Version Manager
 contract VersionManager is IVersionManager, ImmutableGovernance {
-    /// @notice Recommended Version does not exist
-    error NoRecommendedVersion();
-    /// @notice version is not registered
-    error VersionNotRegistered();
-    /// @notice Specified status is out of range
-    error InvalidStatus();
-    /// @notice Specified bug level is out of range
-    error InvalidBugLevel();
-    /// @notice version name cannot be the empty string
-    error InvalidVersionName();
-    /// @notice version is deprecated or has a bug
-    error InvalidVersion();
-    /// @notice implementation must be a contract
-    error InvalidImplementation();
-    /// @notice version is already registered
-    error VersionAlreadyRegistered();
-
-    /// @notice Array of all version names
+    /// @dev Array of all version names
     string[] internal _versionString;
 
-    /// @notice Mapping from version names to version structs
+    /// @dev Mapping from version names to version structs
     mapping(string => Version) internal _versions;
 
     /// @dev The recommended version
@@ -39,30 +25,28 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
 
     modifier versionExists(string memory versionName) {
         if (_versions[versionName].implementation == address(0)) {
-            revert VersionNotRegistered();
+            revert Errors.VersionNotRegistered();
         }
         _;
     }
 
     modifier validStatus(Status status) {
         if (uint8(status) > uint8(Status.DEPRECATED)) {
-            revert InvalidStatus();
+            revert Errors.InvalidStatus();
         }
         _;
     }
 
     modifier validBugLevel(BugLevel bugLevel) {
         if (uint8(bugLevel) > uint8(BugLevel.CRITICAL)) {
-            revert InvalidBugLevel();
+            revert Errors.InvalidBugLevel();
         }
         _;
     }
 
     constructor(address _owner) ImmutableGovernance(_owner) {}
 
-    /// @notice Registers a new version of the store contract
-    /// @param status Status of the version to be added
-    /// @param _implementation The address of the implementation of the version
+    /// @inheritdoc IVersionManager
     function addVersion(
         Status status,
         address _implementation
@@ -70,24 +54,24 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
         address implementation = FsUtils.nonNull(_implementation);
         // implementation must be a contract
         if (!Address.isContract(implementation)) {
-            revert InvalidImplementation();
+            revert Errors.InvalidImplementation();
         }
 
         string memory versionName = "";
         try ImmutableVersion(implementation).immutableVersion() returns (bytes32 immutableVersion) {
             versionName = string(FsUtils.decodeFromBytes32(immutableVersion));
         } catch {
-            revert InvalidImplementation();
+            revert Errors.InvalidImplementation();
         }
 
         // version name must not be the empty string
         if (bytes(versionName).length == 0) {
-            revert InvalidVersionName();
+            revert Errors.InvalidVersionName();
         }
 
         // the version name should not already be registered
         if (_versions[versionName].implementation != address(0)) {
-            revert VersionAlreadyRegistered();
+            revert Errors.VersionAlreadyRegistered();
         }
         _versionString.push(versionName);
 
@@ -102,10 +86,7 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
         emit VersionAdded(versionName, implementation);
     }
 
-    /// @notice Update a contract version
-    /// @param versionName Version of the contract
-    /// @param status Status of the contract
-    /// @param bugLevel New bug level for the contract
+    /// @inheritdoc IVersionManager
     function updateVersion(
         string calldata versionName,
         Status status,
@@ -123,8 +104,7 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
         emit VersionUpdated(versionName, status, bugLevel);
     }
 
-    /// @notice Set the recommended version
-    /// @param versionName Version of the contract
+    /// @inheritdoc IVersionManager
     function markRecommendedVersion(
         string calldata versionName
     ) external onlyGovernance versionExists(versionName) {
@@ -132,7 +112,7 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
             _versions[versionName].status == IVersionManager.Status.DEPRECATED ||
             _versions[versionName].bugLevel != IVersionManager.BugLevel.NONE
         ) {
-            revert InvalidVersion();
+            revert Errors.InvalidVersion();
         }
         // set the version name as the recommended version
         _recommendedVersion = versionName;
@@ -140,7 +120,7 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
         emit VersionRecommended(versionName);
     }
 
-    /// @notice Remove the recommended version
+    /// @inheritdoc IVersionManager
     function removeRecommendedVersion() external onlyGovernance {
         // delete the recommended version name
         delete _recommendedVersion;
@@ -148,12 +128,7 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
         emit RecommendedVersionRemoved();
     }
 
-    /// @notice Get recommended version for the contract.
-    /// @return versionName The name of the recommended version
-    /// @return status The status of the recommended version
-    /// @return bugLevel The bug level of the recommended version
-    /// @return implementation The address of the implementation of the recommended version
-    /// @return dateAdded The date the recommended version was added
+    /// @inheritdoc IVersionManager
     function getRecommendedVersion()
         external
         view
@@ -166,7 +141,7 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
         )
     {
         if (bytes(_recommendedVersion).length == 0) {
-            revert NoRecommendedVersion();
+            revert Errors.NoRecommendedVersion();
         }
         versionName = _recommendedVersion;
 
@@ -180,27 +155,24 @@ contract VersionManager is IVersionManager, ImmutableGovernance {
         return (versionName, status, bugLevel, implementation, dateAdded);
     }
 
-    /// @notice Get total count of versions
+    /// @inheritdoc IVersionManager
     function getVersionCount() external view returns (uint256 count) {
         count = _versionString.length;
     }
 
-    /// @dev Returns the version name at specific index in the versionString[] array
-    /// @param index The index to be searched for
+    /// @inheritdoc IVersionManager
     function getVersionAtIndex(uint256 index) external view returns (string memory versionName) {
         versionName = _versionString[index];
     }
 
-    /// @notice Get the implementation address for a version
-    /// @param index The index of the version
+    /// @inheritdoc IVersionManager
     function getVersionAddress(uint256 index) external view returns (address) {
         string memory versionName = _versionString[index];
         Version memory v = _versions[versionName];
         return v.implementation;
     }
 
-    /// @notice Returns the version details for the given version name
-    /// @param versionName Version string
+    /// @inheritdoc IVersionManager
     function getVersionDetails(
         string calldata versionName
     )

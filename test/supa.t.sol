@@ -22,6 +22,7 @@ import {TestERC20} from "src/testing/TestERC20.sol";
 import {TestNFT} from "src/testing/TestNFT.sol";
 
 import {SimulationSupa} from "src/testing/SimulationSupa.sol";
+import {Errors} from "src/libraries/Errors.sol";
 
 contract SupaTest is Test {
     uint256 mainnetFork;
@@ -510,7 +511,7 @@ contract SupaTest is Test {
         token0.approve(address(supa), 100 * 1 ether);
         token1.approve(address(supa), 100 * 1 ether);
         supa.depositERC20ForWallet(address(token0), address(userWallet), 100 * 1 ether);
-        vm.expectRevert(Supa.TokenStorageExceeded.selector);
+        vm.expectRevert(Errors.TokenStorageExceeded.selector);
         supa.depositERC20ForWallet(address(token1), address(userWallet), 100 * 1 ether);
     }
 
@@ -542,7 +543,7 @@ contract SupaTest is Test {
         })
         );
 
-        vm.expectRevert(Supa.TokenStorageExceeded.selector);
+        vm.expectRevert(Errors.TokenStorageExceeded.selector);
         userWallet.executeBatch(calls);
     }
 
@@ -552,11 +553,11 @@ contract SupaTest is Test {
         );
 
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
-        _mintTokens(address(this), 100 * 1 ether, 100 * 1 ether);
-        token0.approve(address(supa), 100 * 1 ether);
-        token1.approve(address(supa), 100 * 1 ether);
+        _mintTokens(address(this), 100 ether, 100 ether);
+        token0.approve(address(supa), 100 ether);
+        token1.approve(address(supa), 100 ether);
         supa.depositERC20ForWallet(address(token0), address(userWallet), 100 * 1 ether);
-        vm.expectRevert(Supa.TokenStorageExceeded.selector);
+        vm.expectRevert(Errors.TokenStorageExceeded.selector);
         supa.depositERC20ForWallet(address(token1), address(userWallet), 100 * 1 ether);
 
         ISupaConfig(address(supa)).setTokenStorageConfig(
@@ -597,7 +598,7 @@ contract SupaTest is Test {
             })
         );
 
-        vm.expectRevert(Supa.TokenStorageExceeded.selector);
+        vm.expectRevert(Errors.TokenStorageExceeded.selector);
         userWallet.executeBatch(calls);
     }
 

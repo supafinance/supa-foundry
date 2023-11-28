@@ -25,6 +25,8 @@ import {SigUtils, ECDSA} from "test/utils/SigUtils.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {Errors} from "src/libraries/Errors.sol";
+
 contract WalletMigrationTest is Test {
     IPermit2 public permit2;
     TransferAndCall2 public transferAndCall2;
@@ -279,7 +281,7 @@ contract WalletMigrationTest is Test {
         // address recovered = ecrecover(digest, v, r, s);
 
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
-        vm.expectRevert(WalletLogic.InvalidSignature.selector);
+        vm.expectRevert(Errors.InvalidSignature.selector);
         WalletLogic(address(userWallet2)).executeSignedBatch(calls, nonce, deadline, signature);
         vm.stopPrank();
     }

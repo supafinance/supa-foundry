@@ -5,24 +5,18 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC721, IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
-import {ISupaConfig, ERC20Pool, ERC20Share, NFTTokenData, ERC20Info, ERC721Info, ContractData, ContractKind} from "../interfaces/ISupa.sol";
+import {ISupaConfig, ERC20Pool, ERC20Share, NFTTokenData, ERC20Info, ERC721Info, ContractData, ContractKind} from "src/interfaces/ISupa.sol";
 import {IVersionManager} from "src/interfaces/IVersionManager.sol";
 import {WalletLib} from "src/lib/WalletLib.sol";
 import {ERC20PoolLib} from "src/lib/ERC20PoolLib.sol";
 import {WalletState} from "src/wallet/WalletState.sol";
 
+import {Errors} from "src/libraries/Errors.sol";
+
 /// @title Supa State
 /// @notice Contract holds the configuration state for Supa
 contract SupaState is Pausable {
     using ERC20PoolLib for ERC20Pool;
-
-    /// @notice Only wallet can call this function
-    error OnlyWallet();
-    /// @notice Recipient is not a valid wallet
-    error WalletNonExistent();
-    /// @notice Asset is not registered
-    /// @param token The unregistered asset
-    error NotRegistered(address token);
 
     IVersionManager public versionManager;
     /// @notice mapping between wallet address and Supa-specific wallet data
@@ -69,14 +63,14 @@ contract SupaState is Pausable {
     modifier onlyWallet() {
 //        if (wallets[msg.sender].owner == address(0) || address(WalletState(msg.sender).supa()) != address(this)) {
             if (wallets[msg.sender].owner == address(0)) {
-            revert OnlyWallet();
+            revert Errors.OnlyWallet();
         }
         _;
     }
 
     modifier walletExists(address wallet) {
         if (wallets[wallet].owner == address(0)) {
-            revert WalletNonExistent();
+            revert Errors.WalletNonExistent();
         }
         _;
     }
@@ -101,7 +95,7 @@ contract SupaState is Pausable {
 
     function getERC20Info(IERC20 erc20) internal view returns (ERC20Info storage, uint16) {
         if (infoIdx[address(erc20)].kind != ContractKind.ERC20) {
-            revert NotRegistered(address(erc20));
+            revert Errors.NotRegistered(address(erc20));
         }
         uint16 idx = infoIdx[address(erc20)].idx;
         return (erc20Infos[idx], idx);

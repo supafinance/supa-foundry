@@ -7,9 +7,12 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC1363Receiver} from "@openzeppelin/contracts/interfaces/IERC1363Receiver.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IWETH9} from "../external/interfaces/IWETH9.sol";
-import {ITransferReceiver2} from "../interfaces/ITransferReceiver2.sol";
-import {NonceMapLib, NonceMap} from "../lib/NonceMap.sol";
+
+import {IWETH9} from "src/external/interfaces/IWETH9.sol";
+import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
+import {NonceMapLib, NonceMap} from "src/lib/NonceMap.sol";
+
+import {Errors} from "src/libraries/Errors.sol";
 
 // Bringing ERC1363 to all tokens, it's to ERC1363 what Permit2 is to ERC2612.
 // This should be proposed as an EIP and should be deployed cross chain on
@@ -18,6 +21,14 @@ contract TransferAndCall2 is IERC1363Receiver, EIP712 {
     using Address for address;
     using SafeERC20 for IERC20;
     using NonceMapLib for NonceMap;
+
+    error onTransferReceivedFailed(
+        address to,
+        address operator,
+        address from,
+        ITransferReceiver2.Transfer[] transfers,
+        bytes data
+    );
 
     bytes private constant TRANSFER_TYPESTRING = "Transfer(address token,uint256 amount)";
     bytes private constant PERMIT_TYPESTRING =
@@ -28,24 +39,6 @@ contract TransferAndCall2 is IERC1363Receiver, EIP712 {
 
     mapping(address => mapping(address => bool)) public approvalByOwnerByOperator;
     mapping(address => NonceMap) private nonceMap;
-
-    error onTransferReceivedFailed(
-        address to,
-        address operator,
-        address from,
-        ITransferReceiver2.Transfer[] transfers,
-        bytes data
-    );
-
-    error TransfersUnsorted();
-
-    error EthDoesntMatchWethTransfer();
-
-    error UnauthorizedOperator(address operator, address from);
-
-    error ExpiredPermit();
-
-    error InvalidSignature();
 
     constructor() EIP712("TransferAndCall2", "1") {}
 
@@ -92,7 +85,7 @@ contract TransferAndCall2 is IERC1363Receiver, EIP712 {
         bytes calldata data
     ) external {
         if (!approvalByOwnerByOperator[from][msg.sender]) {
-            revert UnauthorizedOperator(msg.sender, from);
+            revert Errors.UnauthorizedOperator(msg.sender, from);
         }
         _transferFromAndCall2Impl(from, receiver, address(0), transfers, data);
     }
@@ -108,7 +101,7 @@ contract TransferAndCall2 is IERC1363Receiver, EIP712 {
     ) external {
         nonceMap[from].validateAndUseNonce(nonce);
         if (block.timestamp > deadline) {
-            revert ExpiredPermit();
+            revert Errors.ExpiredPermit();
         }
         bytes32[] memory transferHashes = new bytes32[](transfers.length);
         for (uint256 i = 0; i < transfers.length; i++) {
@@ -129,7 +122,7 @@ contract TransferAndCall2 is IERC1363Receiver, EIP712 {
             )
         );
         if (!SignatureChecker.isValidSignatureNow(from, digest, signature)) {
-            revert InvalidSignature();
+            revert Errors.InvalidSignature();
         }
         _transferFromAndCall2Impl(from, receiver, address(0), transfers, data);
     }
@@ -167,7 +160,7 @@ contract TransferAndCall2 is IERC1363Receiver, EIP712 {
         address prev = address(0);
         for (uint256 i = 0; i < transfers.length; i++) {
             address tokenAddress = transfers[i].token;
-            if (prev >= tokenAddress) revert TransfersUnsorted();
+            if (prev >= tokenAddress) revert Errors.TransfersUnsorted();
             prev = tokenAddress;
             uint256 amount = transfers[i].amount;
             if (tokenAddress == weth) {
@@ -178,7 +171,7 @@ contract TransferAndCall2 is IERC1363Receiver, EIP712 {
             IERC20 token = IERC20(tokenAddress);
             if (amount > 0) token.safeTransferFrom(from, receiver, amount);
         }
-        if (ethAmount != 0) revert EthDoesntMatchWethTransfer();
+        if (ethAmount != 0) revert Errors.EthDoesntMatchWethTransfer();
         if (receiver.isContract()) {
             _callOnTransferReceived2(receiver, msg.sender, from, transfers, data);
         }
