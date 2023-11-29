@@ -1,60 +1,55 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {Supa, SupaState} from "src/supa/Supa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
 import {VersionManager, IVersionManager} from "src/supa/VersionManager.sol";
+import {GovernanceProxy} from "src/governance/GovernanceProxy.sol";
+import {OffchainEntityProxy} from "src/governance/OffchainEntityProxy.sol";
 
 import { WalletLogic } from "src/wallet/WalletLogic.sol";
 
 import {MockERC20Oracle } from "src/testing/MockERC20Oracle.sol";
 import {UniV3Oracle} from "src/oracles/UniV3Oracle.sol";
 
+import {Call, CallWithoutValue} from "src/lib/Call.sol";
+
 contract SetupSupa is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address owner = vm.envAddress("OWNER");
-        address payable supaAddress = payable(vm.envAddress("SUPA"));
-        address factory = vm.envAddress("UNISWAP_V3_FACTORY");
-        address manager = vm.envAddress("NONFUNGIBLE_POSITION_MANAGER");
+        address payable supaAddress = payable(vm.envAddress("SUPA_ADDRESS"));
 
-        address usdc = vm.envAddress("USDC");
-        address weth = vm.envAddress("WETH");
-        address uni = vm.envAddress("UNI");
+        uint256 chainId = block.chainid;
+        address owner;
+        if (chainId == 5) {
+            owner = vm.envAddress("OWNER_GOERLI");
+        } else {
+            revert("unsupported chain");
+        }
 
-        address usdcOracleAddress = vm.envAddress("USDC_ORACLE");
-        address wethOracleAddress = vm.envAddress("ETH_ORACLE");
-        address uniOracleAddress = vm.envAddress("UNI_ORACLE");
+        address governanceProxyAddress = vm.envAddress("GOVERNANCE_PROXY_ADDRESS");
+        address offchainEntityProxyAddress = vm.envAddress("OFFCHAIN_ENTITY_PROXY_ADDRESS");
 
-
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast(owner);
 
         WalletLogic walletLogic = new WalletLogic();
 
         VersionManager versionManager = VersionManager(address(IVersionManager(SupaState(supaAddress).versionManager())));
-        versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(walletLogic));
-        versionManager.markRecommendedVersion("1.0.0");
+        console.log("versionManager", address(versionManager));
+        SupaConfig supa = SupaConfig(supaAddress);
 
-        // Deploy + setup token oracles
-        MockERC20Oracle usdcOracle = new MockERC20Oracle(owner);
-        usdcOracle.setPrice(1 ether, 6, 18);
-        usdcOracle.setRiskFactors(0.95 ether, 0.95 ether);
-        MockERC20Oracle ethOracle = new MockERC20Oracle(owner);
-        ethOracle.setPrice(1200 ether, 6, 18);
-        ethOracle.setRiskFactors(0.95 ether, 0.95 ether);
-        MockERC20Oracle uniOracle = new MockERC20Oracle(owner);
-        uniOracle.setPrice(200 ether, 6, 18);
-        uniOracle.setRiskFactors(0.95 ether, 0.95 ether);
-        UniV3Oracle uniV3Oracle = new UniV3Oracle(factory, manager, owner);
+        GovernanceProxy governanceProxy = GovernanceProxy(governanceProxyAddress);
+
+        assert(address(versionManager.immutableGovernance()) == address(governanceProxy));
+        assert(address(supa.immutableGovernance()) == address(governanceProxy));
 
         // Setup configs
         ISupaConfig.Config memory config = ISupaConfig.Config({
-            treasuryWallet: owner, 
-            treasuryInterestFraction: 0.05 ether,
+            treasuryWallet: owner,
+            treasuryInterestFraction: 0,
             maxSolvencyCheckGasCost: 1e6,
             liqFraction: 0.8 ether,
-            fractionalReserveLeverage: 9
+            fractionalReserveLeverage: 1
         });
 
         ISupaConfig.TokenStorageConfig memory tokenStorageConfig = ISupaConfig.TokenStorageConfig({
@@ -63,25 +58,40 @@ contract SetupSupa is Script {
             erc721Multiplier: 5
         });
 
-        SupaConfig supa = SupaConfig(supaAddress);
-        supa.setConfig(config);
-        supa.setTokenStorageConfig(tokenStorageConfig);
+        CallWithoutValue[] memory governanceCalls = new CallWithoutValue[](4);
+        governanceCalls[0] = CallWithoutValue({
+            to: address(versionManager),
+            callData: abi.encodeWithSelector(VersionManager.addVersion.selector, IVersionManager.Status.PRODUCTION, address(walletLogic))
+        });
+        governanceCalls[1] = CallWithoutValue({
+            to: address(versionManager),
+            callData: abi.encodeWithSelector(VersionManager.markRecommendedVersion.selector, walletLogic.VERSION())
+        });
+        governanceCalls[2] = CallWithoutValue({
+            to: address(supa),
+            callData: abi.encodeWithSelector(SupaConfig.setConfig.selector, config)
+        });
+        governanceCalls[3] = CallWithoutValue({
+            to: address(supa),
+            callData: abi.encodeWithSelector(SupaConfig.setTokenStorageConfig.selector, tokenStorageConfig)
+        });
 
 
-        // Add ERC20s
-        supa.addERC20Info(weth, "Wrapped Ether", "WETH", 18, address(ethOracle), 0, 5, 480, 0.8 ether);
-        supa.addERC20Info(usdc, "USD Coin", "USDC", 6, address(usdcOracle), 0, 5, 480, 0.8 ether);
-        supa.addERC20Info(uni, "Uniswap", "UNI", 18, address(uniOracle), 0, 5, 480, 0.8 ether);
-        supa.addERC721Info(manager, address(uniV3Oracle));
-        uniV3Oracle.setERC20ValueOracle(weth, address(ethOracle));
-        uniV3Oracle.setERC20ValueOracle(usdc, address(usdcOracle));
-        uniV3Oracle.setERC20ValueOracle(uni, address(uniOracle));
+        OffchainEntityProxy offchainEntityProxy = OffchainEntityProxy(offchainEntityProxyAddress);
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({
+            to: address(governanceProxy),
+            callData: abi.encodeWithSelector(GovernanceProxy.executeBatch.selector, governanceCalls),
+            value: 0
+        });
+        offchainEntityProxy.executeBatch(calls);
 
         vm.stopBroadcast();
     }
 }
 
-// forge script script/SetupSupa.s.sol:SetupSupa --rpc-url $GOERLI_RPC_URL --broadcast -vvvv
+// forge script script/SetupSupa.s.sol:SetupSupa --rpc-url $GOERLI_RPC_URL --broadcast -vvvv --account supa_test_deployer
 
-// forge script script/SetupSupa.s.sol:SetupSupa --rpc-url $POLYGON_RPC_URL --broadcast -vvvv
+// forge script script/SetupSupa.s.sol:SetupSupa --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer
 

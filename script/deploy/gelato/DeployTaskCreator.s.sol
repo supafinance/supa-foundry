@@ -10,13 +10,14 @@ import {TaskCreatorProxy} from "src/gelato/TaskCreatorProxy.sol";
 /// @notice Deploys {TaskCreator}
 contract DeployTaskCreator is BaseScript {
     function run() public virtual {
-        address supa = vm.envAddress("SUPA");
+        address supa = vm.envAddress("SUPA_ADDRESS");
         address automate = vm.envAddress("AUTOMATE");
         address payable taskCreatorProxyAddress = payable(vm.envAddress("TASK_CREATOR_PROXY"));
         address owner = 0xc9B6088732E83ef013873e2f04d032F1a7a2E42D;
         // todo: update depending on the network
         address usdc = vm.envAddress("USDC_GOERLI");
         address allowlistServer = 0xDf048196C83A83eFE5A56fEd1A577b65388e09d0;
+        address feeCollector = vm.envAddress("AUTOMATION_FEE_COLLECTOR_GOERLI");
         vm.startBroadcast(owner);
         TaskCreator taskCreator = new TaskCreator(supa, automate, taskCreatorProxyAddress, usdc);
         TaskCreatorProxy taskCreatorProxy = TaskCreatorProxy(taskCreatorProxyAddress);
@@ -25,7 +26,7 @@ contract DeployTaskCreator is BaseScript {
         address ethPriceFeedGoerli = 0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e;
         TaskCreator(payable(address(taskCreatorProxy))).addAllowlistRole(owner);
         TaskCreator(payable(address(taskCreatorProxy))).addAllowlistRole(allowlistServer);
-        TaskCreator(payable(address(taskCreatorProxy))).setFeeCollector(allowlistServer);
+        TaskCreator(payable(address(taskCreatorProxy))).setFeeCollector(feeCollector);
         TaskCreator(payable(address(taskCreatorProxy))).setGasPriceFeed(ethPriceFeedGoerli);
         ITaskCreator.Tier[] memory tiers = new ITaskCreator.Tier[](1);
         tiers[0] = ITaskCreator.Tier({

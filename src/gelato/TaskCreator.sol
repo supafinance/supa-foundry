@@ -191,12 +191,11 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
         uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether;
 
+        uint256 taskExecutionFrequency = (1 ether / interval) * 1000; // Approximate executions per second * 1 ether
+
         if (powerUsed > super.balanceOf(owner)) {
             revert InsufficientPower(owner);
         }
-
-        uint256 taskExecutionFrequency = (1 ether / interval) * 1000; // Approximate executions per second * 1 ether
-        taskExecFrequency[taskId] = taskExecutionFrequency;
 
         _burn(owner, powerUsed);
         userPowerData[owner] = UserPowerData({
@@ -228,13 +227,6 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         // "batchExecuteCall" forwards calls from the proxy to this contract
         bytes memory execData = abi.encodeWithSelector(IOpsProxy.batchExecuteCall.selector);
 
-        // take a deposit from the user to be returned when the task is cancelled
-        depositAmounts[taskId] = depositAmount;
-
-        // decrement the user's power credits
-
-        // increase this contract's power credits
-
         // target address is this contracts dedicatedMsgSender proxy
         taskId = _createTask(
             dedicatedMsgSender,
@@ -244,6 +236,11 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
             // that the contract will use 1Balance for fee payment
             address(0)
         );
+
+        // take a deposit from the user to be returned when the task is cancelled
+        depositAmounts[taskId] = depositAmount;
+
+        taskExecFrequency[taskId] = taskExecutionFrequency;
 
         taskOwner[taskId] = msg.sender;
 
