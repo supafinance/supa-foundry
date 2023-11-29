@@ -6,14 +6,18 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {SupaState} from "./SupaState.sol";
-import {WalletProxy} from "../wallet/WalletProxy.sol";
-import {ISupaConfig, ERC20Pool, ERC20Share, ERC20Info, ERC721Info, ContractData, ContractKind} from "../interfaces/ISupa.sol";
-import {IVersionManager} from "../interfaces/IVersionManager.sol";
-import {IERC20ValueOracle} from "../interfaces/IERC20ValueOracle.sol";
-import {INFTValueOracle} from "../interfaces/INFTValueOracle.sol";
-import {ImmutableGovernance} from "../lib/ImmutableGovernance.sol";
-import {WalletLib} from "../lib/WalletLib.sol";
-import {ERC20PoolLib} from "../lib/ERC20PoolLib.sol";
+import {WalletProxy} from "src/wallet/WalletProxy.sol";
+
+import {ISupaConfig, ERC20Pool, ERC20Share, ERC20Info, ERC721Info, ContractData, ContractKind} from "src/interfaces/ISupa.sol";
+import {IVersionManager} from "src/interfaces/IVersionManager.sol";
+import {IERC20ValueOracle} from "src/interfaces/IERC20ValueOracle.sol";
+import {INFTValueOracle} from "src/interfaces/INFTValueOracle.sol";
+
+import {ImmutableGovernance} from "src/lib/ImmutableGovernance.sol";
+import {WalletLib} from "src/lib/WalletLib.sol";
+import {ERC20PoolLib} from "src/lib/ERC20PoolLib.sol";
+
+import {Errors} from "src/libraries/Errors.sol";
 
 /// @title Supa Config
 contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
@@ -22,25 +26,9 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    /// @notice Asset is not an NFT
-    error NotNFT();
-    /// @notice The address is not a registered ERC20
-    error NotERC20();
-    /// @notice The implementation is not a contract
-    error InvalidImplementation();
-    /// @notice The version is deprecated
-    error DeprecatedVersion();
-    /// @notice The bug level is too high
-    error BugLevelTooHigh();
-    /// @notice `newOwner` is not the proposed new owner
-    /// @param proposedOwner The address of the proposed new owner
-    /// @param newOwner The address of the attempted new owner
-    error InvalidNewOwner(address proposedOwner, address newOwner);
-
     constructor(address _owner) ImmutableGovernance(_owner) {}
 
-    /// @notice upgrades the version of walletLogic contract for the `wallet`
-    /// @param version The new target version of walletLogic contract
+    /// @inheritdoc ISupaConfig
     function upgradeWalletImplementation(
         string calldata version
     ) external override onlyWallet whenNotPaused {
@@ -52,22 +40,19 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
 
         ) = versionManager.getVersionDetails(version);
         if (implementation == address(0) || !implementation.isContract()) {
-            revert InvalidImplementation();
+            revert Errors.InvalidImplementation();
         }
         if (status == IVersionManager.Status.DEPRECATED) {
-            revert DeprecatedVersion();
+            revert Errors.DeprecatedVersion();
         }
         if (bugLevel != IVersionManager.BugLevel.NONE) {
-            revert BugLevelTooHigh();
+            revert Errors.BugLevelTooHigh();
         }
         walletLogic[msg.sender] = implementation;
         emit ISupaConfig.WalletImplementationUpgraded(msg.sender, version, implementation);
     }
 
-    /// @notice Proposes the ownership transfer of `wallet` to the `newOwner`
-    /// @dev The ownership transfer must be executed by the `newOwner` to complete the transfer
-    /// @dev emits `WalletOwnershipTransferProposed` event
-    /// @param newOwner The new owner of the `wallet`
+    /// @inheritdoc ISupaConfig
     function proposeTransferWalletOwnership(
         address newOwner
     ) external override onlyWallet whenNotPaused {
@@ -75,41 +60,27 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         emit ISupaConfig.WalletOwnershipTransferProposed(msg.sender, newOwner);
     }
 
-    /// @notice Executes the ownership transfer of `wallet` to the `newOwner`
-    /// @dev The caller must be the `newOwner` and the `newOwner` must be the proposed new owner
-    /// @dev emits `WalletOwnershipTransferred` event
-    /// @param wallet The address of the wallet
+    /// @inheritdoc ISupaConfig
     function executeTransferWalletOwnership(address wallet) external override whenNotPaused {
         if (msg.sender != walletProposedNewOwner[wallet]) {
-            revert InvalidNewOwner(walletProposedNewOwner[wallet], msg.sender);
+            revert Errors.InvalidNewOwner(walletProposedNewOwner[wallet], msg.sender);
         }
         wallets[wallet].owner = msg.sender;
         delete walletProposedNewOwner[wallet];
         emit ISupaConfig.WalletOwnershipTransferred(wallet, msg.sender);
     }
 
-    /// @notice Pause the contract
+    /// @inheritdoc ISupaConfig
     function pause() external override onlyGovernance {
         _pause();
     }
 
-    /// @notice Unpause the contract
+    /// @inheritdoc ISupaConfig
     function unpause() external override onlyGovernance {
         _unpause();
     }
 
-    /// @notice add a new ERC20 to be used inside Supa
-    /// @dev For governance only.
-    /// @param erc20Contract The address of ERC20 to add
-    /// @param name The name of the ERC20. E.g. "Wrapped ETH"
-    /// @param symbol The symbol of the ERC20. E.g. "WETH"
-    /// @param decimals Decimals of the ERC20. E.g. 18 for WETH and 6 for USDC
-    /// @param valueOracle The address of the Value Oracle. Probably Uniswap one
-    /// @param baseRate The interest rate when utilization is 0
-    /// @param slope1 The interest rate slope when utilization is less than the targetUtilization
-    /// @param slope2 The interest rate slope when utilization is more than the targetUtilization
-    /// @param targetUtilization The target utilization for the asset
-    /// @return the index of the added ERC20 in the erc20Infos array
+    /// @inheritdoc ISupaConfig
     function addERC20Info(
         address erc20Contract,
         string calldata name,
@@ -151,16 +122,13 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         return erc20Idx;
     }
 
-    /// @notice Add a new ERC721 to be used inside Supa.
-    /// @dev For governance only.
-    /// @param erc721Contract The address of the ERC721 to be added
-    /// @param valueOracleAddress The address of the Uniswap Oracle to get the price of a token
+    /// @inheritdoc ISupaConfig
     function addERC721Info(
         address erc721Contract,
         address valueOracleAddress
     ) external override onlyGovernance {
         if (!IERC165(erc721Contract).supportsInterface(type(IERC721).interfaceId)) {
-            revert NotNFT();
+            revert Errors.NotNFT();
         }
         INFTValueOracle valueOracle = INFTValueOracle(valueOracleAddress);
         uint256 erc721Idx = erc721Infos.length;
@@ -169,17 +137,13 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         emit ISupaConfig.ERC721Added(erc721Idx, erc721Contract, valueOracleAddress);
     }
 
-    /// @notice Updates the config of Supa
-    /// @dev for governance only.
-    /// @param _config the Config of ISupaConfig. A struct with Supa parameters
+    /// @inheritdoc ISupaConfig
     function setConfig(Config calldata _config) external override onlyGovernance {
         config = _config;
         emit ISupaConfig.ConfigSet(_config);
     }
 
-    /// @notice Updates the configuration setttings for credit account token storage
-    /// @dev for governance only.
-    /// @param _tokenStorageConfig the TokenStorageconfig of ISupaConfig
+    /// @inheritdoc ISupaConfig
     function setTokenStorageConfig(
         TokenStorageConfig calldata _tokenStorageConfig
     ) external override onlyGovernance {
@@ -187,22 +151,13 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         emit ISupaConfig.TokenStorageConfigSet(_tokenStorageConfig);
     }
 
-    /// @notice Set the address of Version Manager contract
-    /// @dev for governance only.
-    /// @param _versionManager The address of the Version Manager contract to be set
+    /// @inheritdoc ISupaConfig
     function setVersionManager(address _versionManager) external override onlyGovernance {
         versionManager = IVersionManager(_versionManager);
         emit ISupaConfig.VersionManagerSet(_versionManager);
     }
 
-    /// @notice Updates some of ERC20 config parameters
-    /// @dev for governance only.
-    /// @param erc20 The address of ERC20 contract for which Supa config parameters should be updated
-    /// @param valueOracle The address of the erc20 value oracle
-    /// @param baseRate The interest rate when utilization is 0
-    /// @param slope1 The interest rate slope when utilization is less than the targetUtilization
-    /// @param slope2 The interest rate slope when utilization is more than the targetUtilization
-    /// @param targetUtilization The target utilization for the asset
+    /// @inheritdoc ISupaConfig
     function setERC20Data(
         address erc20,
         address valueOracle,
@@ -213,7 +168,7 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
     ) external override onlyGovernance {
         uint16 erc20Idx = infoIdx[erc20].idx;
         if (infoIdx[erc20].kind != ContractKind.ERC20) {
-            revert NotERC20();
+            revert Errors.NotERC20();
         }
         erc20Infos[erc20Idx].valueOracle = IERC20ValueOracle(valueOracle);
         erc20Infos[erc20Idx].baseRate = baseRate;
@@ -231,8 +186,7 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         );
     }
 
-    /// @notice creates a new wallet with sender as the owner and returns the wallet address
-    /// @return wallet The address of the created wallet
+    /// @inheritdoc ISupaConfig
     function createWallet() external override whenNotPaused returns (address wallet) {
         wallet = address(new WalletProxy{salt: keccak256(abi.encode(msg.sender, walletNonce[msg.sender]++))}(address(this)));
         wallets[wallet].owner = msg.sender;
@@ -243,11 +197,7 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         emit ISupaConfig.WalletCreated(wallet, msg.sender);
     }
 
-    /// @notice Returns the amount of `erc20` tokens on creditAccount of wallet
-    /// @param walletAddr The address of the wallet for which creditAccount the amount of `erc20` should
-    /// be calculated
-    /// @param erc20 The address of ERC20 which balance on creditAccount of `wallet` should be calculated
-    /// @return the amount of `erc20` on the creditAccount of `wallet`
+    /// @inheritdoc ISupaConfig
     function getCreditAccountERC20(
         address walletAddr,
         IERC20 erc20
@@ -258,9 +208,7 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         return getBalance(erc20Share, erc20Info);
     }
 
-    /// @notice returns the NFTs on creditAccount of `wallet`
-    /// @param wallet The address of wallet which creditAccount NFTs should be returned
-    /// @return The array of NFT deposited on the creditAccount of `wallet`
+    /// @inheritdoc ISupaConfig
     function getCreditAccountERC721(
         address wallet
     ) external view override returns (NFTData[] memory) {
@@ -272,9 +220,7 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         return nftData;
     }
 
-    /// @notice returns the amount of NFTs in creditAccount of `wallet`
-    /// @param wallet The address of the wallet that owns the creditAccount
-    /// @return The amount of NFTs in the creditAccount of `wallet`
+    /// @inheritdoc ISupaConfig
     function getCreditAccountERC721Counter(address wallet) external view returns (uint256) {
         return wallets[wallet].nfts.length;
     }

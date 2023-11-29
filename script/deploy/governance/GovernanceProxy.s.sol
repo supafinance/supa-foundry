@@ -6,10 +6,18 @@ import {GovernanceProxy} from "src/governance/GovernanceProxy.sol";
 
 contract DeployGovernanceProxy is Script {
     function run() external {
-        address owner = vm.envAddress("OWNER");
+        uint256 chainId = block.chainid;
+        address deployer;
+        if (chainId == 5) {
+            deployer = vm.envAddress("DEPLOYER_GOERLI");
+        } else if (chainId == 42161) {
+            deployer = vm.envAddress("DEPLOYER");
+        } else {
+            revert("unsupported chain");
+        }
         address offchainEntityProxyAddress = vm.envAddress("OFFCHAIN_ENTITY_PROXY_ADDRESS");
         bytes32 salt = vm.envBytes32("GOVERNANCE_PROXY_SALT");
-        vm.startBroadcast(owner);
+        vm.startBroadcast(deployer);
         GovernanceProxy governanceProxy = new GovernanceProxy{salt: salt}(offchainEntityProxyAddress);
         assert(address(governanceProxy) == vm.envAddress("GOVERNANCE_PROXY_ADDRESS"));
         vm.stopBroadcast();
@@ -19,3 +27,5 @@ contract DeployGovernanceProxy is Script {
 // cast create2 --init-code-hash $GOVERNANCE_PROXY_INIT_CODE_HASH --starts-with 0xDEC1DE --case-sensitive
 
 // forge script script/deploy/governance/GovernanceProxy.s.sol:DeployGovernanceProxy --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
+
+// forge script script/deploy/governance/GovernanceProxy.s.sol:DeployGovernanceProxy --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer -g 100

@@ -15,6 +15,10 @@ contract TaskCreatorProxy is Proxy, Ownable {
      */
     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
+    constructor() {
+        _transferOwnership(tx.origin);
+    }
+
     function upgrade(address implementation_) external onlyOwner {
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation_;
     }

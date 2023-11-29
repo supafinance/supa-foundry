@@ -6,16 +6,27 @@ import {VersionManager} from "src/supa/VersionManager.sol";
 
 contract DeployVersionManager is Script {
     function run() external {
-        address owner = vm.envAddress("OWNER");
+        uint256 chainId = block.chainid;
+        address deployer;
+        if (chainId == 5) {
+            deployer = vm.envAddress("DEPLOYER_GOERLI");
+        } else if (chainId == 42161) {
+            deployer = vm.envAddress("DEPLOYER");
+        } else {
+            revert("unsupported chain");
+        }
+
         address governanceProxyAddress = vm.envAddress("GOVERNANCE_PROXY_ADDRESS");
         bytes32 salt = vm.envBytes32("VERSION_MANAGER_SALT");
-        vm.startBroadcast(owner);
+        vm.startBroadcast(deployer);
         VersionManager versionManager = new VersionManager{salt: salt}(governanceProxyAddress);
-        assert(address(versionManager) == vm.envAddress("VERSION_MANAGER_ADDRESS"));
         vm.stopBroadcast();
+        assert(address(versionManager) == vm.envAddress("VERSION_MANAGER_ADDRESS"));
     }
 }
 
 // cast create2 --init-code-hash $VERSION_MANAGER_INIT_CODE_HASH --starts-with 0x00000000
 
 // forge script script/deploy/supa/VersionManager.s.sol:DeployVersionManager --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
+
+// forge script script/deploy/supa/VersionManager.s.sol:DeployVersionManager --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer -g 100

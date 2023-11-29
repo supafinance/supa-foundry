@@ -34,6 +34,8 @@ import "src/interfaces/IERC20ValueOracle.sol";
 import "src/interfaces/INFTValueOracle.sol";
 import {PERMIT2, IPermit2} from "src/external/interfaces/IPermit2.sol";
 
+import {Errors} from "src/libraries/Errors.sol";
+
 // ERC20 standard token
 // ERC721 single non-fungible token support
 // ERC677 transferAndCall (transferAndCall2 extension)
@@ -108,7 +110,7 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         // how can we be sure that Oracle would have a price for any possible tokenId?
         // maybe we should check first if Oracle can return a value for this specific NFT?
         if (infoIdx[nftContract].kind == ContractKind.Invalid) {
-            revert NotRegistered(nftContract);
+            revert Errors.NotRegistered(nftContract);
         }
         _;
     }
@@ -411,7 +413,7 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             from = abi.decode(data, (address));
         }
         if (wallets[from].owner == address(0)) {
-            revert WalletNonExistent();
+            revert Errors.WalletNonExistent();
         }
         tokenDataByNFTId[nftId].tokenId = uint240(tokenId);
         wallets[from].insertNFT(nftId, tokenDataByNFTId);

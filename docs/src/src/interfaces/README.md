@@ -1,0 +1,22 @@
+
+
+# Contents
+- [IERC1363SpenderExtended](IERC1363-extended.sol/interface.IERC1363SpenderExtended.md)
+- [IERC1363ReceiverExtended](IERC1363-extended.sol/interface.IERC1363ReceiverExtended.md)
+- [IERC20ValueOracle](IERC20ValueOracle.sol/interface.IERC20ValueOracle.md)
+- [INFTValueOracle](INFTValueOracle.sol/interface.INFTValueOracle.md)
+- [ERC20Share](ISupa.sol/type.ERC20Share.md)
+- [NFTTokenData](ISupa.sol/struct.NFTTokenData.md)
+- [ERC20Pool](ISupa.sol/struct.ERC20Pool.md)
+- [ERC20Info](ISupa.sol/struct.ERC20Info.md)
+- [ERC721Info](ISupa.sol/struct.ERC721Info.md)
+- [ContractData](ISupa.sol/struct.ContractData.md)
+- [ContractKind](ISupa.sol/enum.ContractKind.md)
+- [ISupaERC20](ISupa.sol/interface.ISupaERC20.md)
+- [ISupaConfig](ISupa.sol/interface.ISupaConfig.md)
+- [ISupaCore](ISupa.sol/interface.ISupaCore.md)
+- [ISupa](ISupa.sol/interface.ISupa.md)
+- [ITransferReceiver2](ITransferReceiver2.sol/abstract.ITransferReceiver2.md)
+- [ITransferReceiver2 constants](ITransferReceiver2.sol/constants.ITransferReceiver2.md)
+- [IVersionManager](IVersionManager.sol/interface.IVersionManager.md)
+- [IWallet](IWallet.sol/interface.IWallet.md)

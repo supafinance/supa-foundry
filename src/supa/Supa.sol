@@ -15,7 +15,7 @@ import {
     ERC721Info,
     ContractData,
     ContractKind
-} from "../interfaces/ISupa.sol";
+} from "src/interfaces/ISupa.sol";
 import {SupaState} from "src/supa/SupaState.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
 import {IVersionManager} from "src/interfaces/IVersionManager.sol";
@@ -28,6 +28,8 @@ import {FsMath} from "src/lib/FsMath.sol";
 
 import {IERC20ValueOracle} from "src/interfaces/IERC20ValueOracle.sol";
 import {INFTValueOracle} from "src/interfaces/INFTValueOracle.sol";
+
+import {Errors} from "src/libraries/Errors.sol";
 
 // ERC20 standard token
 // ERC721 single non-fungible token support
@@ -60,37 +62,6 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    /// @notice Sender is not approved to spend wallet erc20
-    error NotApprovedOrOwner();
-    /// @notice Sender is not the owner of the wallet;
-    /// @param sender The address of the sender
-    /// @param owner The address of the owner
-    error NotOwner(address sender, address owner);
-    /// @notice Transfer amount exceeds allowance
-    error InsufficientAllowance();
-    /// @notice Cannot approve self as spender
-    error SelfApproval();
-    /// @notice The receiving address is not a contract
-    error ReceiverNotContract();
-    /// @notice The receiver does not implement the required interface
-    error ReceiverNoImplementation();
-    /// @notice The receiver did not return the correct value - transaction failed
-    error WrongDataReturned();
-    /// @notice Asset is not an NFT
-    error NotNFT();
-    /// @notice NFT must be owned the the user or user's wallet
-    error NotNFTOwner();
-    /// @notice Operation leaves wallet insolvent
-    error Insolvent();
-    /// @notice Cannot withdraw debt
-    error CannotWithdrawDebt();
-    /// @notice Wallet is not liquidatable
-    error NotLiquidatable();
-    /// @notice There are insufficient reserves in the protocol for the debt
-    error InsufficientReserves();
-    /// @notice This operation would add too many tokens to the credit account
-    error TokenStorageExceeded();
-
     // We will initialize the system so that 0 is the base currency
     // in which the system calculates value.
     uint16 constant private K_NUMERAIRE_IDX = 0;
@@ -103,7 +74,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         // how can we be sure that Oracle would have a price for any possible tokenId?
         // maybe we should check first if Oracle can return a value for this specific NFT?
         if (infoIdx[nftContract].kind == ContractKind.Invalid) {
-            revert NotRegistered(nftContract);
+            revert Errors.NotRegistered(nftContract);
         }
         _;
     }
@@ -112,7 +83,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         address _owner = ERC721(nftContract).ownerOf(tokenId);
         bool isOwner = _owner == msg.sender || _owner == wallets[msg.sender].owner;
         if (!isOwner) {
-            revert NotNFTOwner();
+            revert Errors.NotNFTOwner();
         }
         _;
     }
@@ -122,10 +93,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         supaConfigAddress = FsUtils.nonNull(supaConfig);
     }
 
-    /// @notice top up the creditAccount owned by wallet `to` with `amount` of `erc20`
-    /// @param erc20 Address of the ERC20 token to be transferred
-    /// @param to Address of the wallet that creditAccount should be top up
-    /// @param amount The amount of `erc20` to be sent
+    /// @inheritdoc ISupaCore
     function depositERC20ForWallet(address erc20, address to, uint256 amount)
         external
         override
@@ -141,9 +109,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         _tokenStorageCheck(to);
     }
 
-    /// @notice deposit `amount` of `erc20` to creditAccount from wallet
-    /// @param erc20 Address of the ERC20 token to be transferred
-    /// @param amount The amount of `erc20` to be transferred
+    /// @inheritdoc ISupaCore
     function depositERC20(IERC20 erc20, uint256 amount) external override onlyWallet whenNotPaused {
         if (amount == 0) return;
         (, uint16 erc20Idx) = getERC20Info(erc20);
@@ -154,9 +120,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         _tokenStorageCheck(msg.sender);
     }
 
-    /// @notice deposit `amount` of `erc20` from creditAccount to wallet
-    /// @param erc20 Address of the ERC20 token to be transferred
-    /// @param amount The amount of `erc20` to be transferred
+    /// @inheritdoc ISupaCore
     function withdrawERC20(IERC20 erc20, uint256 amount) external override onlyWallet whenNotPaused {
         (, uint16 erc20Idx) = getERC20Info(erc20);
         int256 signedAmount = FsMath.safeCastToSigned(amount);
@@ -165,8 +129,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         erc20.safeTransfer(msg.sender, amount);
     }
 
-    /// @notice deposit all `erc20s` from wallet to creditAccount
-    /// @param erc20s Array of addresses of ERC20 to be transferred
+    /// @inheritdoc ISupaCore
     function depositFull(IERC20[] calldata erc20s) external override onlyWallet whenNotPaused {
         for (uint256 i = 0; i < erc20s.length; i++) {
             (ERC20Info storage erc20Info, uint16 erc20Idx) = getERC20Info(erc20s[i]);
@@ -180,26 +143,21 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         _tokenStorageCheck(msg.sender);
     }
 
-    /// @notice withdraw all `erc20s` from creditAccount to wallet
-    /// @param erc20s Array of addresses of ERC20 to be transferred
+    /// @inheritdoc ISupaCore
     function withdrawFull(IERC20[] calldata erc20s) external onlyWallet whenNotPaused {
         for (uint256 i = 0; i < erc20s.length; i++) {
             (ERC20Info storage erc20Info, uint16 erc20Idx) = getERC20Info(erc20s[i]);
             IERC20 erc20 = IERC20(erc20Info.erc20Contract);
             int256 amount = _creditAccountERC20Clear(msg.sender, erc20Idx);
             if (amount < 0) {
-                revert CannotWithdrawDebt();
+                revert Errors.CannotWithdrawDebt();
             }
             emit ISupaCore.ERC20BalanceChanged(address(erc20), erc20Idx, msg.sender, amount);
             erc20.safeTransfer(msg.sender, uint256(amount));
         }
     }
 
-    /// @notice deposit ERC721 `erc721Contract` token `tokenId` from wallet to creditAccount
-    /// @dev the part when we track the ownership of deposit NFT to a specific creditAccount is in
-    /// `onERC721Received` function of this contract
-    /// @param erc721Contract The address of the ERC721 contract that the token belongs to
-    /// @param tokenId The id of the token to be transferred
+    /// @inheritdoc ISupaCore
     function depositERC721(address erc721Contract, uint256 tokenId)
         external
         override
@@ -213,12 +171,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         ERC721(erc721Contract).safeTransferFrom(_owner, address(this), tokenId, abi.encode(msg.sender));
     }
 
-    /// @notice deposit ERC721 `erc721Contract` token `tokenId` from wallet to creditAccount
-    /// @dev the part when we track the ownership of deposit NFT to a specific creditAccount is in
-    /// `onERC721Received` function of this contract
-    /// @param erc721Contract The address of the ERC721 contract that the token belongs to
-    /// @param to The wallet address for which the NFT will be deposited
-    /// @param tokenId The id of the token to be transferred
+    /// @inheritdoc ISupaCore
     function depositERC721ForWallet(address erc721Contract, address to, uint256 tokenId)
         external
         override
@@ -232,9 +185,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         ERC721(erc721Contract).safeTransferFrom(_owner, address(this), tokenId, abi.encode(to));
     }
 
-    /// @notice withdraw ERC721 `nftContract` token `tokenId` from creditAccount to wallet
-    /// @param erc721 The address of the ERC721 contract that the token belongs to
-    /// @param tokenId The id of the token to be transferred
+    /// @inheritdoc ISupaCore
     function withdrawERC721(address erc721, uint256 tokenId) external override onlyWallet whenNotPaused {
         WalletLib.NFTId nftId = _getNFTId(erc721, tokenId);
 
@@ -245,10 +196,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         ERC721(erc721).safeTransferFrom(address(this), msg.sender, tokenId);
     }
 
-    /// @notice transfer `amount` of `erc20` from creditAccount of caller wallet to creditAccount of `to` wallet
-    /// @param erc20 Address of the ERC20 token to be transferred
-    /// @param to wallet address, whose creditAccount is the transfer target
-    /// @param amount The amount of `erc20` to be transferred
+    /// @inheritdoc ISupaCore
     function transferERC20(IERC20 erc20, address to, uint256 amount)
         external
         override
@@ -260,11 +208,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         _transferERC20(erc20, msg.sender, to, FsMath.safeCastToSigned(amount));
     }
 
-    /// @notice transfer NFT `erc721` token `tokenId` from creditAccount of caller wallet to creditAccount of
-    /// `to` wallet
-    /// @param erc721 The address of the ERC721 contract that the token belongs to
-    /// @param tokenId The id of the token to be transferred
-    /// @param to wallet address, whose creditAccount is the transfer target
+    /// @inheritdoc ISupaCore
     function transferERC721(address erc721, uint256 tokenId, address to)
         external
         override
@@ -276,13 +220,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         _transferNFT(nftId, msg.sender, to);
     }
 
-    /// @notice Transfer ERC20 tokens from creditAccount to another creditAccount
-    /// @dev Note: Allowance must be set with approveERC20
-    /// @param erc20 The index of the ERC20 token in erc20Infos array
-    /// @param from The address of the wallet to transfer from
-    /// @param to The address of the wallet to transfer to
-    /// @param amount The amount of tokens to transfer
-    /// @return true, when the transfer has been successfully finished without been reverted
+    /// @inheritdoc ISupaCore
     function transferFromERC20(address erc20, address from, address to, uint256 amount)
         external
         override
@@ -297,11 +235,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return true;
     }
 
-    /// @notice Transfer ERC721 tokens from creditAccount to another creditAccount
-    /// @param collection The address of the ERC721 token
-    /// @param from The address of the wallet to transfer from
-    /// @param to The address of the wallet to transfer to
-    /// @param tokenId The id of the token to transfer
+    /// @inheritdoc ISupaCore
     function transferFromERC721(address collection, address from, address to, uint256 tokenId)
         external
         override
@@ -311,26 +245,16 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     {
         WalletLib.NFTId nftId = _getNFTId(collection, tokenId);
         if (!_isApprovedOrOwner(msg.sender, nftId)) {
-            revert NotApprovedOrOwner();
+            revert Errors.NotApprovedOrOwner();
         }
         _transferNFT(nftId, from, to);
     }
 
-    /// @notice Liquidate an undercollateralized position
-    /// @dev if creditAccount of `wallet` has more debt then collateral then this function will
-    /// transfer all debt and collateral ERC20s and ERC721 from creditAccount of `wallet` to creditAccount of
-    /// caller. Considering that market price of collateral is higher then market price of debt,
-    /// a friction of that difference would be sent back to liquidated creditAccount in Supa base currency.
-    ///   More specific - "some fraction" is `liqFraction` parameter of Supa.
-    ///   Considering that call to this function would create debt on caller (debt is less then
-    /// gains, yet still), consider using `liquify` instead, that would liquidate and use
-    /// obtained assets to cover all created debt
-    ///   If creditAccount of `wallet` has less debt then collateral then the transaction will be reverted
-    /// @param wallet The address of wallet whose creditAccount to be liquidate
+    /// @inheritdoc ISupaCore
     function liquidate(address wallet) external override onlyWallet whenNotPaused walletExists(wallet) {
         (int256 totalValue, int256 collateral, int256 debt) = getRiskAdjustedPositionValues(wallet);
         if (collateral >= debt) {
-            revert NotLiquidatable();
+            revert Errors.NotLiquidatable();
         }
         uint16[] memory walletERC20s = wallets[wallet].getERC20s();
         for (uint256 i = 0; i < walletERC20s.length; i++) {
@@ -351,17 +275,13 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         emit ISupaCore.WalletLiquidated(wallet, msg.sender, collateral, debt);
     }
 
-    /// @notice Add an operator for wallet
-    /// @param operator The address of the operator to add
-    /// @dev Operator can execute batch of transactions on behalf of wallet owner
+    /// @inheritdoc ISupaCore
     function addOperator(address operator) external override onlyWallet {
         operatorApprovals[msg.sender][operator] = true;
         emit OperatorAdded(msg.sender, operator);
     }
 
-    /// @notice Remove an operator for wallet
-    /// @param operator The address of the operator to remove
-    /// @dev Operator can execute batch of transactions on behalf of wallet owner
+    /// @inheritdoc ISupaCore
     function removeOperator(address operator) external override onlyWallet {
         operatorApprovals[msg.sender][operator] = false;
         emit OperatorRemoved(msg.sender, operator);
@@ -370,18 +290,14 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// @notice Unused function. Will be used in future versions
     /// @dev (address wallet, address owner, address implementation)
     function migrateWallet(address, address, address) external override pure {
-        revert("Not implemented");
+        revert Errors.NotImplemented();
     }
 
-    /// @notice Execute a batch of calls
-    /// @dev execute a batch of commands on Supa from the name of wallet owner. Eventual state of
-    /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral
-    /// and Supa reserve/debt must be sufficient
-    /// @param calls An array of transaction calls
+    /// @inheritdoc ISupaCore
     function executeBatch(Call[] memory calls) external override onlyWallet whenNotPaused {
         WalletProxy(payable(msg.sender)).executeBatch(calls);
         if (!isSolvent(msg.sender)) {
-            revert Insolvent();
+            revert Errors.Insolvent();
         }
     }
 
@@ -407,7 +323,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             from = abi.decode(data, (address));
         }
         if (wallets[from].owner == address(0)) {
-            revert WalletNonExistent();
+            revert Errors.WalletNonExistent();
         }
         tokenDataByNFTId[nftId].tokenId = uint240(tokenId);
         wallets[from].insertNFT(nftId, tokenDataByNFTId);
@@ -416,10 +332,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return this.onERC721Received.selector;
     }
 
-    /// @notice Approve an array of tokens and then call `onApprovalReceived` on msg.sender
-    /// @param approvals An array of ERC20 tokens with amounts, or ERC721 contracts with tokenIds
-    /// @param spender The address of the spender
-    /// @param data Additional data with no specified format, sent in call to `spender`
+    /// @inheritdoc ISupaCore
     function approveAndCall(Approval[] calldata approvals, address spender, bytes calldata data)
         external
         override
@@ -431,24 +344,20 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             prev[i] = _approve(msg.sender, spender, approvals[i].ercContract, approvals[i].amountOrTokenId, spender);
         }
         if (!_checkOnApprovalReceived(msg.sender, 0, spender, data)) {
-            revert WrongDataReturned();
+            revert Errors.WrongDataReturned();
         }
         for (uint256 i = 0; i < approvals.length; i++) {
             _approve(msg.sender, spender, approvals[i].ercContract, prev[i], address(0)); // reset allowance
         }
     }
 
-    /// @notice provides the specific version of walletLogic contract that is associated with `wallet`
-    /// @param wallet Address of wallet whose walletLogic contract should be returned
-    /// @return the address of the walletLogic contract that is associated with the `wallet`
+    /// @inheritdoc ISupaCore
     function getImplementation(address wallet) external view override returns (address) {
         // not using msg.sender since this is an external view function
         return walletLogic[wallet];
     }
 
-    /// @notice provides the owner of `wallet`. Owner of the wallet is the address who created the wallet
-    /// @param wallet The address of wallet whose owner should be returned
-    /// @return the owner address of the `wallet`. Owner is the one who created the `wallet`
+    /// @inheritdoc ISupaCore
     function getWalletOwner(address wallet) external view override returns (address) {
         return wallets[wallet].owner;
     }
@@ -464,16 +373,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return (erc721, tokenId);
     }
 
-    /// @notice returns the collateral, debt and total value of `walletAddress`.
-    /// @dev Notice that both collateral and debt has some coefficients on the actual amount of deposit
-    /// and loan assets! E.g.
-    /// for a deposit of 1 ETH the collateral would be equivalent to like 0.8 ETH, and
-    /// for a loan of 1 ETH the debt would be equivalent to like 1.2 ETH.
-    /// At the same time, totalValue is the unmodified difference between deposits and loans.
-    /// @param walletAddress The address of wallet whose collateral, debt and total value would be returned
-    /// @return totalValue The difference between equivalents of deposit and loan assets
-    /// @return collateral The sum of deposited assets multiplied by their collateral factors
-    /// @return debt The sum of borrowed assets multiplied by their borrow factors
+    /// @inheritdoc ISupaCore
     function getRiskAdjustedPositionValues(address walletAddress)
         public
         view
@@ -508,36 +408,24 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         }
     }
 
-    /// @notice Returns the approved address for a token, or zero if no address set
-    /// @param collection The address of the ERC721 token
-    /// @param tokenId The id of the token to query
-    /// @return The wallet address that is allowed to transfer the ERC721 token
+    /// @inheritdoc ISupaCore
     function getApproved(address collection, uint256 tokenId) public view override returns (address) {
         WalletLib.NFTId nftId = _getNFTId(collection, tokenId);
         return tokenDataByNFTId[nftId].approvedSpender;
     }
 
-    /// @notice Returns if the 'spender' is an operator for the '_owner'
+    /// @inheritdoc ISupaCore
     function isOperator(address _owner, address spender) public view override returns (bool) {
         return operatorApprovals[_owner][spender];
     }
 
-    /// @notice Returns the remaining amount of tokens that `spender` will be allowed to spend on
-    /// behalf of `owner` through {transferFrom}
-    /// @dev This value changes when {approve} or {transferFrom} are called
-    /// @param erc20 The address of the ERC20 to be checked
-    /// @param _owner The wallet address whose `erc20` are allowed to be transferred by `spender`
-    /// @param spender The wallet address who is allowed to spend `erc20` of `_owner`
-    /// @return the remaining amount of tokens that `spender` will be allowed to spend on
-    /// behalf of `owner` through {transferFrom}
+    /// @inheritdoc ISupaCore
     function allowance(address erc20, address _owner, address spender) public view override returns (uint256) {
         if (_owner == spender) return type(uint256).max;
         return allowances[_owner][erc20][spender];
     }
 
-    /// @notice Compute the interest rate of `underlying`
-    /// @param erc20Idx The underlying asset
-    /// @return The interest rate of `erc20Idx`
+    /// @inheritdoc ISupaCore
     function computeInterestRate(uint16 erc20Idx) public view override returns (int96) {
         ERC20Info memory erc20Info = erc20Infos[erc20Idx];
         uint256 debt = FsMath.safeCastToUnsigned(-erc20Info.debt.tokens); // question: is debt ever positive?
@@ -564,15 +452,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         return int96(int256(ir));
     }
 
-    /// @notice Checks if the account's positions are overcollateralized
-    /// @dev checks the eventual state of `executeBatch` function execution:
-    /// * `wallet` must have collateral >= debt
-    /// * Supa must have sufficient balance of deposits and loans for each ERC20 token
-    /// @dev when called by the end of `executeBatch`, isSolvent checks the potential target state
-    /// of Supa. Calling this function separately would check current state of Supa, that is always
-    /// solvable, and so the return value would always be `true`, unless the `wallet` is liquidatable
-    /// @param wallet The address of a wallet who performed the `executeBatch`
-    /// @return Whether the position is solvent.
+    /// @inheritdoc ISupaCore
     function isSolvent(address wallet) public view returns (bool) {
         uint256 gasBefore = gasleft();
         int256 leverage = config.fractionalReserveLeverage;
@@ -581,12 +461,12 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             int256 reserve = erc20Infos[i].collateral.tokens + totalDebt;
             FsUtils.Assert(IERC20(erc20Infos[i].erc20Contract).balanceOf(address(this)) >= uint256(reserve));
             if (reserve < -totalDebt / leverage) {
-                revert InsufficientReserves();
+                revert Errors.InsufficientReserves();
             }
         }
         (, int256 collateral, int256 debt) = getRiskAdjustedPositionValues(wallet);
         if (gasBefore - gasleft() > config.maxSolvencyCheckGasCost) {
-            revert SolvencyCheckTooExpensive();
+            revert Errors.SolvencyCheckTooExpensive();
         }
         return collateral >= debt;
     }
@@ -617,7 +497,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         uint256 currentAllowance = allowance(erc20, _owner, spender);
         if (currentAllowance != type(uint256).max) {
             if (currentAllowance < amount) {
-                revert InsufficientAllowance();
+                revert Errors.InsufficientAllowance();
             }
             unchecked {
                 allowances[_owner][erc20][spender] = currentAllowance - amount;
@@ -640,7 +520,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         bytes memory data
     ) internal returns (bool) {
         if (!spender.isContract()) {
-            revert ReceiverNotContract();
+            revert Errors.ReceiverNotContract();
         }
 
         Call memory call = Call({to: target, callData: data, value: msg.value});
@@ -649,7 +529,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             return retval == IERC1363SpenderExtended.onApprovalReceived.selector;
         } catch (bytes memory reason) {
             if (reason.length == 0) {
-                revert ReceiverNoImplementation();
+                revert Errors.ReceiverNoImplementation();
             } else {
                 FsUtils.revertBytes(reason);
             }
@@ -764,13 +644,13 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
         uint256 tokenStorage =
             (tokenCounter * tokenStorageConfig.erc20Multiplier) + (nftCounter * tokenStorageConfig.erc721Multiplier);
         if (tokenStorage > tokenStorageConfig.maxTokenStorage) {
-            revert TokenStorageExceeded();
+            revert Errors.TokenStorageExceeded();
         }
     }
 
     function _getNFTId(address erc721, uint256 tokenId) internal view returns (WalletLib.NFTId) {
         if (infoIdx[erc721].kind != ContractKind.ERC721) {
-            revert NotNFT();
+            revert Errors.NotNFT();
         }
         uint16 erc721Idx = infoIdx[erc721].idx;
         uint256 tokenHash = uint256(keccak256(abi.encodePacked(tokenId))) >> 32;

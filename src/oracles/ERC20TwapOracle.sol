@@ -3,12 +3,12 @@ pragma solidity ^0.8.19;
 
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {FixedPoint96} from "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
+
 import {OracleLibrary} from "src/oracles/libraries/OracleLibrary.sol";
 import {FullMath, TickMath} from "src/periphery/UniV3LPHelper.sol";
-
 import {IERC20ValueOracle} from "src/interfaces/IERC20ValueOracle.sol";
-
 import {ImmutableGovernance} from "src/lib/ImmutableGovernance.sol";
+import {Errors} from "src/libraries/Errors.sol";
 
 contract ERC20TwapOracle is ImmutableGovernance, IERC20ValueOracle {
     address public immutable poolAddress;
@@ -16,9 +16,6 @@ contract ERC20TwapOracle is ImmutableGovernance, IERC20ValueOracle {
     int256 public collateralFactor = 1 ether;
     int256 public borrowFactor = 1 ether;
     uint32 public twapInterval = 300; // interval in seconds (300 = 5 minutes)
-
-    /// @notice Borrow factor must be greater than zero
-    error InvalidBorrowFactor();
 
     constructor(address _poolAddress, bool _isInverse, address _owner) ImmutableGovernance(_owner) {
         poolAddress = _poolAddress;
@@ -72,7 +69,7 @@ contract ERC20TwapOracle is ImmutableGovernance, IERC20ValueOracle {
     /// @param _borrowFactor Borrow factor
     function setRiskFactors(int256 _collateralFactor, int256 _borrowFactor) external onlyGovernance {
         if (_borrowFactor == 0) {
-            revert InvalidBorrowFactor();
+            revert Errors.InvalidBorrowFactor();
         }
         _setRiskFactors(_collateralFactor, _borrowFactor);
     }

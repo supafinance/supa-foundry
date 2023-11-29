@@ -8,18 +8,22 @@ import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
+import {Liquifier} from "src/supa/Liquifier.sol";
+import {IVersionManager} from "src/interfaces/IVersionManager.sol";
+import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
+import {ISupa} from "src/interfaces/ISupa.sol";
+import {IWallet} from "src/interfaces/IWallet.sol";
+import {IERC1363SpenderExtended} from "src/interfaces/IERC1363-extended.sol";
+
+import {CallLib, Call, LinkedCall, ReturnDataLink} from "src/lib/Call.sol";
+import {NonceMapLib, NonceMap} from "src/lib/NonceMap.sol";
+import {ImmutableVersion} from "src/lib/ImmutableVersion.sol";
+import {BytesLib} from "src/lib/BytesLib.sol";
+
 import {WalletState} from "./WalletState.sol";
-import {Liquifier} from "../supa/Liquifier.sol";
-import {IVersionManager} from "../interfaces/IVersionManager.sol";
-import {ITransferReceiver2} from "../interfaces/ITransferReceiver2.sol";
-import {ISupa} from "../interfaces/ISupa.sol";
 import {WalletProxy} from "./WalletProxy.sol";
-import {IWallet} from "../interfaces/IWallet.sol";
-import {IERC1363SpenderExtended} from "../interfaces/IERC1363-extended.sol";
-import {CallLib, Call, LinkedCall, ReturnDataLink} from "../lib/Call.sol";
-import {NonceMapLib, NonceMap} from "../lib/NonceMap.sol";
-import {ImmutableVersion} from "../lib/ImmutableVersion.sol";
-import {BytesLib} from "../lib/BytesLib.sol";
+
+import {Errors} from "src/libraries/Errors.sol";
 
 // Calls to the contract not coming from Supa itself are routed to this logic
 // contract. This allows for flexible extra addition to your wallet.
@@ -55,35 +59,14 @@ contract WalletLogic is
             )
         );
 
-    string public constant VERSION = "1.3.2";
+    string public constant VERSION = "1.0.0";
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
 
-    /// @notice Data does not match the expected format
-    error InvalidData();
-    /// @notice Signature is invalid
-    error InvalidSignature();
-    /// @notice Nonce has already been used
-    error NonceAlreadyUsed();
-    /// @notice Deadline has expired
-    error DeadlineExpired();
-    /// @notice Only Supa can call this function
-    error OnlySupa();
-    /// @notice Only the owner or operator can call this function
-    error NotOwnerOrOperator();
-    /// @notice Only the owner can call this function
-    error OnlyOwner();
-    /// @notice Only this address can call this function
-    error OnlyThisAddress();
-    /// @notice The wallet is insolvent
-    error Insolvent();
-    /// @notice Transfer failed
-    error TransferFailed();
-
     modifier onlyOwner() {
         if (_supa().getWalletOwner(address(this)) != msg.sender) {
-            revert OnlyOwner();
+            revert Errors.OnlyOwner();
         }
         _;
     }
@@ -93,21 +76,21 @@ contract WalletLogic is
             _supa().getWalletOwner(address(this)) != msg.sender &&
             !_supa().isOperator(address(this), msg.sender)
         ) {
-            revert NotOwnerOrOperator();
+            revert Errors.NotOwnerOrOperator();
         }
         _;
     }
 
     modifier onlyThisAddress() {
         if (msg.sender != address(this)) {
-            revert OnlyThisAddress();
+            revert Errors.OnlyThisAddress();
         }
         _;
     }
 
     modifier onlySupa() {
         if (msg.sender != address(_supa())) {
-            revert OnlySupa();
+            revert Errors.OnlySupa();
         }
         _;
     }
@@ -123,19 +106,11 @@ contract WalletLogic is
     function transfer(address to, uint256 value) external payable onlyThisAddress {
         (bool success, ) = to.call{value: value}("");
         if (!success) {
-            revert TransferFailed();
+            revert Errors.TransferFailed();
         }
     }
 
-    /// @notice makes a batch of different calls from the name of wallet owner. Eventual state of
-    /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral on
-    /// creditAccount and wallet and Supa reserve/debt must be sufficient
-    /// @dev - this goes to supa.executeBatch that would immediately call WalletProxy.executeBatch
-    /// from above of this file
-    /// @param calls {address to, bytes callData, uint256 value}[], where
-    ///   * to - is the address of the contract whose function should be called
-    ///   * callData - encoded function name and it's arguments
-    ///   * value - the amount of ETH to sent with the call
+    /// @inheritdoc IWallet
     function executeBatch(Call[] calldata calls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
@@ -143,7 +118,7 @@ contract WalletLogic is
         forwardNFT = saveForwardNFT;
 
         if (!_supa().isSolvent(address(this))) {
-            revert Insolvent();
+            revert Errors.Insolvent();
         }
     }
 
@@ -153,7 +128,7 @@ contract WalletLogic is
         uint256 deadline,
         bytes calldata signature
     ) external payable {
-        if (deadline < block.timestamp) revert DeadlineExpired();
+        if (deadline < block.timestamp) revert Errors.DeadlineExpired();
         nonceMap.validateAndUseNonce(nonce);
         bytes32 digest = _hashTypedDataV4(
             keccak256(
@@ -166,14 +141,14 @@ contract WalletLogic is
                 digest,
                 signature
             )
-        ) revert InvalidSignature();
+        ) revert Errors.InvalidSignature();
 
         _supa().executeBatch(calls);
     }
 
     function forwardNFTs(bool _forwardNFT) external {
         if (msg.sender != address(this)) {
-            revert OnlyThisAddress();
+            revert Errors.OnlyThisAddress();
         }
         forwardNFT = _forwardNFT;
     }
@@ -222,12 +197,12 @@ contract WalletLogic is
         } else if (data[0] == 0x00) {
             // execute batch
             if (msg.sender != _supa().getWalletOwner(address(this))) {
-                revert OnlyOwner();
+                revert Errors.OnlyOwner();
             }
             Call[] memory calls = abi.decode(data[1:], (Call[]));
             _supa().executeBatch(calls);
         } else if (data[0] == 0x01) {
-            if (data.length != 1) revert InvalidData();
+            if (data.length != 1) revert Errors.InvalidData();
             // deposit in the supa wallet
             for (uint256 i = 0; i < transfers.length; i++) {
                 ITransferReceiver2.Transfer memory transfer_ = transfers[i];
@@ -240,7 +215,7 @@ contract WalletLogic is
             (Call[] memory calls, uint256 nonce, uint256 deadline, bytes memory signature) = abi
                 .decode(data[1:], (Call[], uint256, uint256, bytes));
 
-            if (deadline < block.timestamp) revert DeadlineExpired();
+            if (deadline < block.timestamp) revert Errors.DeadlineExpired();
             nonceMap.validateAndUseNonce(nonce);
 
             bytes32[] memory transferDigests = new bytes32[](transfers.length);
@@ -268,7 +243,7 @@ contract WalletLogic is
                     digest,
                     signature
                 )
-            ) revert InvalidSignature();
+            ) revert Errors.InvalidSignature();
 
             _supa().executeBatch(calls);
         } else {
@@ -283,7 +258,7 @@ contract WalletLogic is
         Call memory call
     ) external onlySupa returns (bytes4) {
         if (call.callData.length == 0) {
-            revert InvalidData();
+            revert Errors.InvalidData();
         }
         emit TokensApproved(sender, amount, call.callData);
 
@@ -353,7 +328,7 @@ contract WalletLogic is
 
                 // revert if call has NOT already been executed
                 if (callIndex > i) {
-                    revert InvalidData();
+                    revert Errors.InvalidData();
                 }
 
                 bytes memory spliceCalldata;
@@ -396,7 +371,7 @@ contract WalletLogic is
         forwardNFT = saveForwardNFT;
 
         if (!_supa().isSolvent(address(this))) {
-            revert Insolvent();
+            revert Errors.Insolvent();
         }
     }
 

@@ -19,6 +19,8 @@ import {WalletProxy} from "src/wallet/WalletProxy.sol";
 import {Call, CallLib} from "src/lib/Call.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
 
+import {Errors} from "src/libraries/Errors.sol";
+
 //import { UniswapV3Factory } from "@uniswap/v3-core/contracts/UniswapV3Factory.sol";
 //import {SwapRouter} from "@uniswap/v3-periphery/contracts/SwapRouter.sol";
 //import { ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
@@ -290,7 +292,7 @@ contract WalletTest is Test {
         // address recovered = ecrecover(digest, v, r, s);
 
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
-        vm.expectRevert(WalletLogic.InvalidSignature.selector);
+        vm.expectRevert(Errors.InvalidSignature.selector);
         WalletLogic(address(userWallet2)).executeSignedBatch(calls, nonce, deadline, signature);
     }
 

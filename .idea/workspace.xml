@@ -5,10 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5d4f8e33-0e59-42aa-8b86-a9ddd380f4c0" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/libraries/Errors.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/chainlink" beforeDir="false" afterPath="$PROJECT_DIR$/lib/chainlink" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/chainlink/contracts/test/v0.8/foundry/BaseTest.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/lib/chainlink/contracts/test/v0.8/foundry/BaseTest.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interfaces/ISupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/interfaces/ISupa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interfaces/IVersionManager.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/interfaces/IVersionManager.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interfaces/IWallet.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/interfaces/IWallet.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/oracles/ERC20ChainlinkValueOracle.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/oracles/ERC20ChainlinkValueOracle.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/oracles/ERC20TwapOracle.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/oracles/ERC20TwapOracle.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/Supa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/Supa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/SupaConfig.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/SupaConfig.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/SupaState.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/SupaState.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/TransferAndCall2.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/TransferAndCall2.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/VersionManager.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/VersionManager.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testing/MigrationSupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/testing/MigrationSupa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testing/SimulationSupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/testing/SimulationSupa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/wallet/WalletProxy.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletProxy.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/wallet/WalletState.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletState.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/supa.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/supa.t.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test/wallet.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/wallet.t.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test/walletMigration.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/walletMigration.t.sol" afterDir="false" />
     </list>
@@ -39,7 +57,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "ammon/deployment",
     "last_opened_file_path": "/Users/ammonwerner/supa/supa-foundry",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",

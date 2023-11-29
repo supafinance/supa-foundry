@@ -4,6 +4,8 @@ pragma solidity ^0.8.19;
 import {ISupa} from "src/interfaces/ISupa.sol";
 import {FsUtils} from "src/lib/FsUtils.sol";
 
+import {Errors} from "src/libraries/Errors.sol";
+
 /// @title the state part of the WalletLogic. A parent to all contracts that form wallet
 /// @dev the contract is abstract because it is not expected to be used separately from wallet
 abstract contract WalletState {
@@ -11,9 +13,6 @@ abstract contract WalletState {
         require(msg.sender == supa.getWalletOwner(address(this)), "WalletState: only this");
         _;
     }
-
-    /// @notice The address cannot be the zero address
-    error AddressZero();
 
     /// @dev Supa instance to be used by all other wallet contracts
     ISupa public supa;
@@ -36,7 +35,7 @@ abstract contract WalletState {
 
         // 2. Update the supa implementation
         if (_supa == address(0) || _supa == address(supa)) {
-            revert AddressZero();
+            revert Errors.AddressZero();
         }
         supa = ISupa(_supa);
 

@@ -6,10 +6,10 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Proxy} from "@openzeppelin/contracts/proxy/Proxy.sol";
 
 import {WalletState} from "./WalletState.sol";
-import {ITransferReceiver2, TRANSFER_AND_CALL2} from "../interfaces/ITransferReceiver2.sol";
-import {PERMIT2} from "../external/interfaces/IPermit2.sol";
-import {FsUtils} from "../lib/FsUtils.sol";
-import {CallLib, Call} from "../lib/Call.sol";
+import {ITransferReceiver2, TRANSFER_AND_CALL2} from "src/interfaces/ITransferReceiver2.sol";
+import {PERMIT2} from "src/external/interfaces/IPermit2.sol";
+import {FsUtils} from "src/lib/FsUtils.sol";
+import {CallLib, Call} from "src/lib/Call.sol";
 
 /// @title Wallet Proxy
 /// @notice Proxy contract for Supa Wallets
@@ -29,7 +29,7 @@ contract WalletProxy is WalletState, Proxy {
         // solhint-disable-next-line no-empty-blocks
     }
 
-    // Allow ETH transfers
+    /// @dev Allow ETH transfers
     receive() external payable override {}
 
     // Allow Supa to make arbitrary calls in lieu of this wallet
