@@ -8,7 +8,7 @@ import {TaskCreatorProxy} from "src/gelato/TaskCreatorProxy.sol";
 /// @notice Deploys {TaskCreatorProxy}
 contract DeployTaskCreatorProxy is BaseScript {
     function run() public virtual {
-        address owner;
+        address deployer;
         address supa = vm.envAddress("SUPA_ADDRESS");
         address automate = vm.envAddress("AUTOMATE");
 
@@ -16,12 +16,15 @@ contract DeployTaskCreatorProxy is BaseScript {
         address usdc;
         if (chainId == 5) {
                 usdc = vm.envAddress("USDC_GOERLI");
-                owner = vm.envAddress("OWNER_GOERLI");
+                deployer = vm.envAddress("DEPLOYER_GOERLI");
         } else if (chainId == 1) {
                 usdc = vm.envAddress("USDC_MAINNET");
         } else if (chainId == 42161) {
                 usdc = vm.envAddress("USDC_ARBITRUM");
-                owner = vm.envAddress("DEPLOYER");
+                deployer = vm.envAddress("DEPLOYER");
+        } else if (chainId == 137) {
+                usdc = vm.envAddress("USDC_POLYGON");
+                deployer = vm.envAddress("DEPLOYER");
         } else {
             revert("DeployTaskCreatorProxy: unsupported chain");
         }
@@ -30,7 +33,7 @@ contract DeployTaskCreatorProxy is BaseScript {
 
         bytes32 salt = vm.envBytes32("TASK_CREATOR_PROXY_SALT");
 
-        vm.startBroadcast(owner);
+        vm.startBroadcast(deployer);
         TaskCreatorProxy taskCreatorProxy = new TaskCreatorProxy{salt: salt}();
         assert(address(taskCreatorProxy) == vm.envAddress("TASK_CREATOR_PROXY_ADDRESS"));
         TaskCreator taskCreator = new TaskCreator(supa, automate, address(taskCreatorProxy), usdc);

@@ -11,9 +11,11 @@ contract TransferOwnership is Script {
 
         vm.startBroadcast(governator);
         OffchainEntityProxy offchainEntityProxy = OffchainEntityProxy(vm.envAddress("OFFCHAIN_ENTITY_PROXY_ADDRESS"));
-        offchainEntityProxy.takeOwnership(hex"b18f27f7d6806aa9e660dd64d784693d9b490fd9e9ec82dae7c981311059da7b27a8de88f86875dbf3e0c03c387c9855e81cb5cbf2b6a74cd597e2f3d7791b891b");
+        offchainEntityProxy.transferOwnership(newOwner);
         vm.stopBroadcast();
     }
 }
 
 // forge script script/setup/governance/OffchainEntityProxy.transferOwnership.s.sol:TransferOwnership --rpc-url $GOERLI_RPC_URL --broadcast -vvvv -
+
+// forge script script/setup/governance/OffchainEntityProxy.transferOwnership.s.sol:TransferOwnership --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv -t

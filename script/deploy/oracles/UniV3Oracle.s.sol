@@ -7,25 +7,25 @@ import {UniV3Oracle} from "src/oracles/UniV3Oracle.sol";
 
 contract DeployUniV3Oracle is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 chainId = block.chainid;
+        address deployer;
+        if (chainId == 5) {
+            deployer = vm.envAddress("DEPLOYER_GOERLI");
+        } else if (chainId == 42161) {
+            deployer = vm.envAddress("DEPLOYER");
+        } else {
+            revert("unsupported chain");
+        }
         address manager = vm.envAddress("NONFUNGIBLE_POSITION_MANAGER");
         address factory = vm.envAddress("UNISWAP_V3_FACTORY");
-        address owner = vm.envAddress("OWNER");
+        address owner = vm.envAddress("DEPLOYER");
 
-        address usdc = vm.envAddress("USDC_GOERLI");
-        address usdcOracle = vm.envAddress("USDC_ORACLE");
-        address weth = vm.envAddress("WETH_GOERLI");
-        address wethOracle = vm.envAddress("WETH_TWAP");
-        address uni = vm.envAddress("UNI");
-        address uniOracle = vm.envAddress("UNI_ORACLE");
+        bytes32 salt = 0x1234567890123456789012345678901234567890123456789012345678901234;
 
-        vm.startBroadcast(deployerPrivateKey);
-        UniV3Oracle uniV3Oracle = new UniV3Oracle(factory, manager, owner);
-        uniV3Oracle.setERC20ValueOracle(usdc, usdcOracle);
-        uniV3Oracle.setERC20ValueOracle(weth, wethOracle);
-        uniV3Oracle.setERC20ValueOracle(uni, uniOracle);
+        vm.startBroadcast(deployer);
+        new UniV3Oracle{salt: salt}(factory, manager, owner);
         vm.stopBroadcast();
     }
 }
 
-// forge script script/deploy/oracles/UniV3Oracle.s.sol:DeployUniV3Oracle --rpc-url $GOERLI_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --verify -vvvv
+// forge script script/deploy/oracles/UniV3Oracle.s.sol:DeployUniV3Oracle --rpc-url $GOERLI_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --verify -vvvv --account supa_test_deployer

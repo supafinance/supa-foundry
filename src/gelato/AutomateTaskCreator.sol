@@ -25,7 +25,7 @@ abstract contract AutomateTaskCreator is AutomateReady {
 
     function _depositFunds1Balance(uint256 _amount, address _token, address _sponsor) internal {
         if (_token == ETH) {
-            ///@dev Only deposit ETH on goerli for now.
+            /// @dev Only deposit ETH on goerli for now.
             if (block.chainid != 5) {
                 revert OnlyGoerli();
             }

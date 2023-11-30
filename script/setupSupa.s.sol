@@ -23,6 +23,8 @@ contract SetupSupa is Script {
         address owner;
         if (chainId == 5) {
             owner = vm.envAddress("OWNER_GOERLI");
+        } else if (chainId == 42161) {
+            owner = vm.envAddress("DEPLOYER");
         } else {
             revert("unsupported chain");
         }

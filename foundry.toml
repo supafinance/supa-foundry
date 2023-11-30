@@ -13,4 +13,4 @@ optimizer-runs = 100_000
 [etherscan]
 mainnet = { key = "${ETHERSCAN_API_KEY}" }
 goerli = { key = "${ETHERSCAN_API_KEY}" }
-arbitrum = { key = "${ARBISCAN_API_KEY}" }
+arbitrum-mainnet = { key = "${ARBISCAN_API_KEY}" }
