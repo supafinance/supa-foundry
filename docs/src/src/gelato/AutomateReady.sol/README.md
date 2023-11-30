@@ -1,0 +1,2 @@
+# AutomateReady.sol
+

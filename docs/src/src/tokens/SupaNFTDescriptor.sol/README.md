@@ -1,0 +1,2 @@
+# SupaNFTDescriptor.sol
+
