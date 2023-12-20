@@ -6,10 +6,10 @@ import {OffchainEntityProxy} from "src/governance/OffchainEntityProxy.sol";
 
 contract TransferOwnership is Script {
     function run() external {
-        address governator = vm.envAddress("GOVERNATOR");
-        address newOwner = vm.envAddress("OWNER");
+        address deployer = vm.envAddress("DEPLOYER");
+        address newOwner = vm.envAddress("SUPA_ADMIN");
 
-        vm.startBroadcast(governator);
+        vm.startBroadcast(deployer);
         OffchainEntityProxy offchainEntityProxy = OffchainEntityProxy(vm.envAddress("OFFCHAIN_ENTITY_PROXY_ADDRESS"));
         offchainEntityProxy.transferOwnership(newOwner);
         vm.stopBroadcast();
@@ -18,4 +18,4 @@ contract TransferOwnership is Script {
 
 // forge script script/setup/governance/OffchainEntityProxy.transferOwnership.s.sol:TransferOwnership --rpc-url $GOERLI_RPC_URL --broadcast -vvvv -
 
-// forge script script/setup/governance/OffchainEntityProxy.transferOwnership.s.sol:TransferOwnership --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv -t
+// forge script script/setup/governance/OffchainEntityProxy.transferOwnership.s.sol:TransferOwnership --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer -g 100

@@ -6,12 +6,23 @@ import {TaskCreator} from "src/gelato/TaskCreator.sol";
 
 contract SetPowerPerExecution is Script {
     function run() public virtual {
+        uint256 chainId = block.chainid;
         address payable taskCreatorProxyAddress = payable(vm.envAddress("TASK_CREATOR_PROXY"));
-        address owner = 0xc9B6088732E83ef013873e2f04d032F1a7a2E42D;
+        address deployer;
+        uint256 powerPerExecution;
+        if (chainId == 5) {
+            deployer = vm.envAddress("DEPLOYER_GOERLI");
+            powerPerExecution = 0.001 ether;
+        } else if (chainId == 42161) {
+            deployer = vm.envAddress("DEPLOYER");
+            powerPerExecution = 0.001 ether; // todo
+        } else {
+            revert("unsupported chain");
+        }
 
-        vm.startBroadcast(owner);
+        vm.startBroadcast(deployer);
         TaskCreator taskCreator = TaskCreator(taskCreatorProxyAddress);
-        taskCreator.setPowerPerExecution(0.001 ether);
+        taskCreator.setPowerPerExecution(powerPerExecution);
         vm.stopBroadcast();
     }
 }
