@@ -134,7 +134,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         if (!usdc.transferFrom(msg.sender, feeCollector, usdcAmount)) {
             revert UsdcTransferFailed();
         }
-        emit PowerPurchased(user, powerCreditsToPurchase, 0);
+        emit PowerPurchased(user, powerCreditsToPurchase, usdcAmount);
     }
 
     /// @notice Admin function to increase a user's power credits
@@ -152,7 +152,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         _cancelTask(taskId);
 
         // refund the deposit
-        transfer(msg.sender, depositAmounts[taskId]);
+        _returnDeposit(taskId);
     }
 
     /// @notice Cancels the task with id `taskId` if the task is insolvent
@@ -166,7 +166,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         _cancelTask(taskId);
 
         // award the deposit to the msg.sender
-        transfer(msg.sender, depositAmounts[taskId]);
+        _returnDeposit(taskId);
     }
 
     /// @notice Create an automation task
@@ -177,7 +177,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
     /// @param payGasWithCredits Whether to pay gas with credits
     /// @return taskId The id of the created task
     function createTask(uint256 automationId, address operatorAddress, string memory cid, uint256 interval, bool payGasWithCredits)
-        external
+        public
         onlySupaWallet
         returns (bytes32 taskId)
     {
@@ -185,18 +185,20 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
             revert UnauthorizedCID(cid);
         }
 
+        // Get power used since last update
         (address owner,) = supa.wallets(msg.sender);
         UserPowerData memory powerData = userPowerData[owner];
         uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
         uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether;
 
-        uint256 taskExecutionFrequency = (1 ether / interval) * 1000; // Approximate executions per second * 1 ether
-
         if (powerUsed > super.balanceOf(owner)) {
             revert InsufficientPower(owner);
         }
 
-        _burn(owner, powerUsed);
+        // Get task execution frequency
+        uint256 taskExecutionFrequency = (1 ether / interval) * 1000; // Approximate executions per second * 1 ether
+
+        // Update user power data in storage
         userPowerData[owner] = UserPowerData({
             lastUpdate: block.timestamp,
             taskExecsPerSecond: powerData.taskExecsPerSecond + taskExecutionFrequency
@@ -213,7 +215,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
 
         moduleData.args[0] = _proxyModuleArg();
         moduleData.args[1] = _web3FunctionModuleArg(
-            // the CID is the hash of the W3f deployed on IPFS
+        // the CID is the hash of the W3f deployed on IPFS
             cid,
             // the arguments to the W3f are this contract's address
             // currently W3fs accept string, number, bool as arguments
@@ -226,6 +228,10 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         // "batchExecuteCall" forwards calls from the proxy to this contract
         bytes memory execData = abi.encodeWithSelector(IOpsProxy.batchExecuteCall.selector);
 
+        // decrement the user's power credits for
+        // power used since update + deposit amount
+        _burn(owner, powerUsed + depositAmount);
+
         // target address is this contracts dedicatedMsgSender proxy
         taskId = _createTask(
             dedicatedMsgSender,
@@ -236,12 +242,10 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
             address(0)
         );
 
-        // take a deposit from the user to be returned when the task is cancelled
-        depositAmounts[taskId] = depositAmount;
-
-        taskExecFrequency[taskId] = taskExecutionFrequency;
-
+        // set the task variables after creating the taskId
         taskOwner[taskId] = msg.sender;
+        taskExecFrequency[taskId] = taskExecutionFrequency;
+        depositAmounts[taskId] = depositAmount;
 
         emit TaskCreated(taskId, msg.sender, automationId, cid);
     }
@@ -272,68 +276,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
 
         allowlistCid[cid] = true;
 
-        (address owner,) = supa.wallets(msg.sender);
-        UserPowerData memory powerData = userPowerData[owner];
-        uint256 cumulativeExecutions = (block.timestamp - powerData.lastUpdate) * powerData.taskExecsPerSecond; // adjusted by magnitude of 1 ether
-        uint256 powerUsed = cumulativeExecutions * powerPerExecution / 1 ether;
-
-        if (powerUsed > super.balanceOf(owner)) {
-            revert InsufficientPower(owner);
-        }
-
-        uint256 taskExecutionFrequency = (1 ether / interval) * 1000; // Approximate executions per second * 1 ether
-        taskExecFrequency[taskId] = taskExecutionFrequency;
-
-        _burn(owner, powerUsed);
-        userPowerData[owner] = UserPowerData({
-            lastUpdate: block.timestamp,
-            taskExecsPerSecond: powerData.taskExecsPerSecond + taskExecutionFrequency
-        });
-
-        ModuleData memory moduleData = ModuleData({modules: new Module[](3), args: new bytes[](3)});
-
-        // Proxy module creates a dedicated proxy for this contract
-        // ensures that only contract created tasks can call certain fuctions
-        // restrict functions by using the onlyDedicatedMsgSender modifier
-        moduleData.modules[0] = Module.PROXY; // 0
-        moduleData.modules[1] = Module.WEB3_FUNCTION; // 4
-        moduleData.modules[2] = Module.TRIGGER; // 5
-
-        moduleData.args[0] = _proxyModuleArg();
-        moduleData.args[1] = _web3FunctionModuleArg(
-            // the CID is the hash of the W3f deployed on IPFS
-            cid,
-            // the arguments to the W3f are this contract's address
-            // currently W3fs accept string, number, bool as arguments
-            // thus we must convert the address to a string
-            abi.encode(Strings.toHexString(msg.sender), Strings.toHexString(operatorAddress), payGasWithCredits)
-        );
-        moduleData.args[2] = _timeTriggerModuleArg(uint128(block.timestamp), uint128(interval));
-
-        // execData passed to the proxy by the Automate contract
-        // "batchExecuteCall" forwards calls from the proxy to this contract
-        bytes memory execData = abi.encodeWithSelector(IOpsProxy.batchExecuteCall.selector);
-
-        // take a deposit from the user to be returned when the task is cancelled
-        depositAmounts[taskId] = depositAmount;
-
-        // decrement the user's power credits
-
-        // increase this contract's power credits
-
-        // target address is this contracts dedicatedMsgSender proxy
-        taskId = _createTask(
-            dedicatedMsgSender,
-            execData,
-            moduleData,
-            // zero address as fee token indicates
-            // that the contract will use 1Balance for fee payment
-            address(0)
-        );
-
-        taskOwner[taskId] = msg.sender;
-
-        emit TaskCreated(taskId, msg.sender, automationId, cid);
+        taskId = createTask(automationId, operatorAddress, cid, interval, payGasWithCredits);
     }
 
     /// @notice Pay for gas with power credits
@@ -344,8 +287,8 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         if (price <= 0) {
             revert InvalidPrice();
         }
-        // todo: include the base USDC price per credit in this calculation
-        uint256 creditAmount = gasAmount * uint256(price) / 1e8;
+
+        uint256 creditAmount = gasAmount * uint256(price) * tiers[0].rate / 1e8 / 1e6;
 
         (address owner,) = supa.wallets(msg.sender);
         UserPowerData memory powerData = userPowerData[owner];
@@ -357,7 +300,7 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
 
         _burn(owner, creditAmount + powerUsed);
 
-        emit GasPaidWithCredits(msg.sender, gasAmount, creditAmount);
+        emit GasPaidWithCredits(owner, gasAmount, creditAmount);
     }
 
     /// @notice Pay for gas with power credits
@@ -434,6 +377,10 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         allowlistCid[cid] = false;
     }
 
+    function adminZeroTaskExecFrequency(address user) external onlyAllowlistRole {
+        userPowerData[user].taskExecsPerSecond = 0;
+    }
+
     /// @notice Get the current power credits for `user`
     /// @param user The user to get the power credits for
     /// @return remainingPowerCredits The remaining power credits for `user`
@@ -450,12 +397,20 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
         return remainingPowerCredits - powerUsed;
     }
 
+    function name() public view override returns (string memory) {
+        return "Supa Power Credits";
+    }
+
+    function symbol() public view override returns (string memory) {
+        return "PWR";
+    }
+
     /// @notice Get the daily power burn for `user`
     /// @param user The user to get the daily power burn for
     /// @return dailyBurn The daily power burn for `user`
     function getUserDailyBurn(address user) external view returns (uint256 dailyBurn) {
         UserPowerData memory powerData = userPowerData[user];
-        dailyBurn = powerData.taskExecsPerSecond * 1 days / 1 ether; // adjusted by magnitude of 1 ether
+        dailyBurn = powerData.taskExecsPerSecond * 1 days * powerPerExecution / 1 ether;
         return dailyBurn;
     }
 
@@ -509,6 +464,15 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
     /// @return tiers The tiers
     function getAllTiers() public view returns (Tier[] memory) {
         return tiers;
+    }
+
+    function _returnDeposit(bytes32 taskId) internal {
+        (address walletOwner,) = supa.wallets(msg.sender);
+        if (walletOwner != address(0)) {
+            _mint(walletOwner, depositAmounts[taskId]);
+        } else {
+            _mint(msg.sender, depositAmounts[taskId]);
+        }
     }
 
     function _burnUsedCredits(address _taskOwner, bytes32 _taskId) internal returns (bool insolvent) {
