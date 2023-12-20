@@ -4,11 +4,11 @@ pragma solidity ^0.8.19;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
+import {Liquifier} from "src/supa/Liquifier.sol";
 import {IVersionManager} from "src/interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
 import {ISupa} from "src/interfaces/ISupa.sol";
@@ -20,6 +20,7 @@ import {NonceMapLib, NonceMap} from "src/lib/NonceMap.sol";
 import {ImmutableVersion} from "src/lib/ImmutableVersion.sol";
 import {BytesLib} from "src/lib/BytesLib.sol";
 
+import {WalletState} from "src/wallet/WalletState.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
 
 import {Errors} from "src/libraries/Errors.sol";
@@ -27,37 +28,38 @@ import {Errors} from "src/libraries/Errors.sol";
 // Calls to the contract not coming from Supa itself are routed to this logic
 // contract. This allows for flexible extra addition to your wallet.
 contract WalletLogic is
+//    WalletState,
     ImmutableVersion,
     IERC721Receiver,
-    IERC1155Receiver,
     IERC1271,
     ITransferReceiver2,
     EIP712,
     IWallet,
+//    Liquifier,
     IERC1363SpenderExtended
 {
     using NonceMapLib for NonceMap;
     using BytesLib for bytes;
 
     bytes private constant EXECUTEBATCH_TYPESTRING =
-    "ExecuteBatch(Call[] calls,uint256 nonce,uint256 deadline)";
+        "ExecuteBatch(Call[] calls,uint256 nonce,uint256 deadline)";
     bytes private constant TRANSFER_TYPESTRING = "Transfer(address token,uint256 amount)";
     bytes private constant ONTRANSFERRECEIVED2CALL_TYPESTRING =
-    "OnTransferReceived2Call(address operator,address from,Transfer[] transfers,Call[] calls,uint256 nonce,uint256 deadline)";
+        "OnTransferReceived2Call(address operator,address from,Transfer[] transfers,Call[] calls,uint256 nonce,uint256 deadline)";
 
     bytes32 private constant EXECUTEBATCH_TYPEHASH =
-    keccak256(abi.encodePacked(EXECUTEBATCH_TYPESTRING, CallLib.CALL_TYPESTRING));
+        keccak256(abi.encodePacked(EXECUTEBATCH_TYPESTRING, CallLib.CALL_TYPESTRING));
     bytes32 private constant TRANSFER_TYPEHASH = keccak256(TRANSFER_TYPESTRING);
     bytes32 private constant ONTRANSFERRECEIVED2CALL_TYPEHASH =
-    keccak256(
-        abi.encodePacked(
-            ONTRANSFERRECEIVED2CALL_TYPESTRING,
-            CallLib.CALL_TYPESTRING,
-            TRANSFER_TYPESTRING
-        )
-    );
+        keccak256(
+            abi.encodePacked(
+                ONTRANSFERRECEIVED2CALL_TYPESTRING,
+                CallLib.CALL_TYPESTRING,
+                TRANSFER_TYPESTRING
+            )
+        );
 
-    string public constant VERSION = "1.0.1";
+    string public constant VERSION = "1.0.0";
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
@@ -136,9 +138,9 @@ contract WalletLogic is
         if (
             !SignatureChecker.isValidSignatureNow(
             _supa().getWalletOwner(address(this)),
-            digest,
-            signature
-        )
+                digest,
+                signature
+            )
         ) revert Errors.InvalidSignature();
 
         _supa().executeBatch(calls);
@@ -172,26 +174,6 @@ contract WalletLogic is
             IERC721(msg.sender).safeTransferFrom(address(this), address(_supa()), tokenId, data);
         }
         return this.onERC721Received.selector;
-    }
-
-    function onERC1155Received(
-        address /* operator */,
-        address /* from */,
-        uint256 /* id */,
-        uint256 /* value */,
-        bytes calldata /* data */
-    ) external override pure returns (bytes4) {
-        return this.onERC1155Received.selector;
-    }
-
-    function onERC1155BatchReceived(
-        address /* operator */,
-        address /* from */,
-        uint256[] calldata /* ids */,
-        uint256[] calldata /* values */,
-        bytes calldata /* data */
-    ) external override pure returns (bytes4) {
-        return this.onERC1155BatchReceived.selector;
     }
 
     function setNonce(uint256 nonce) external onlyOwner {
@@ -258,9 +240,9 @@ contract WalletLogic is
             if (
                 !SignatureChecker.isValidSignatureNow(
                 _supa().getWalletOwner(address(this)),
-                digest,
-                signature
-            )
+                    digest,
+                    signature
+                )
             ) revert Errors.InvalidSignature();
 
             _supa().executeBatch(calls);
@@ -391,14 +373,6 @@ contract WalletLogic is
         if (!_supa().isSolvent(address(this))) {
             revert Errors.Insolvent();
         }
-    }
-
-    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-        return interfaceId == type(IERC721Receiver).interfaceId ||
-        interfaceId == type(IERC1155Receiver).interfaceId ||
-        interfaceId == type(IERC1271).interfaceId ||
-        interfaceId == type(ITransferReceiver2).interfaceId ||
-            interfaceId == type(IERC1363SpenderExtended).interfaceId;
     }
 
     function _supa() internal view returns (ISupa) {

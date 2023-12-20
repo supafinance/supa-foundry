@@ -180,7 +180,7 @@ contract WalletLogic is
         uint256 /* id */,
         uint256 /* value */,
         bytes calldata /* data */
-    ) external override pure returns (bytes4) {
+    ) external override returns (bytes4) {
         return this.onERC1155Received.selector;
     }
 
@@ -190,7 +190,7 @@ contract WalletLogic is
         uint256[] calldata /* ids */,
         uint256[] calldata /* values */,
         bytes calldata /* data */
-    ) external override pure returns (bytes4) {
+    ) external override returns (bytes4) {
         return this.onERC1155BatchReceived.selector;
     }
 
