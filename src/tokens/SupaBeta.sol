@@ -2,36 +2,72 @@
 pragma solidity ^0.8.19;
 
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { ISupaBeta } from "src/tokens/interfaces/ISupaBeta.sol";
 
-contract SupaBeta is ERC721, Ownable {
+contract SupaBeta is ERC721 {
     using Strings for address;
     using Strings for string;
     using Strings for uint256;
 
+    /// @notice Thrown on transfer if the tokens are locked.
     error Locked();
+    /// @notice Thrown on mint if the caller is not a minter.
+    error OnlyMinter();
+    /// @notice Thrown when the caller is not the owner.
+    error OnlyOwner();
 
-    bool public isLocked;
+    modifier onlyMinter() {
+        if (!hasMinterRole[msg.sender]) revert OnlyMinter();
+        _;
+    }
 
+    modifier onlyOwner() {
+        if (msg.sender != ISupaBeta(address(this)).owner()) revert OnlyOwner();
+        _;
+    }
+
+    /// @notice Whether the tokens are transferable or not.
+    bool public isTransferable;
+
+    /// @notice Whether the tokens are transferable or not.
+    /// @dev This is a mapping to support multiple minters.
+    mapping(address user => bool isMinter) public hasMinterRole;
+
+    address private _proxy;
     uint256 private _tokenCounter;
 
-    constructor() ERC721("SupaBeta", "SUPA") {}
+    constructor() ERC721("Supa Beta Access", "SUPA_BETA") {}
 
-    function mint(address to) external onlyOwner {
+    /// @notice Mints a new token.
+    /// @dev Only callable by a minter.
+    /// @param to The address of the token recipient.
+    function mint(address to) external onlyMinter {
         _safeMint(to, _tokenCounter++);
     }
 
-    function setLocked(bool _isLocked) external onlyOwner {
-        isLocked = _isLocked;
+    /// @notice Mints new tokens to an array of addresses.
+    /// @dev Only callable by a minter.
+    /// @param to The addresses of the token recipients.
+    function batchMint(address[] calldata to) external onlyMinter {
+        for (uint256 i = 0; i < to.length; i++) {
+            _safeMint(to[i], _tokenCounter++);
+        }
     }
 
-    function transferFrom(address from, address to, uint256 tokenId) public override {
-        if (isLocked) {
-            revert Locked();
-        }
-        super.transferFrom(from, to, tokenId);
+    /// @notice Mints a new token.
+    /// @dev Only callable by the owner.
+    /// @param user The address of the minter.
+    /// @param isMinter Whether the user is a minter or not.
+    function setMinter(address user, bool isMinter) external onlyOwner {
+        hasMinterRole[user] = isMinter;
+    }
+
+    /// @notice Sets whether the tokens are transferable or not.
+    /// @dev Only callable by the owner.
+    function setIsTransferable(bool _isTransferable) external onlyOwner {
+        isTransferable = _isTransferable;
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
@@ -75,6 +111,11 @@ contract SupaBeta is ERC721, Ownable {
                 )
             )
         );
+    }
+
+    function _transfer(address from, address to, uint256 tokenId) internal override {
+        if (!isTransferable) revert Locked();
+        super._transfer(from, to, tokenId);
     }
 
     /// @notice Generates a pseudo-random HSL color by hashing together the `chainid`, the `sablier` address,
