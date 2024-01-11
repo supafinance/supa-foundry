@@ -16,3 +16,11 @@ out/
 lib/
 lib/v3-core
 lib/v3-periphery
+script/data/gelato/GetUserPowerData.s.sol
+script/data/tokens/BetaNftBalance.s.sol
+script/deploy/gelato/DeployTaskCreator.s.sol
+script/deploy/tokens/MintBetaNft.s.sol
+script/deploy/tokens/SupaBeta.s.sol
+script/deploy/tokens/SupaBetaProxy.s.sol
+script/setup/gelato/AdminIncreasePower.s.sol
+script/setup/increasePowerCredits.s.sol

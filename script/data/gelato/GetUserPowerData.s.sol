@@ -6,9 +6,9 @@ import {TaskCreator} from "src/gelato/TaskCreator.sol";
 
 contract GetUserPowerData is Script {
     function run() public virtual {
-        address payable taskCreatorProxyAddress = payable(vm.envAddress("TASK_CREATOR_PROXY"));
+        address payable taskCreatorProxyAddress = payable(vm.envAddress("TASK_CREATOR_PROXY_ADDRESS"));
         address owner = 0xc9B6088732E83ef013873e2f04d032F1a7a2E42D;
-        address user = 0x4141EC9F8Acfd636E7b037EB3171f4452656dA35;
+        address user = 0xd6451958cFefD7EE2dE840Ab2bA55039702C8bD1;
 
         TaskCreator taskCreator = TaskCreator(taskCreatorProxyAddress);
         (uint256 lastUpdate, uint256 taskExecsPerSecond) = taskCreator.userPowerData(user);
@@ -29,3 +29,5 @@ contract GetUserPowerData is Script {
 }
 
 // forge script script/data/gelato/GetUserPowerData.s.sol:GetUserPowerData --rpc-url $GOERLI_RPC_URL -vvvv
+
+// forge script script/data/gelato/GetUserPowerData.s.sol:GetUserPowerData --rpc-url $ARBITRUM_RPC_URL -vvvv
