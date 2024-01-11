@@ -113,6 +113,14 @@ contract SupaBeta is ERC721 {
         );
     }
 
+    function name() public view override returns (string memory) {
+        return "Supa Beta Access";
+    }
+
+    function symbol() public view override returns (string memory) {
+        return "SUPA_BETA";
+    }
+
     function _transfer(address from, address to, uint256 tokenId) internal override {
         if (!isTransferable) revert Locked();
         super._transfer(from, to, tokenId);
