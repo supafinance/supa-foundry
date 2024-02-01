@@ -5,21 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5d4f8e33-0e59-42aa-8b86-a9ddd380f4c0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Readme.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/script/initCode/periphery/UniV3LPHelper.s.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/foundry.toml" beforeDir="false" afterPath="$PROJECT_DIR$/foundry.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/chainlink" beforeDir="false" afterPath="$PROJECT_DIR$/lib/chainlink" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/chainlink/contracts/test/v0.8/foundry/BaseTest.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/lib/chainlink/contracts/test/v0.8/foundry/BaseTest.t.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreator.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreator.s.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreatorProxy.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/gelato/DeployTaskCreatorProxy.s.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/deploy/oracles/UniV3Oracle.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/oracles/UniV3Oracle.s.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/setup/governance/OffchainEntityProxy.transferOwnership.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/setup/governance/OffchainEntityProxy.transferOwnership.s.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/setupSupa.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/setupSupa.s.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gelato/AutomateTaskCreator.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/AutomateTaskCreator.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gelato/TaskCreator.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/gelato/TaskCreator.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/deploy/periphery/uniV3LPHelper.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/periphery/uniV3LPHelper.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/periphery/UniV3LPHelper.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/periphery/UniV3LPHelper.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/forkTesting/UniV3LPHelper.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/forkTesting/UniV3LPHelper.t.sol" afterDir="false" />
     </list>
+    <list id="ae3f2fcf-7289-4c23-b0ad-11e5520c204f" name="Changes by parkeresmay" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -45,20 +42,29 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;ammon/wallet-static-call&quot;,
     &quot;last_opened_file_path&quot;: &quot;/Users/ammonwerner/supa/supa-foundry&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;yarn&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external&quot;
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/ammonwerner/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/wallet/v1.0.0" />
+      <recent name="$PROJECT_DIR$/test/forkTesting" />
+      <recent name="$PROJECT_DIR$/script/deploy/gelato" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/Audits/TrailOfBits" />
       <recent name="$PROJECT_DIR$/src/gelato" />
     </key>
   </component>
@@ -96,7 +102,34 @@
       <workItem from="1699470998316" duration="29010000" />
       <workItem from="1699828520608" duration="598000" />
       <workItem from="1699980111425" duration="4600000" />
-      <workItem from="1701311730337" duration="3900000" />
+      <workItem from="1701311730337" duration="36057000" />
+      <workItem from="1701539351828" duration="29408000" />
+      <workItem from="1702153483894" duration="82000" />
+      <workItem from="1702154192752" duration="21000" />
+      <workItem from="1702156256006" duration="4321000" />
+      <workItem from="1702341089490" duration="102000" />
+      <workItem from="1702504926691" duration="1200000" />
+      <workItem from="1702528293212" duration="2344000" />
+      <workItem from="1702605427792" duration="9227000" />
+      <workItem from="1702707656041" duration="5269000" />
+      <workItem from="1702932489746" duration="1824000" />
+      <workItem from="1703020545406" duration="1466000" />
+      <workItem from="1703090803735" duration="463000" />
+      <workItem from="1703097919990" duration="7054000" />
+      <workItem from="1704242275182" duration="789000" />
+      <workItem from="1704316359404" duration="883000" />
+      <workItem from="1704388741791" duration="1404000" />
+      <workItem from="1704401486570" duration="3236000" />
+      <workItem from="1704661934154" duration="78000" />
+      <workItem from="1704821687129" duration="2017000" />
+      <workItem from="1704936701556" duration="6638000" />
+      <workItem from="1705351897475" duration="6001000" />
+      <workItem from="1705684746154" duration="7000" />
+      <workItem from="1705864802486" duration="4260000" />
+      <workItem from="1706133028909" duration="3516000" />
+      <workItem from="1706561367541" duration="685000" />
+      <workItem from="1706747666163" duration="612000" />
+      <workItem from="1706808571738" duration="694000" />
     </task>
     <servers />
   </component>

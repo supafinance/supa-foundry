@@ -73,7 +73,6 @@ contract UniV3LPHelperTest is Test {
             ISupaConfig.TokenStorageConfig({maxTokenStorage: 250, erc20Multiplier: 1, erc721Multiplier: 1})
         );
         uniV3LPHelper = new UniV3LPHelper(
-            address(supa),
             address(nonfungiblePositionManager),
             address(uniswapV3Factory),
             address(swapRouter)
