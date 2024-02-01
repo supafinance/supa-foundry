@@ -54,7 +54,7 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
 
     function transferWalletOwnership(address newOwner) external onlyWallet whenNotPaused {
         wallets[msg.sender].owner = newOwner;
-        emit ISupaConfig.WalletOwnershipTransferProposed(msg.sender, newOwner);
+        emit ISupaConfig.WalletOwnershipTransferred(msg.sender, newOwner);
     }
 
     /// @inheritdoc ISupaConfig
