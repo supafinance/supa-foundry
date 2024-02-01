@@ -8,6 +8,7 @@ import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Re
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {IVersionManager} from "src/interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
@@ -36,6 +37,7 @@ contract WalletLogic is
     IWallet,
     IERC1363SpenderExtended
 {
+    using Address for address;
     using NonceMapLib for NonceMap;
     using BytesLib for bytes;
 
@@ -57,10 +59,16 @@ contract WalletLogic is
         )
     );
 
-    string public constant VERSION = "1.0.1";
+    string public constant VERSION = "1.0.2";
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
+
+    struct DynamicCall {
+        Call call;
+        ReturnDataLink[] dynamicData;
+        bool isRead;
+    }
 
     modifier onlyOwner() {
         if (_supa().getWalletOwner(address(this)) != msg.sender) {
@@ -288,36 +296,85 @@ contract WalletLogic is
         return this.onApprovalReceived.selector;
     }
 
-    function owner() external view returns (address) {
-        return _supa().getWalletOwner(address(this));
-    }
+    function executeBatchCalls(DynamicCall[] memory dynamicCalls) external payable onlyOwnerOrOperator {
+        bool saveForwardNFT = forwardNFT;
+        forwardNFT = false;
 
-    /// @inheritdoc IERC1271
-    function isValidSignature(
-        bytes32 hash,
-        bytes memory signature
-    ) public view override returns (bytes4 magicValue) {
-        magicValue = SignatureChecker.isValidSignatureNow(
-            _supa().getWalletOwner(address(this)),
-            hash,
-            signature
-        )
-            ? this.isValidSignature.selector
-            : bytes4(0);
-    }
+        // create a bytes array with length equal to the number of calls
+        // store the return values of each call to be used by subsequent calls
+        bytes[] memory returnDataArray = new bytes[](dynamicCalls.length);
 
-    function valueNonce(uint256 nonce) external view returns (bool) {
-        return nonceMap.getNonce(nonce);
+        // loop through the calls
+        uint256 len = dynamicCalls.length; // todo: test if this is cheaper than dynamicCalls.length
+        for (uint256 i = 0; i < len;) {
+
+            // store the call to execute
+            Call memory call = dynamicCalls[i].call;
+
+            // loop through the offsets (the number of return values to be passed in the next call)
+            uint256 linksLength = dynamicCalls[i].dynamicData.length;
+            for (uint256 j = 0; j < linksLength;) {
+
+                ReturnDataLink memory dynamicData = dynamicCalls[i].dynamicData[j];
+
+                uint32 callIndex = dynamicData.callIndex;
+                uint128 offset = dynamicData.offset;
+
+                // revert if call has NOT already been executed
+                if (callIndex > i) {
+                    revert Errors.InvalidData();
+                }
+
+                bytes memory spliceCalldata;
+
+                if (dynamicData.isStatic) {
+                    // get the variable of interest from the return data
+                    spliceCalldata = returnDataArray[callIndex].slice(dynamicData.returnValueOffset, 32);
+                } else {
+                    uint256 pointer = uint256(bytes32(returnDataArray[callIndex].slice(dynamicData.returnValueOffset, 32)));
+                    uint256 len = uint256(bytes32(returnDataArray[callIndex].slice(pointer, 32)));
+                    spliceCalldata = returnDataArray[callIndex].slice(pointer + 32, len);
+                }
+
+                bytes memory callData = call.callData;
+
+                // splice the variable into the next call's calldata
+                bytes memory prebytes = callData.slice(0, offset);
+                bytes memory postbytes = callData.slice(offset + 32, callData.length - offset - 32);
+                bytes memory newCallData = prebytes.concat(spliceCalldata.concat(postbytes));
+
+                call.callData = newCallData;
+
+                // increment the return value index
+                unchecked {
+                    ++j;
+                }
+            }
+
+            // execute the call and store the return data
+            bytes memory returnData = dynamicCalls[i].isRead ? call.to.functionStaticCall(call.callData) : call.to.functionCallWithValue(call.callData, call.value);
+            // add the return data to the array
+            returnDataArray[i] = returnData;
+
+            // increment the call index
+            unchecked {
+                ++i;
+            }
+        }
+
+        forwardNFT = saveForwardNFT;
+
+        if (!_supa().isSolvent(address(this))) {
+            revert Errors.Insolvent();
+        }
     }
 
     /// @notice Execute a batch of calls with linked return values.
+    /// @dev Deprecated, use executeBatchCalls instead.
     /// @param linkedCalls The calls to execute.
     function executeBatchLink(LinkedCall[] memory linkedCalls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
-
-        // todo: add checks for linkedCalls
-        // 1. callIndex must be less than the current call
 
         // get the first call
         Call memory call;
@@ -391,6 +448,28 @@ contract WalletLogic is
         if (!_supa().isSolvent(address(this))) {
             revert Errors.Insolvent();
         }
+    }
+
+    function owner() external view returns (address) {
+        return _supa().getWalletOwner(address(this));
+    }
+
+    /// @inheritdoc IERC1271
+    function isValidSignature(
+        bytes32 hash,
+        bytes memory signature
+    ) public view override returns (bytes4 magicValue) {
+        magicValue = SignatureChecker.isValidSignatureNow(
+            _supa().getWalletOwner(address(this)),
+            hash,
+            signature
+        )
+            ? this.isValidSignature.selector
+            : bytes4(0);
+    }
+
+    function valueNonce(uint256 nonce) external view returns (bool) {
+        return nonceMap.getNonce(nonce);
     }
 
     function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
