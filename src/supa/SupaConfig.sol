@@ -52,6 +52,11 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
         emit ISupaConfig.WalletImplementationUpgraded(msg.sender, version, implementation);
     }
 
+    function transferWalletOwnership(address newOwner) external onlyWallet whenNotPaused {
+        wallets[msg.sender].owner = newOwner;
+        emit ISupaConfig.WalletOwnershipTransferProposed(msg.sender, newOwner);
+    }
+
     /// @inheritdoc ISupaConfig
     function proposeTransferWalletOwnership(
         address newOwner
@@ -189,6 +194,20 @@ contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
     /// @inheritdoc ISupaConfig
     function createWallet() external override whenNotPaused returns (address wallet) {
         wallet = address(new WalletProxy{salt: keccak256(abi.encode(msg.sender, walletNonce[msg.sender]++))}(address(this)));
+        wallets[wallet].owner = msg.sender;
+
+        // add a version parameter if users should pick a specific version
+        (, , , address implementation, ) = versionManager.getRecommendedVersion();
+        walletLogic[wallet] = implementation;
+        emit ISupaConfig.WalletCreated(wallet, msg.sender);
+    }
+
+    /// @inheritdoc ISupaConfig
+    function createWallet(uint256 nonce) external override whenNotPaused returns (address wallet) {
+        if (nonce < 1_000_000_000) {
+            revert Errors.InvalidNonce();
+        }
+        wallet = address(new WalletProxy{salt: keccak256(abi.encode(msg.sender, nonce))}(address(this)));
         wallets[wallet].owner = msg.sender;
 
         // add a version parameter if users should pick a specific version
