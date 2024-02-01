@@ -157,6 +157,11 @@ interface ISupaConfig {
     /// @param version The new target version of walletLogic contract
     function upgradeWalletImplementation(string calldata version) external;
 
+    /// @notice Transfers ownership of `msg.sender` to the `newOwner`
+    /// @dev emits `WalletOwnershipTransferred` event
+    /// @param newOwner The new owner of the wallet
+    function transferWalletOwnership(address newOwner) external;
+
     /// @notice Proposes the ownership transfer of `wallet` to the `newOwner`
     /// @dev The ownership transfer must be executed by the `newOwner` to complete the transfer
     /// @dev emits `WalletOwnershipTransferProposed` event
