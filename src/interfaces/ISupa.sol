@@ -243,7 +243,7 @@ interface ISupaConfig {
     /// @notice creates a new wallet with sender as the owner and returns the wallet address
     /// @param nonce The nonce to be used for the wallet creation (must be greater than 1B)
     /// @return wallet The address of the created wallet
-    function createWallet(address nonce) external returns (address wallet);
+    function createWallet(uint256 nonce) external returns (address wallet);
 
     /// @notice Pause the contract
     function pause() external;
