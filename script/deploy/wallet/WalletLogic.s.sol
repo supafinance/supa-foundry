@@ -29,4 +29,4 @@ contract DeployWalletLogic is Script {
 }
 
 // forge script script/deploy/wallet/WalletLogic.s.sol:DeployWalletLogic --rpc-url $GOERLI_RPC_URL --broadcast -vvvv --account supa_test_deployer
-// forge script script/deploy/wallet/WalletLogic.s.sol:DeployWalletLogic --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer
+// forge script script/deploy/wallet/WalletLogic.s.sol:DeployWalletLogic --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $ARBISCAN_API_KEY

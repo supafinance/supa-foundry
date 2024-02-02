@@ -26,7 +26,7 @@ import {IVersionManager} from "src/interfaces/IVersionManager.sol";
 import {IERC1363SpenderExtended} from "src/interfaces/IERC1363-extended.sol";
 import {WalletLib} from "src/lib/WalletLib.sol";
 import {ERC20PoolLib} from "src/lib/ERC20PoolLib.sol";
-import {Call} from "src/lib/Call.sol";
+import {Call, Execution} from "src/lib/Call.sol";
 import {FsUtils} from "src/lib/FsUtils.sol";
 import {FsMath} from "src/lib/FsMath.sol";
 
@@ -385,6 +385,18 @@ contract SimulationSupa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     /// and Supa reserve/debt must be sufficient
     /// @param calls An array of transaction calls
     function executeBatch(Call[] memory calls) external override onlyWallet whenNotPaused {
+        WalletProxy(payable(msg.sender)).executeBatch(calls);
+        if (!isSolvent(msg.sender)) {
+            revert Insolvent();
+        }
+    }
+
+    /// @notice Execute a batch of calls
+    /// @dev execute a batch of commands on Supa from the name of wallet owner. Eventual state of
+    /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral
+    /// and Supa reserve/debt must be sufficient
+    /// @param calls An array of transaction calls
+    function executeBatch(Execution[] memory calls) external onlyWallet whenNotPaused {
         WalletProxy(payable(msg.sender)).executeBatch(calls);
         if (!isSolvent(msg.sender)) {
             revert Insolvent();

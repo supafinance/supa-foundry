@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Call} from "src/lib/Call.sol";
+import {Call, Execution} from "src/lib/Call.sol";
 
 interface IWallet {
     event TokensApproved(address sender, uint256 amount, bytes data);

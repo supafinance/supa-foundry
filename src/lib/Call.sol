@@ -28,6 +28,12 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
         uint256 value;
     }
 
+    struct Execution {
+        address target;
+        uint256 value;
+        bytes callData;
+    }
+
 /// @notice Metadata to splice a return value into a call.
     struct ReturnDataLink {
         // index of the call with the return value
@@ -75,11 +81,31 @@ library CallLib {
     }
 
     /**
+     * @notice Execute a call with value.
+     *
+     * @param call The call to execute.
+     */
+    function execute(Execution memory call) internal returns (bytes memory) {
+        return call.target.functionCallWithValue(call.callData, call.value);
+    }
+
+    /**
      * @notice Execute a batch of calls.
      *
      * @param calls The calls to execute.
      */
     function executeBatch(Call[] memory calls) internal {
+        for (uint256 i = 0; i < calls.length; i++) {
+            execute(calls[i]);
+        }
+    }
+
+    /**
+     * @notice Execute a batch of calls.
+     *
+     * @param calls The calls to execute.
+     */
+    function executeBatch(Execution[] memory calls) internal {
         for (uint256 i = 0; i < calls.length; i++) {
             execute(calls[i]);
         }
