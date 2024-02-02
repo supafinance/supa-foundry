@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 
 import {TaskCreator, ITaskCreator} from "src/gelato/TaskCreator.sol";
 import {TaskCreatorProxy} from "src/gelato/TaskCreatorProxy.sol";
-import {WalletProxy, Call} from "src/wallet/WalletProxy.sol";
+import {WalletProxy, Execution} from "src/wallet/WalletProxy.sol";
 
 contract PayGasNative is Script {
     function run() public virtual {
@@ -16,12 +16,12 @@ contract PayGasNative is Script {
         vm.startBroadcast(supaWalletOwner);
         TaskCreator taskCreator = TaskCreator(taskCreatorProxyAddress);
         WalletProxy supaWallet = WalletProxy(payable(supaWalletAddress));
-        Call[] memory calls = new Call[](1);
+        Execution[] memory calls = new Execution[](1);
         uint256 gasAmount = 5733810;
-        calls[0] = Call({
-            to: taskCreatorProxyAddress,
-            callData: abi.encodeWithSelector(taskCreator.payGasNative.selector, gasAmount),
-            value: gasAmount
+        calls[0] = Execution({
+            target: taskCreatorProxyAddress,
+            value: gasAmount,
+            callData: abi.encodeWithSelector(taskCreator.payGasNative.selector, gasAmount)
         });
         supaWallet.executeBatch(calls);
         vm.stopBroadcast();

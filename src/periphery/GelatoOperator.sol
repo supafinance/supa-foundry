@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {Call, LinkedCall} from "src/lib/Call.sol";
+import {Execution, LinkedExecution} from "src/lib/Call.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
 
@@ -27,7 +27,7 @@ contract GelatoOperator {
     /// @dev This contract must be set as an operator on the target Wallet
     /// @param _target The target Supa wallet
     /// @param _calls The calls to execute
-    function execute(WalletProxy _target, Call[] calldata _calls) external onlyDedicatedSender {
+    function execute(WalletProxy _target, Execution[] calldata _calls) external onlyDedicatedSender {
         _target.executeBatch(_calls);
     }
 
@@ -35,7 +35,7 @@ contract GelatoOperator {
     /// @dev This contract must be set as an operator on the target Wallet
     /// @param _target The target Supa wallet
     /// @param _calls The calls to execute
-    function executeLink(WalletLogic _target, LinkedCall[] calldata _calls) external onlyDedicatedSender {
+    function executeLink(WalletLogic _target, LinkedExecution[] calldata _calls) external onlyDedicatedSender {
         _target.executeBatchLink(_calls);
     }
 }

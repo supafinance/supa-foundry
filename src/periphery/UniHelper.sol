@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {console} from "forge-std/console.sol";
-
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import {Supa} from "src/supa/Supa.sol";
@@ -10,7 +8,7 @@ import {ISupa} from "src/interfaces/ISupa.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {INonfungiblePositionManager} from "src/external/interfaces/INonfungiblePositionManager.sol";
-import {Call} from "src/lib/Call.sol";
+import {Execution} from "src/lib/Call.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
 
 /// @title Supa UniswapV3 Helper
@@ -44,32 +42,26 @@ contract UniHelper is IERC721Receiver {
 
     /// @dev Must be approved as an operator on the sender
     function borrowTokens(address[] calldata erc20s, uint256[] calldata amounts) external {
-        console.log("enter borrowTokens");
-        Call[] memory calls = new Call[](erc20s.length);
-        console.log("after calls initialization");
+        Execution[] memory calls = new Execution[](erc20s.length);
         for (uint256 i = 0; i < erc20s.length; i++) {
-            console.log("i:", i);
-            console.log("erc20s[i]:", erc20s[i]);
-            console.log("amounts[i]:", amounts[i]);
             calls[i] = (_borrow(erc20s[i], amounts[i]));
         }
-        console.log("after for loop");
         WalletLogic(msg.sender).executeBatch(calls);
     }
 
     /// @dev Must be approved as an operator on the sender
     function swap(ISwapRouter.ExactInputSingleParams memory params) external payable {
-        Call[] memory calls = new Call[](2);
+        Execution[] memory calls = new Execution[](2);
         // calls[0] is the token approval
-        calls[0] = Call({
-            to: params.tokenIn,
+        calls[0] = Execution({
+            target: params.tokenIn,
             callData: abi.encodeWithSelector(IERC20.approve.selector, swapRouter, params.amountIn),
             value: 0
         });
 
         // calls[1] is the swap
-        calls[1] = Call({
-            to: swapRouter,
+        calls[1] = Execution({
+            target: swapRouter,
             callData: abi.encodeWithSelector(ISwapRouter.exactInputSingle.selector, params),
             value: 0
         });
@@ -79,24 +71,24 @@ contract UniHelper is IERC721Receiver {
 
     /// @dev Must be approved as an operator on the sender
     function swapAndDeposit(ISwapRouter.ExactInputSingleParams memory params) external payable {
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
         // calls[0] is the token approval
-        calls[0] = Call({
-            to: params.tokenIn,
+        calls[0] = Execution({
+            target: params.tokenIn,
             callData: abi.encodeWithSelector(IERC20.approve.selector, swapRouter, params.amountIn),
             value: 0
         });
 
         // calls[1] is the swap
-        calls[1] = Call({
-            to: swapRouter,
+        calls[1] = Execution({
+            target: swapRouter,
             callData: abi.encodeWithSelector(ISwapRouter.exactInputSingle.selector, params),
             value: 0
         });
 
         // calls[2] is the deposit
-        calls[2] = Call({
-            to: address(supa),
+        calls[2] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.depositERC20.selector, params.tokenOut, params.amountOutMinimum),
             value: 0
         });
@@ -106,24 +98,24 @@ contract UniHelper is IERC721Receiver {
 
     /// @dev Must be approved as an operator on the sender
     function mint(INonfungiblePositionManager.MintParams memory params) external payable returns (uint256 tokenId) {
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
         // calls[0] is the token0 approval
-        calls[0] = Call({
-            to: params.token0,
+        calls[0] = Execution({
+            target: params.token0,
             callData: abi.encodeWithSelector(IERC20.approve.selector, manager, params.amount0Desired),
             value: 0
         });
 
         // calls[1] is the token1 approval
-        calls[1] = Call({
-            to: params.token1,
+        calls[1] = Execution({
+            target: params.token1,
             callData: abi.encodeWithSelector(IERC20.approve.selector, manager, params.amount1Desired),
             value: 0
         });
 
         // calls[2] is the mint
-        calls[2] = Call({
-            to: manager,
+        calls[2] = Execution({
+            target: manager,
             callData: abi.encodeWithSelector(INonfungiblePositionManager.mint.selector, params),
             value: 0
         });
@@ -138,28 +130,31 @@ contract UniHelper is IERC721Receiver {
         payable
         returns (uint256 tokenId)
     {
-        Call[] memory calls = new Call[](4);
+        Execution[] memory calls = new Execution[](4);
         // calls[0] is to forwardNFTs
-        calls[0] =
-            Call({to: msg.sender, callData: abi.encodeWithSelector(WalletLogic.forwardNFTs.selector, true), value: 0});
+        calls[0] = Execution({
+            target: msg.sender,
+            callData: abi.encodeWithSelector(WalletLogic.forwardNFTs.selector, true),
+            value: 0
+        });
 
         // calls[1] is the token0 approval
-        calls[1] = Call({
-            to: params.token0,
+        calls[1] = Execution({
+            target: params.token0,
             callData: abi.encodeWithSelector(IERC20.approve.selector, manager, params.amount0Desired),
             value: 0
         });
 
         // calls[2] is the token1 approval
-        calls[2] = Call({
-            to: params.token1,
+        calls[2] = Execution({
+            target: params.token1,
             callData: abi.encodeWithSelector(IERC20.approve.selector, manager, params.amount1Desired),
             value: 0
         });
 
         // calls[3] is the mint
-        calls[3] = Call({
-            to: manager,
+        calls[3] = Execution({
+            target: manager,
             callData: abi.encodeWithSelector(INonfungiblePositionManager.mint.selector, params),
             value: 0
         });
@@ -198,11 +193,11 @@ contract UniHelper is IERC721Receiver {
         return this.onERC721Received.selector;
     }
 
-    function _removeLiquidity(uint256 tokenId, uint128 amountToRemove) internal returns (Call[] memory calls) {
-        calls = new Call[](2);
+    function _removeLiquidity(uint256 tokenId, uint128 amountToRemove) internal returns (Execution[] memory calls) {
+        calls = new Execution[](2);
         // calls[0] removes liquidity
-        calls[0] = Call({
-            to: manager,
+        calls[0] = Execution({
+            target: manager,
             value: 0,
             callData: abi.encodeWithSelector(
                 INonfungiblePositionManager(manager).decreaseLiquidity.selector,
@@ -217,8 +212,8 @@ contract UniHelper is IERC721Receiver {
         });
 
         // calls[1] collect tokens
-        calls[1] = Call({
-            to: manager,
+        calls[1] = Execution({
+            target: manager,
             value: 0,
             callData: abi.encodeWithSelector(
                 INonfungiblePositionManager(manager).collect.selector,
@@ -232,9 +227,9 @@ contract UniHelper is IERC721Receiver {
         });
     }
 
-    function _borrow(address erc20, uint256 amount) internal returns (Call memory) {
-        return Call({
-            to: address(supa),
+    function _borrow(address erc20, uint256 amount) internal returns (Execution memory) {
+        return Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(supa.withdrawERC20.selector, erc20, amount),
             value: 0
         });

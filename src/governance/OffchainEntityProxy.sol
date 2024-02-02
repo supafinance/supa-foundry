@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {CallLib, Call} from "../lib/Call.sol";
+import {ExecutionLib, Execution} from "../lib/Call.sol";
 import {FsUtils} from "../lib/FsUtils.sol";
 
 // Signers (EOAs) are the only things that cross EVM chains as they have the same address on all chains.
@@ -58,8 +58,8 @@ contract OffchainEntityProxy is Ownable, EIP712 {
     /// @dev Allow the owner to execute arbitrary calls on behalf of the entity through this proxy
     /// @dev contract.
     /// @param calls An array of calls to execute.
-    function executeBatch(Call[] memory calls) external payable onlyOwner {
-        CallLib.executeBatch(calls);
+    function executeBatch(Execution[] memory calls) external payable onlyOwner {
+        ExecutionLib.executeBatch(calls);
     }
 
     /// @notice Get the name of the entity.

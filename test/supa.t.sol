@@ -8,7 +8,7 @@ import {Supa, WalletLib, SupaState, ISupaCore} from "src/supa/Supa.sol";
 import {ISupa} from "src/interfaces/ISupa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
 
-import {Call} from "src/lib/Call.sol";
+import {Execution} from "src/lib/Call.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
 
@@ -132,20 +132,20 @@ contract SupaTest is Test {
         _mintTokens(address(userWallet), _amount0, _amount1);
 
         // construct calls
-        Call[] memory calls = new Call[](4);
+        Execution[] memory calls = new Execution[](4);
 
         // set token allowances
         calls[0] = (
-            Call({
-                to: address(token0),
+            Execution({
+                target: address(token0),
                 callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), _amount0),
                 value: 0
             })
         );
 
         calls[1] = (
-            Call({
-                to: address(token1),
+            Execution({
+                target: address(token1),
                 callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), _amount1),
                 value: 0
             })
@@ -153,16 +153,16 @@ contract SupaTest is Test {
 
         // deposit erc20 tokens
         calls[2] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC20(address,uint256)", token0, uint256(_amount0)),
                 value: 0
             })
         );
 
         calls[3] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC20(address,uint256)", token1, uint256(_amount1)),
                 value: 0
             })
@@ -198,28 +198,28 @@ contract SupaTest is Test {
         token0.mint(address(userWallet), _amount0);
 
         // construct calls
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
 
         // set token allowances
         calls[0] = (
-            Call({
-                to: address(token0),
+            Execution({
+                target: address(token0),
                 callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), uint256(_amount0)),
                 value: 0
             })
         );
 
         calls[1] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC20(address,uint256)", token0, uint256(_amount0)),
                 value: 0
             })
         );
 
         calls[2] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature(
                     "transferERC20(address,address,uint256)", token0, address(userWallet2), uint256(_amount0)
                     ),
@@ -240,20 +240,20 @@ contract SupaTest is Test {
         token0.mint(address(userWallet), _amount0);
 
         // construct calls
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
 
         // set token allowances
         calls[0] = (
-            Call({
-                to: address(token0),
+            Execution({
+                target: address(token0),
                 callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), uint256(_amount0)),
                 value: 0
             })
         );
 
         calls[1] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature(
                     "transferERC20(address,address,uint256)", token0, address(userWallet2), uint256(_amount0)
                     ),
@@ -262,8 +262,8 @@ contract SupaTest is Test {
         );
 
         calls[2] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC20(address,uint256)", token0, uint256(_amount0)),
                 value: 0
             })
@@ -284,28 +284,28 @@ contract SupaTest is Test {
         token0.mint(address(userWallet), _amount);
 
         // construct calls
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
 
         // set token allowances
         calls[0] = (
-            Call({
-                to: address(token0),
+            Execution({
+                target: address(token0),
                 callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), uint256(_amount)),
                 value: 0
             })
         );
 
         calls[1] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC20(address,uint256)", token0, uint256(_amount)),
                 value: 0
             })
         );
 
         calls[2] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature(
                     "transferERC20(address,address,uint256)",
                     token0,
@@ -332,28 +332,28 @@ contract SupaTest is Test {
         token0.mint(address(userWallet), _amount);
 
         // construct calls
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
 
         // set token allowances
         calls[0] = (
-            Call({
-                to: address(token0),
+            Execution({
+                target: address(token0),
                 callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), uint256(_amount)),
                 value: 0
             })
         );
 
         calls[1] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC20(address,uint256)", token0, uint256(_amount)),
                 value: 0
             })
         );
 
         calls[2] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature(
                     "transferERC20(address,address,uint256)",
                     token0,
@@ -420,10 +420,10 @@ contract SupaTest is Test {
             assertEq(tokenCounter, 0);
         } else {
             assertEq(tokenCounter, 1);
-            Call[] memory calls = new Call[](1);
+            Execution[] memory calls = new Execution[](1);
             calls[0] = (
-                Call({
-                    to: address(supa),
+                Execution({
+                    target: address(supa),
                     callData: abi.encodeWithSignature("withdrawERC20(address,uint256)", address(token0), amount),
                     value: 0
                 })
@@ -441,17 +441,17 @@ contract SupaTest is Test {
         uint256 nftCounter = SupaConfig(address(supa)).getCreditAccountERC721Counter(address(userWallet));
         assertEq(nftCounter, 0);
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](2);
+        Execution[] memory calls = new Execution[](2);
         calls[0] = (
-            Call({
-            to: address(nft0),
+            Execution({
+            target: address(nft0),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
             value: 0
         })
         );
         calls[1] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
                 value: 0
             })
@@ -468,29 +468,29 @@ contract SupaTest is Test {
         uint256 nftCounter = SupaConfig(address(supa)).getCreditAccountERC721Counter(address(userWallet));
         assertEq(nftCounter, 0);
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](2);
+        Execution[] memory calls = new Execution[](2);
         calls[0] = (
-            Call({
-            to: address(nft0),
-            callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
-            value: 0
-        })
+            Execution({
+                target: address(nft0),
+                callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
+                value: 0
+            })
         );
         calls[1] = (
-            Call({
-            to: address(supa),
-            callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
-            value: 0
-        })
+            Execution({
+                target: address(supa),
+                callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
+                value: 0
+            })
         );
 
         userWallet.executeBatch(calls);
         nftCounter = SupaConfig(address(supa)).getCreditAccountERC721Counter(address(userWallet));
         assertEq(nftCounter, 1);
-        Call[] memory secondCalls = new Call[](1);
+        Execution[] memory secondCalls = new Execution[](1);
         secondCalls[0] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("withdrawERC721(address,uint256)", address(nft0), 0),
                 value: 0
             })
@@ -527,20 +527,20 @@ contract SupaTest is Test {
         supa.depositERC20ForWallet(address(token0), address(userWallet), 100 * 1 ether);
 
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](2);
+        Execution[] memory calls = new Execution[](2);
         calls[0] = (
-            Call({
-            to: address(nft0),
-            callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
-            value: 0
-        })
+            Execution({
+                target: address(nft0),
+                callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
+                value: 0
+            })
         );
         calls[1] = (
-            Call({
-            to: address(supa),
-            callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
-            value: 0
-        })
+            Execution({
+                target: address(supa),
+                callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
+                value: 0
+            })
         );
 
         vm.expectRevert(Errors.TokenStorageExceeded.selector);
@@ -582,17 +582,17 @@ contract SupaTest is Test {
             ISupaConfig.TokenStorageConfig({maxTokenStorage: 10, erc20Multiplier: 10, erc721Multiplier: 1})
         );
         nft0.mint(address(userWallet));
-        Call[] memory calls = new Call[](2);
+        Execution[] memory calls = new Execution[](2);
         calls[0] = (
-            Call({
-                to: address(nft0),
+            Execution({
+                target: address(nft0),
                 callData: abi.encodeWithSignature("approve(address,uint256)", address(supa), 0),
                 value: 0
             })
         );
         calls[1] = (
-            Call({
-                to: address(supa),
+            Execution({
+                target: address(supa),
                 callData: abi.encodeWithSignature("depositERC721(address,uint256)", address(nft0), 0),
                 value: 0
             })

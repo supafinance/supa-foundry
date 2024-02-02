@@ -13,7 +13,7 @@ import { WalletLogic } from "src/wallet/WalletLogic.sol";
 import {MockERC20Oracle } from "src/testing/MockERC20Oracle.sol";
 import {UniV3Oracle} from "src/oracles/UniV3Oracle.sol";
 
-import {Call, CallWithoutValue} from "src/lib/Call.sol";
+import {Execution, CallWithoutValue} from "src/lib/Call.sol";
 
 contract SetupSupa is Script {
     function run() external {
@@ -81,9 +81,9 @@ contract SetupSupa is Script {
 
         OffchainEntityProxy offchainEntityProxy = OffchainEntityProxy(offchainEntityProxyAddress);
 
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(governanceProxy),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(governanceProxy),
             callData: abi.encodeWithSelector(GovernanceProxy.executeBatch.selector, governanceCalls),
             value: 0
         });

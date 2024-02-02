@@ -6,7 +6,7 @@ import {GovernanceProxy} from "./GovernanceProxy.sol";
 import {FsUtils} from "../lib/FsUtils.sol";
 import {AccessControl} from "../lib/AccessControl.sol";
 import {HashNFT} from "../tokens/HashNFT.sol";
-import {CallLib, CallWithoutValue} from "../lib/Call.sol";
+import {ExecutionLib, CallWithoutValue} from "../lib/Call.sol";
 
 contract Governance is AccessControl, ERC1155Receiver {
     address public voting;
@@ -33,7 +33,7 @@ contract Governance is AccessControl, ERC1155Receiver {
     }
 
     function executeBatch(CallWithoutValue[] memory calls) external {
-        uint256 tokenId = hashNFT.toTokenId(voting, CallLib.hashCallWithoutValueArray(calls));
+        uint256 tokenId = hashNFT.toTokenId(voting, ExecutionLib.hashCallWithoutValueArray(calls));
         hashNFT.burn(address(this), tokenId, 1); // reverts if tokenId isn't owned.
 
         // For governance calls we do not want them to revert and be in limbo. Thus if the batch

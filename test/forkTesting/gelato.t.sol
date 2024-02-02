@@ -13,10 +13,10 @@ import {Supa, IERC20} from "src/supa/Supa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
 import {VersionManager, IVersionManager} from "src/supa/VersionManager.sol";
 
-import {WalletLogic, LinkedCall, ReturnDataLink} from "src/wallet/WalletLogic.sol";
+import {WalletLogic, LinkedExecution, ReturnDataLink} from "src/wallet/WalletLogic.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
 
-import {Call} from "src/lib/Call.sol";
+import {Execution} from "src/lib/Call.sol";
 
 contract GelatoArbitrumTest is Test {
     GelatoOperator public gelatoOperator;
@@ -225,9 +225,9 @@ contract GelatoArbitrumTest is Test {
         string memory cid = "QmPtdg15JttHPzV592jy1AhjoByTAE8tCeTFRYjLMjAExk";
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(taskCreatorProxy),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
@@ -247,19 +247,19 @@ contract GelatoArbitrumTest is Test {
             give: 1000 ether
         });
 
-        Call[] memory calls = new Call[](3);
-        calls[0] = Call({
-            to: address(usdc),
+        Execution[] memory calls = new Execution[](3);
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
             value: 0
         });
-        calls[1] = Call({
-            to: address(taskCreatorProxy),
+        calls[1] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("purchasePowerExactUsdc(address,uint256)", msg.sender, 1 ether),
             value: 0
         });
-        calls[2] = Call({
-            to: address(taskCreatorProxy),
+        calls[2] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
@@ -295,19 +295,19 @@ contract GelatoArbitrumTest is Test {
         string memory newCid = "QmPmKTEBA39PPVu8LVgAgXdj3rUUQv2WUZ92X6woDF154q";
         bytes memory signature = hex"4fe283a2e7984beda941908f1ae4fee87556ee4669318d0226bc7202d9eda5d15ff308f053da8bd431ea059cfba0e8866942c69274a899e83f0aff572c5116e41c";
 
-        Call[] memory calls = new Call[](3);
-        calls[0] = Call({
-            to: address(usdc),
+        Execution[] memory calls = new Execution[](3);
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
             value: 0
         });
-        calls[1] = Call({
-            to: address(taskCreatorProxy),
+        calls[1] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("purchasePowerExactUsdc(address,uint256)", msg.sender, 1 ether),
             value: 0
         });
-        calls[2] = Call({
-            to: address(taskCreatorProxy),
+        calls[2] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool,address,bytes)", 0, address(1), newCid, 1000, false, admin, signature),
             value: 0
         });
@@ -334,7 +334,7 @@ contract GelatoArbitrumTest is Test {
             give: 1000 ether
         });
 
-        LinkedCall[] memory linkedCalls = new LinkedCall[](3);
+        LinkedExecution[] memory linkedCalls = new LinkedExecution[](3);
         ReturnDataLink[] memory links = new ReturnDataLink[](1);
         links[0] = ReturnDataLink({
             returnValueOffset: 0,
@@ -342,25 +342,25 @@ contract GelatoArbitrumTest is Test {
             callIndex: 1,
             offset: 4
         });
-        linkedCalls[0] = LinkedCall({
-        call: Call({
-            to: address(usdc),
+        linkedCalls[0] = LinkedExecution({
+        execution: Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
             value: 0
         }),
             links: new ReturnDataLink[](0)
         });
-        linkedCalls[1] = LinkedCall({
-        call: Call({
-            to: address(taskCreatorProxy),
+        linkedCalls[1] = LinkedExecution({
+        execution: Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         }),
             links: new ReturnDataLink[](0)
         });
-        linkedCalls[2] = LinkedCall({
-            call: Call({
-                to: address(taskCreatorProxy),
+        linkedCalls[2] = LinkedExecution({
+            execution: Execution({
+                target: address(taskCreatorProxy),
                 callData: abi.encodeWithSignature("cancelTask(bytes32)", 0),
                 value: 0
             }),
@@ -383,14 +383,14 @@ contract GelatoArbitrumTest is Test {
             give: 1000 ether
         });
 
-        Call[] memory calls = new Call[](2);
-        calls[0] = Call({
-            to: address(usdc),
+        Execution[] memory calls = new Execution[](2);
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
             value: 0
         });
-        calls[1] = Call({
-            to: address(taskCreatorProxy),
+        calls[1] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
@@ -419,14 +419,14 @@ contract GelatoArbitrumTest is Test {
             give: 1000 ether
         });
 
-        Call[] memory calls = new Call[](2);
-        calls[0] = Call({
-            to: address(usdc),
+        Execution[] memory calls = new Execution[](2);
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
             value: 0
         });
-        calls[1] = Call({
-            to: address(taskCreatorProxy),
+        calls[1] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });
@@ -456,14 +456,14 @@ contract GelatoArbitrumTest is Test {
             give: 1000 ether
         });
 
-        Call[] memory calls = new Call[](2);
-        calls[0] = Call({
-            to: address(usdc),
+        Execution[] memory calls = new Execution[](2);
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(taskCreatorProxy), type(uint256).max),
             value: 0
         });
-        calls[1] = Call({
-            to: address(taskCreatorProxy),
+        calls[1] = Execution({
+            target: address(taskCreatorProxy),
             callData: abi.encodeWithSignature("createTask(uint256,address,string,uint256,bool)", 0, address(1), cid, 1000, false),
             value: 0
         });

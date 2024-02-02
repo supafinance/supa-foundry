@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {FsUtils} from "../lib/FsUtils.sol";
 import {ImmutableGovernance} from "../lib/ImmutableGovernance.sol";
-import {CallLib, CallWithoutValue} from "../lib/Call.sol";
+import {ExecutionLib, CallWithoutValue} from "../lib/Call.sol";
 
 // This is a proxy contract representing governance. This allows a fixed
 // ethereum address to be the indefinite owner of the system. This works
@@ -56,7 +56,7 @@ contract GovernanceProxy {
         // simpler approach where we just emit an event for each batch of
         // privileged calls.
         emit BatchExecuted(calls);
-        CallLib.executeBatchWithoutValue(calls);
+        ExecutionLib.executeBatchWithoutValue(calls);
     }
 
     /// @notice Propose a new account as governance account. Note that this can

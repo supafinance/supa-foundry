@@ -5,7 +5,7 @@ import "forge-std/console.sol";
 
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {Call, CallLib} from "src/lib/Call.sol";
+import {Execution, ExecutionLib} from "src/lib/Call.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
 
 
@@ -14,22 +14,22 @@ contract SigUtils {
         keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
         );
-    bytes internal constant CALL_TYPESTRING = "Call(address to,bytes callData,uint256 value)";
+    bytes internal constant CALL_TYPESTRING = "Execution(address target,uint256 value,bytes callData)";
 
     bytes private constant EXECUTEBATCH_TYPESTRING =
-        "ExecuteBatch(Call[] calls,uint256 nonce,uint256 deadline)";
+        "ExecuteBatch(Execution[] calls,uint256 nonce,uint256 deadline)";
 
     bytes32 private constant EXECUTEBATCH_TYPEHASH =
         keccak256(abi.encodePacked(EXECUTEBATCH_TYPESTRING, CALL_TYPESTRING));
 
     // computes the hash of a permit
     function getStructHash(
-        Call[] memory _calls,
+        Execution[] memory _calls,
         uint256 _nonce,
         uint256 _deadline
     ) internal pure returns (bytes32 structHash) {
         structHash = keccak256(
-            abi.encode(EXECUTEBATCH_TYPEHASH, CallLib.hashCallArray(_calls), _nonce, _deadline)
+            abi.encode(EXECUTEBATCH_TYPEHASH, ExecutionLib.hashCallArray(_calls), _nonce, _deadline)
         );
         return structHash;
     }
@@ -37,7 +37,7 @@ contract SigUtils {
     // computes the hash of the fully encoded EIP-712 message for the domain, which can be used to recover the signer
     function getTypedDataHash(
         address wallet,
-        Call[] memory _calls,
+        Execution[] memory _calls,
         uint256 _nonce,
         uint256 _deadline
     ) public view returns (bytes32) {

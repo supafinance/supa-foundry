@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Call, Execution} from "src/lib/Call.sol";
+import {Execution} from "src/lib/Call.sol";
 
 interface IWallet {
     event TokensApproved(address sender, uint256 amount, bytes data);
@@ -12,9 +12,9 @@ interface IWallet {
     /// creditAccount and wallet and Supa reserve/debt must be sufficient
     /// @dev - this goes to supa.executeBatch that would immediately call WalletProxy.executeBatch
     /// from above of this file
-    /// @param calls {address to, bytes callData, uint256 value}[], where
+    /// @param calls {address target, uint256 value, bytes callData}[], where
     ///   * to - is the address of the contract whose function should be called
     ///   * callData - encoded function name and it's arguments
     ///   * value - the amount of ETH to sent with the call
-    function executeBatch(Call[] memory calls) external payable;
+    function executeBatch(Execution[] memory calls) external payable;
 }

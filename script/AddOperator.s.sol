@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Script} from "forge-std/Script.sol";
 import {GelatoOperator} from "src/periphery/GelatoOperator.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
-import {Call} from "src/lib/Call.sol";
+import {Execution} from "src/lib/Call.sol";
 import {Supa} from "src/supa/Supa.sol";
 
 contract AddOperator is Script {
@@ -16,8 +16,12 @@ contract AddOperator is Script {
         address operator = 0x8654202c6F3Ee519808488571D16398aF608f041;
 
         vm.startBroadcast(deployerPrivateKey);
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({to: supa, callData: abi.encodeWithSelector(Supa.addOperator.selector, operator), value: 0});
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: supa,
+            value: 0,
+            callData: abi.encodeWithSelector(Supa.addOperator.selector, operator)
+        });
         wallet.executeBatch(calls);
         vm.stopBroadcast();
     }

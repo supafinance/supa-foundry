@@ -16,9 +16,9 @@ import {MigrationSupa} from "src/testing/MigrationSupa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
 import {SupaState} from "src/supa/SupaState.sol";
 import {VersionManager, IVersionManager} from "src/supa/VersionManager.sol";
-import {WalletLogic, LinkedCall, ReturnDataLink} from "src/wallet/WalletLogic.sol";
+import {WalletLogic, LinkedExecution, ReturnDataLink} from "src/wallet/WalletLogic.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
-import {Call, CallLib} from "src/lib/Call.sol";
+import {Execution, ExecutionLib} from "src/lib/Call.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
 
 import {SigUtils, ECDSA} from "test/utils/SigUtils.sol";
@@ -158,40 +158,40 @@ contract WalletMigrationTest is Test {
         _mintTokens(address(userWallet), _amount0, _amount1);
 
         // construct calls
-        Call[] memory calls = new Call[](4);
+        Execution[] memory calls = new Execution[](4);
 
         // set token allowances
         calls[0] = (
-            Call({
-            to: address(token0),
-            callData: abi.encodeWithSignature("approve(address,uint256)", address(newSupa), _amount0),
-            value: 0
-        })
+            Execution({
+                target: address(token0),
+                callData: abi.encodeWithSignature("approve(address,uint256)", address(newSupa), _amount0),
+                value: 0
+            })
         );
 
         calls[1] = (
-            Call({
-            to: address(token1),
-            callData: abi.encodeWithSignature("approve(address,uint256)", address(newSupa), _amount1),
-            value: 0
-        })
+            Execution({
+                target: address(token1),
+                callData: abi.encodeWithSignature("approve(address,uint256)", address(newSupa), _amount1),
+                value: 0
+            })
         );
 
         // deposit erc20 tokens
         calls[2] = (
-            Call({
-            to: address(newSupa),
-            callData: abi.encodeWithSignature("depositERC20(address,uint256)", token0, uint256(_amount0)),
-            value: 0
-        })
+            Execution({
+                target: address(newSupa),
+                callData: abi.encodeWithSignature("depositERC20(address,uint256)", token0, uint256(_amount0)),
+                value: 0
+            })
         );
 
         calls[3] = (
-            Call({
-            to: address(newSupa),
-            callData: abi.encodeWithSignature("depositERC20(address,uint256)", token1, uint256(_amount1)),
-            value: 0
-        })
+            Execution({
+                target: address(newSupa),
+                callData: abi.encodeWithSignature("depositERC20(address,uint256)", token1, uint256(_amount1)),
+                value: 0
+            })
         );
 
         // execute batch
@@ -205,7 +205,7 @@ contract WalletMigrationTest is Test {
         deal({token: address(token0), to: address(this), give: 10 ether});
         deal({token: address(token0), to: address(userWallet), give: 10 ether});
 
-        LinkedCall[] memory linkedCalls = new LinkedCall[](2);
+        LinkedExecution[] memory linkedCalls = new LinkedExecution[](2);
         ReturnDataLink[] memory links = new ReturnDataLink[](1);
         links[0] = ReturnDataLink({
             returnValueOffset: 0,
@@ -213,20 +213,20 @@ contract WalletMigrationTest is Test {
             callIndex: 0,
             offset: 4
         });
-        linkedCalls[0] = LinkedCall({
-            call: Call({
-            to: address(newSupa),
-            callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet)),
-            value: 0
-        }),
+        linkedCalls[0] = LinkedExecution({
+            execution: Execution({
+                target: address(newSupa),
+                callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet)),
+                value: 0
+            }),
             links: new ReturnDataLink[](0)
         });
-        linkedCalls[1] = LinkedCall({
-            call: Call({
-            to: address(token0),
-            callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether),
-            value: 0
-        }),
+        linkedCalls[1] = LinkedExecution({
+            execution: Execution({
+                target: address(token0),
+                callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether),
+                value: 0
+            }),
             links: links
         });
 
@@ -243,7 +243,7 @@ contract WalletMigrationTest is Test {
 
         address walletOwner = supa.getWalletOwner(address(userWallet));
 
-        Call[] memory calls = new Call[](0);
+        Execution[] memory calls = new Execution[](0);
         uint256 nonce = 0;
         uint256 deadline = type(uint256).max;
 
@@ -269,7 +269,7 @@ contract WalletMigrationTest is Test {
         userWallet.updateSupa(address(newSupa));
         WalletProxy userWallet2 = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
-        Call[] memory calls = new Call[](0);
+        Execution[] memory calls = new Execution[](0);
         uint256 nonce = 0;
         uint256 deadline = type(uint256).max;
 
@@ -352,9 +352,9 @@ contract WalletMigrationTest is Test {
     function testProposeTransferWalletOwnership(address newOwner) public {
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
         userWallet.updateSupa(address(newSupa));
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(newSupa),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(newSupa),
             callData: abi.encodeWithSignature("proposeTransferWalletOwnership(address)", newOwner),
             value: 0
         });
@@ -366,9 +366,9 @@ contract WalletMigrationTest is Test {
     function testExecuteTransferWalletOwnership(address newOwner) public {
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
         userWallet.updateSupa(address(newSupa));
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(newSupa),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(newSupa),
             callData: abi.encodeWithSignature("proposeTransferWalletOwnership(address)", newOwner),
             value: 0
         });
@@ -440,9 +440,9 @@ contract WalletMigrationTest is Test {
     }
 
     function _upgradeWalletImplementation(WalletProxy _userWallet, string memory versionName) internal {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(newSupa),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(newSupa),
             callData: abi.encodeWithSignature("upgradeWalletImplementation(string)", versionName),
             value: 0
         });

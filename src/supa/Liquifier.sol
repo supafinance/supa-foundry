@@ -7,7 +7,7 @@ import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRoute
 import {WalletState} from "../wallet/WalletState.sol";
 import {ISupa} from "../interfaces/ISupa.sol";
 import {INonfungiblePositionManager} from "../external/interfaces/INonfungiblePositionManager.sol";
-import {Call} from "../lib/Call.sol";
+import {Execution} from "../lib/Call.sol";
 
 struct SqrtPricePriceRangeX96 {
     uint160 minSell;
@@ -131,9 +131,9 @@ abstract contract Liquifier is WalletState {
         IERC20[] calldata erc20s,
         SqrtPricePriceRangeX96[] calldata erc20sAllowedPriceRanges
     ) private {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(this),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(this),
             callData: abi.encodeWithSelector(
                 this.liquify.selector,
                 wallet,
