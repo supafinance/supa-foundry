@@ -25,7 +25,7 @@ contract CreateGovernanceSafeCalls is Script {
         address governanceProxyAddress = vm.envAddress("GOVERNANCE_PROXY_ADDRESS");
         address offchainEntityProxyAddress = vm.envAddress("OFFCHAIN_ENTITY_PROXY_ADDRESS");
 
-        address newWalletLogicAddress = 0x7B947Bf26E9906485d2f6c4ACF0ceD7E380e74a7;
+        address newWalletLogicAddress = 0xA05f94DD5968DDCd1Dc89B942AeB3545341B8701;
 
         WalletLogic walletLogic = WalletLogic(newWalletLogicAddress);
 
