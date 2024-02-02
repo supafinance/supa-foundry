@@ -9,7 +9,7 @@ import {WalletState} from "./WalletState.sol";
 import {ITransferReceiver2, TRANSFER_AND_CALL2} from "src/interfaces/ITransferReceiver2.sol";
 import {PERMIT2} from "src/external/interfaces/IPermit2.sol";
 import {FsUtils} from "src/lib/FsUtils.sol";
-import {CallLib, Call} from "src/lib/Call.sol";
+import {CallLib, Call, Execution} from "src/lib/Call.sol";
 
 /// @title Wallet Proxy
 /// @notice Proxy contract for Supa Wallets
@@ -34,6 +34,15 @@ contract WalletProxy is WalletState, Proxy {
 
     // Allow Supa to make arbitrary calls in lieu of this wallet
     function executeBatch(Call[] calldata calls) external payable ifSupa {
+        // Function is payable to allow for ETH transfers to the logic
+        // contract, but supa should never send eth (supa contract should
+        // never contain eth / other than what's self-destructed into it)
+        FsUtils.Assert(msg.value == 0);
+        CallLib.executeBatch(calls);
+    }
+
+    // Allow Supa to make arbitrary calls in lieu of this wallet
+    function executeBatch(Execution[] calldata calls) external payable ifSupa {
         // Function is payable to allow for ETH transfers to the logic
         // contract, but supa should never send eth (supa contract should
         // never contain eth / other than what's self-destructed into it)

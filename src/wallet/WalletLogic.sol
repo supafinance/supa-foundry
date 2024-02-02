@@ -16,7 +16,7 @@ import {ISupa} from "src/interfaces/ISupa.sol";
 import {IWallet} from "src/interfaces/IWallet.sol";
 import {IERC1363SpenderExtended} from "src/interfaces/IERC1363-extended.sol";
 
-import {CallLib, Call, LinkedCall, ReturnDataLink} from "src/lib/Call.sol";
+import {CallLib, Call, Execution, LinkedCall, ReturnDataLink} from "src/lib/Call.sol";
 import {NonceMapLib, NonceMap} from "src/lib/NonceMap.sol";
 import {ImmutableVersion} from "src/lib/ImmutableVersion.sol";
 import {BytesLib} from "src/lib/BytesLib.sol";
@@ -67,7 +67,7 @@ contract WalletLogic is
     struct DynamicCall {
         Call call;
         ReturnDataLink[] dynamicData;
-        bool isRead;
+        uint8 operation; // 0 = call, 1 = delegatecall
     }
 
     modifier onlyOwner() {
@@ -118,6 +118,26 @@ contract WalletLogic is
 
     /// @inheritdoc IWallet
     function executeBatch(Call[] calldata calls) external payable onlyOwnerOrOperator {
+        bool saveForwardNFT = forwardNFT;
+        forwardNFT = false;
+        CallLib.executeBatch(calls);
+        forwardNFT = saveForwardNFT;
+
+        if (!_supa().isSolvent(address(this))) {
+            revert Errors.Insolvent();
+        }
+    }
+
+    /// @notice makes a batch of different calls from the name of wallet owner. Eventual state of
+    /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral on
+    /// creditAccount and wallet and Supa reserve/debt must be sufficient
+    /// @dev - this goes to supa.executeBatch that would immediately call WalletProxy.executeBatch
+    /// from above of this file
+    /// @param calls {address target, uint256 value, bytes callData}[], where
+    ///   * to - is the address of the contract whose function should be called
+    ///   * callData - encoded function name and it's arguments
+    ///   * value - the amount of ETH to sent with the call
+    function executeBatch(Execution[] calldata calls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
         CallLib.executeBatch(calls);
@@ -296,7 +316,7 @@ contract WalletLogic is
         return this.onApprovalReceived.selector;
     }
 
-    function executeBatchCalls(DynamicCall[] memory dynamicCalls) external payable onlyOwnerOrOperator {
+    function executeBatch(DynamicCall[] memory dynamicCalls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
 
@@ -332,8 +352,8 @@ contract WalletLogic is
                     spliceCalldata = returnDataArray[callIndex].slice(dynamicData.returnValueOffset, 32);
                 } else {
                     uint256 pointer = uint256(bytes32(returnDataArray[callIndex].slice(dynamicData.returnValueOffset, 32)));
-                    uint256 len = uint256(bytes32(returnDataArray[callIndex].slice(pointer, 32)));
-                    spliceCalldata = returnDataArray[callIndex].slice(pointer + 32, len);
+                    uint256 len_ = uint256(bytes32(returnDataArray[callIndex].slice(pointer, 32)));
+                    spliceCalldata = returnDataArray[callIndex].slice(pointer + 32, len_);
                 }
 
                 bytes memory callData = call.callData;
@@ -352,7 +372,7 @@ contract WalletLogic is
             }
 
             // execute the call and store the return data
-            bytes memory returnData = dynamicCalls[i].isRead ? call.to.functionStaticCall(call.callData) : call.to.functionCallWithValue(call.callData, call.value);
+            bytes memory returnData = dynamicCalls[i].operation == 0 ? call.to.functionStaticCall(call.callData) : call.to.functionCallWithValue(call.callData, call.value);
             // add the return data to the array
             returnDataArray[i] = returnData;
 
