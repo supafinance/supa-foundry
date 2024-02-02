@@ -8,7 +8,6 @@ import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {INonfungiblePositionManager} from "src/external/interfaces/INonfungiblePositionManager.sol";
-import {ISupa} from "src/interfaces/ISupa.sol";
 import {Call} from "src/lib/Call.sol";
 import {FixedPoint96} from "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 import {SafeCast} from "src/lib/SafeCast.sol";
@@ -18,8 +17,6 @@ import {Path} from "src/lib/Path.sol";
 contract UniV3LPHelper is IERC721Receiver {
     using Path for bytes;
 
-    /// @notice The supa contract
-    ISupa public supa;
     /// @notice The UniswapV3 NFT manager
     address public manager;
     /// @notice The UniswapV3 factory
@@ -39,13 +36,6 @@ contract UniV3LPHelper is IERC721Receiver {
     error InvalidData();
     /// @notice Thrown when percentage is greater than 100
     error InvalidPercentage();
-
-    /// @notice Emitted when an LP token is minted and deposited
-    /// @param wallet The wallet address
-    /// @param tokenId The LP token ID
-    /// @param amount0 The amount of token0 deposited
-    /// @param amount1 The amount of token1 deposited
-    event MintAndDeposit(address indexed wallet, uint256 indexed tokenId, uint256 amount0, uint256 amount1);
 
     /// @notice Emitted when fees are collected and reinvested
     /// @param wallet The wallet address
@@ -79,93 +69,10 @@ contract UniV3LPHelper is IERC721Receiver {
         uint256 amount1
     );
 
-    /// @notice Emitted when swap and deposit is called
-    /// @param wallet The wallet address
-    /// @param amountIn The amount of tokenIn
-    /// @param amountOut The amount of tokenOut
-    /// @param tokenIn The token swapped in
-    /// @param tokenOut The token swapped out
-    event SwapAndDeposit(
-        address indexed wallet, uint256 indexed amountIn, uint256 indexed amountOut, address tokenIn, address tokenOut
-    );
-
-    constructor(address _supa, address _manager, address _factory, address _swapRouter) {
-        supa = ISupa(_supa);
+    constructor(address _manager, address _factory, address _swapRouter) {
         manager = _manager;
         factory = _factory;
         swapRouter = _swapRouter;
-
-        IERC721(manager).setApprovalForAll(_supa, true);
-    }
-
-    /// @notice Mint and deposit LP token to credit account
-    /// @param token0 The token0 address
-    /// @param token1 The token1 address
-    /// @param fee The fee
-    /// @param tickLower The lower tick
-    /// @param tickUpper The upper tick
-    /// @param amount0Desired The desired amount of token0
-    /// @param amount1Desired The desired amount of token1
-    /// @param amount0Min The minimum amount of token0
-    /// @param amount1Min The minimum amount of token1
-    /// @param recipient The recipient address
-    /// @param deadline The deadline
-    function mintAndDeposit(
-        address token0,
-        address token1,
-        uint24 fee,
-        int24 tickLower,
-        int24 tickUpper,
-        uint256 amount0Desired,
-        uint256 amount1Desired,
-        uint256 amount0Min,
-        uint256 amount1Min,
-        address recipient,
-        uint256 deadline
-    ) external payable returns (uint256 tokenId) {
-        // Transfer tokens to this contract
-        if (
-            !IERC20(token0).transferFrom(msg.sender, address(this), amount0Desired)
-                || !IERC20(token1).transferFrom(msg.sender, address(this), amount1Desired)
-        ) {
-            revert TransferFailed();
-        }
-
-        // Approve tokens to manager
-        if (!IERC20(token0).approve(manager, amount0Desired) || !IERC20(token1).approve(manager, amount1Desired)) {
-            revert ApprovalFailed();
-        }
-
-        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
-            token0: token0,
-            token1: token1,
-            fee: fee,
-            tickLower: tickLower,
-            tickUpper: tickUpper,
-            amount0Desired: amount0Desired,
-            amount1Desired: amount1Desired,
-            amount0Min: amount0Min,
-            amount1Min: amount1Min,
-            recipient: address(this),
-            deadline: deadline
-        });
-
-        // Mint LP token
-        (tokenId,,,) = INonfungiblePositionManager(manager).mint(params);
-
-        // Deposit LP token to credit account
-        supa.depositERC721ForWallet(manager, msg.sender, tokenId);
-
-        // send back excess tokens
-        uint256 token0Balance = IERC20(params.token0).balanceOf(address(this));
-        uint256 token1Balance = IERC20(params.token1).balanceOf(address(this));
-        supa.depositERC20ForWallet(params.token0, msg.sender, token0Balance);
-        supa.depositERC20ForWallet(params.token1, msg.sender, token1Balance);
-
-        uint256 amount0 = amount0Desired - token0Balance;
-        uint256 amount1 = amount1Desired - token1Balance;
-
-        emit MintAndDeposit(msg.sender, tokenId, amount0, amount1);
     }
 
     /// @notice Collect fees and reinvest
@@ -176,8 +83,7 @@ contract UniV3LPHelper is IERC721Receiver {
 
         (uint256 amount0, uint256 amount1) = _reinvest(tokenId); // increase gas cost
 
-        // deposit LP token to credit account
-        supa.depositERC721ForWallet(manager, msg.sender, tokenId);
+        IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
 
         emit Reinvest(msg.sender, tokenId, amount0, amount1);
     }
@@ -218,8 +124,7 @@ contract UniV3LPHelper is IERC721Receiver {
 
         _rebalance(tokenId, tickLower, tickUpper);
 
-        // deposit LP token to credit account
-        supa.depositERC721ForWallet(manager, msg.sender, tokenId);
+        IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
     }
 
     /// @notice Rebalance position using the same tick spacing at the current price
@@ -403,75 +308,6 @@ contract UniV3LPHelper is IERC721Receiver {
         }
     }
 
-    /// @notice Swaps tokens and deposits the output token to the supa contract
-    /// @param _path The path to swap
-    /// @param _amountIn The amount of the first token in the path to swap
-    /// @param _amountOutMinimum The minimum amount of the last token in the path to receive
-    function swapAndDeposit(
-        bytes memory _path,
-        uint256 _amountIn,
-        uint256 _amountOutMinimum,
-        address tokenIn,
-        address tokenOut
-    ) external {
-        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), _amountIn)) revert TransferFailed();
-        // approve the swap router to spend the fiirst token in the path
-        if (!IERC20(tokenIn).approve(swapRouter, _amountIn)) revert ApprovalFailed();
-
-        {
-            ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
-                path: _path,
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountIn: _amountIn,
-                amountOutMinimum: _amountOutMinimum
-            });
-
-            // Make the swap
-            uint256 amountOut = ISwapRouter(swapRouter).exactInput(params);
-
-            // approve the supa contract to spend the last token in the path
-            if (!IERC20(tokenOut).approve(address(supa), amountOut)) revert ApprovalFailed();
-
-            // Deposit amountOut to the supa contract
-            supa.depositERC20ForWallet(tokenOut, msg.sender, amountOut);
-
-            emit SwapAndDeposit(msg.sender, _amountIn, amountOut, tokenIn, tokenOut);
-        }
-    }
-
-    /// @notice Swaps tokens and deposits the output token to the supa contract
-    /// @param _amountIn The amount of the first token in the path to swap
-    /// @param _amountOutMinimum The minimum amount of the last token in the path to receive
-    function swapAndDeposit(uint256 _amountIn, uint256 _amountOutMinimum, address tokenIn, address tokenOut, uint24 fee)
-        external
-    {
-        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), _amountIn)) revert TransferFailed();
-        // approve the swap router to spend the fiirst token in the path
-        if (!IERC20(tokenIn).approve(swapRouter, _amountIn)) revert ApprovalFailed();
-
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-            tokenIn: tokenIn,
-            tokenOut: tokenOut,
-            fee: fee,
-            recipient: address(this),
-            deadline: block.timestamp,
-            amountIn: _amountIn,
-            amountOutMinimum: _amountOutMinimum,
-            sqrtPriceLimitX96: 0
-        });
-
-        // Make the swap
-        uint256 amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
-
-        // approve the supa contract to spend the last token in the path
-        if (!IERC20(tokenOut).approve(address(supa), amountOut)) revert ApprovalFailed();
-
-        // Deposit amountOut to the supa contract
-        supa.depositERC20ForWallet(tokenOut, msg.sender, amountOut);
-
-        emit SwapAndDeposit(msg.sender, _amountIn, amountOut, tokenIn, tokenOut);
-    }
 
     /// @param tokenId The tokenId
     /// @param data The additional data passed with the call
@@ -481,26 +317,6 @@ contract UniV3LPHelper is IERC721Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external returns (bytes4) {
-        //        if (msg.sender != address(manager)) {
-        //            revert InvalidManager();
-        //        }
-        //        if (data[0] == 0x00) {
-        //            // reinvest
-        //            _reinvest(tokenId);
-        //            // deposit LP token to credit account
-        //            supa.depositERC721ForWallet(manager, from, tokenId);
-        //        } else if (data[0] == 0x01) {
-        //            // quick withdraw
-        //            bool success = _quickWithdraw(tokenId, from, 100);
-        //            if (!success) {
-        //                revert("Quick withdraw failed");
-        //            }
-        //            // transfer lp token to msg.sender
-        //            IERC721(address(manager)).transferFrom(address(this), from, tokenId);
-        //        } else if (data[0] == 0x02) {
-        //            // rebalance
-        //        }
-
         return this.onERC721Received.selector;
     }
 
@@ -566,17 +382,12 @@ contract UniV3LPHelper is IERC721Receiver {
             })
         );
 
-        // approve tokens to supa
-        if (!IERC20(token0).approve(address(supa), amount0) || !IERC20(token1).approve(address(supa), amount1)) {
-            revert ApprovalFailed();
-        }
-
         // deposit tokens to credit account
         if (amount0 > 0) {
-            supa.depositERC20ForWallet(token0, from, amount0);
+            IERC20(token0).transfer(from, amount0);
         }
         if (amount1 > 0) {
-            supa.depositERC20ForWallet(token1, from, amount1);
+            IERC20(token1).transfer(from, amount1);
         }
 
         emit QuickWithdraw(from, tokenId, amount0, amount1);
@@ -694,10 +505,10 @@ contract UniV3LPHelper is IERC721Receiver {
         token1Balance = IERC20(token1).balanceOf(address(this));
 
         if (token0Balance > 0) {
-            supa.depositERC20ForWallet(token0, msg.sender, token0Balance);
+            IERC20(token0).transfer(msg.sender, token0Balance);
         }
         if (token1Balance > 0) {
-            supa.depositERC20ForWallet(token1, msg.sender, token1Balance);
+            IERC20(token1).transfer(msg.sender, token1Balance);
         }
 
         emit Rebalance(msg.sender, tokenId, newTokenId, tickLower, tickUpper, token0Balance, token1Balance);
