@@ -137,10 +137,6 @@ contract WalletTest is Test {
         vm.prank(wallet);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
-        ISupa walletSupa = userWallet.supa();
-
-        address walletOwner = supa.getWalletOwner(address(userWallet));
-
         Execution[] memory calls = new Execution[](0);
         uint256 nonce = 0;
         uint256 deadline = type(uint256).max;
@@ -150,16 +146,14 @@ contract WalletTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        address recovered = ecrecover(digest, v, r, s);
-
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
     }
 
     function testExecuteSignedBatchReplay() public {
         SigUtils sigUtils = new SigUtils();
         uint256 userPrivateKey = 0xB0B;
-        address user = vm.addr(userPrivateKey);
-        vm.startPrank(user);
+        address _user = vm.addr(userPrivateKey);
+        vm.startPrank(_user);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
         WalletProxy userWallet2 = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
