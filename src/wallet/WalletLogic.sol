@@ -67,7 +67,7 @@ contract WalletLogic is
     struct DynamicExecution {
         Execution execution;
         ReturnDataLink[] dynamicData;
-        uint8 operation; // 0 = call, 1 = delegatecall
+        uint8 operation; // 0 = staticcall, 1 = delegatecall
     }
 
     modifier onlyOwner() {

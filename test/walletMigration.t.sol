@@ -31,13 +31,8 @@ contract WalletMigrationTest is Test {
     IPermit2 public permit2;
     TransferAndCall2 public transferAndCall2;
 
-    TestERC20 public usdc;
-    TestERC20 public weth;
     TestNFT public nft;
     TestNFT public unregisteredNFT;
-
-    MockERC20Oracle public usdcChainlink;
-    MockERC20Oracle public ethChainlink;
 
     MockNFTOracle public nftOracle;
 
@@ -216,16 +211,16 @@ contract WalletMigrationTest is Test {
         linkedCalls[0] = LinkedExecution({
             execution: Execution({
                 target: address(newSupa),
-                callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet)),
-                value: 0
+                value: 0,
+                callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet))
             }),
             links: new ReturnDataLink[](0)
         });
         linkedCalls[1] = LinkedExecution({
             execution: Execution({
                 target: address(token0),
-                callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether),
-                value: 0
+                value: 0,
+                callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether)
             }),
             links: links
         });
@@ -277,8 +272,6 @@ contract WalletMigrationTest is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
-
-        // address recovered = ecrecover(digest, v, r, s);
 
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
         vm.expectRevert(Errors.InvalidSignature.selector);

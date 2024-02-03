@@ -17,10 +17,10 @@ contract SigUtils {
     bytes internal constant CALL_TYPESTRING = "Execution(address target,uint256 value,bytes callData)";
 
     bytes private constant EXECUTEBATCH_TYPESTRING =
-        "ExecuteBatch(Execution[] calls,uint256 nonce,uint256 deadline)";
+    "ExecuteBatch(Execution[] calls,uint256 nonce,uint256 deadline)";
 
     bytes32 private constant EXECUTEBATCH_TYPEHASH =
-        keccak256(abi.encodePacked(EXECUTEBATCH_TYPESTRING, CALL_TYPESTRING));
+        keccak256(abi.encodePacked(EXECUTEBATCH_TYPESTRING, ExecutionLib.CALL_TYPESTRING));
 
     // computes the hash of a permit
     function getStructHash(
@@ -47,12 +47,10 @@ contract SigUtils {
 
     function walletDomain(address wallet) internal view returns (bytes32) {
         bytes32 _hashedName = keccak256(bytes("Supa wallet"));
-        bytes32 _hashedVersion = keccak256(bytes("1.3.2"));
+        bytes32 _hashedVersion = keccak256(bytes(WalletLogic(wallet).VERSION()));
         bytes32 _domainSeparatorV4 = keccak256(
             abi.encode(_TYPE_HASH, _hashedName, _hashedVersion, block.chainid, wallet)
         );
-        console.log("_domainSeparatorV4");
-        console.logBytes32(_domainSeparatorV4);
         return _domainSeparatorV4;
     }
 }
