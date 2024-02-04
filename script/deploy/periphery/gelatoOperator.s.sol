@@ -11,7 +11,7 @@ contract DeployGelatoOperator is Script {
         address deployer;
         if (chainId == 5) {
             deployer = vm.envAddress("DEPLOYER_GOERLI");
-        } else if (chainId == 42161) {
+        } else if (chainId == 42161 || chainId == 8453) {
             deployer = vm.envAddress("DEPLOYER");
         } else {
             revert("unsupported chain");
@@ -24,6 +24,8 @@ contract DeployGelatoOperator is Script {
     }
 }
 
-// forge script script/deploy/periphery/gelatoOperator.s.sol:DeployGelatoOperator --rpc-url $GOERLI_RPC_URL --broadcast -vvvv --account supa_test_deployer
+// forge script script/deploy/periphery/gelatoOperator.s.sol:DeployGelatoOperator --rpc-url $GOERLI_RPC_URL --broadcast -vvvv --account supa_test_deployer --verify
 
-// forge script script/deploy/periphery/gelatoOperator.s.sol:DeployGelatoOperator --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer -g 100
+// forge script script/deploy/periphery/gelatoOperator.s.sol:DeployGelatoOperator --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer -g 100 --verify
+
+// forge script script/deploy/periphery/gelatoOperator.s.sol:DeployGelatoOperator --rpc-url $BASE_RPC_URL --broadcast -vvvv --account supa_deployer --etherscan-api-key $BASESCAN_API_KEY --verify

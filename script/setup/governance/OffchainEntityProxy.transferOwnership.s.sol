@@ -7,7 +7,14 @@ import {OffchainEntityProxy} from "src/governance/OffchainEntityProxy.sol";
 contract TransferOwnership is Script {
     function run() external {
         address deployer = vm.envAddress("DEPLOYER");
-        address newOwner = vm.envAddress("SUPA_ADMIN");
+        address newOwner;
+        if (block.chainid == 5) {
+            newOwner = vm.envAddress("SUPA_ADMIN_GOERLI");
+        } else if (block.chainid == 8453) {
+            newOwner = vm.envAddress("SUPA_ADMIN_BASE");
+        } else {
+            revert("unsupported chain");
+        }
 
         vm.startBroadcast(deployer);
         OffchainEntityProxy offchainEntityProxy = OffchainEntityProxy(vm.envAddress("OFFCHAIN_ENTITY_PROXY_ADDRESS"));

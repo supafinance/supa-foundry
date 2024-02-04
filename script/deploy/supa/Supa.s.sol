@@ -10,7 +10,7 @@ contract DeploySupa is Script {
         address deployer;
         if (chainId == 5) {
             deployer = vm.envAddress("DEPLOYER_GOERLI");
-        } else if (chainId == 42161) {
+        } else if (chainId == 42161 || chainId == 8453) {
             deployer = vm.envAddress("DEPLOYER");
         } else {
             revert("unsupported chain");
@@ -25,8 +25,10 @@ contract DeploySupa is Script {
     }
 }
 
-// cast create2 --init-code-hash $SUPA_CONFIG_INIT_CODE_HASH --starts-with 0xB0057ED0 --case-sensitive
+// cast create2 --init-code-hash $SUPA_INIT_CODE_HASH --starts-with 0xB0057ED0 --case-sensitive
 
 // forge script script/deploy/supa/Supa.s.sol:DeploySupa --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
 
 // forge script script/deploy/supa/Supa.s.sol:DeploySupa --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer
+
+// forge script script/deploy/supa/Supa.s.sol:DeploySupa --rpc-url $BASE_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $BASESCAN_API_KEY

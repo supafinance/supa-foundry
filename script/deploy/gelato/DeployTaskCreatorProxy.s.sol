@@ -25,6 +25,9 @@ contract DeployTaskCreatorProxy is BaseScript {
         } else if (chainId == 137) {
                 usdc = vm.envAddress("USDC_POLYGON");
                 deployer = vm.envAddress("DEPLOYER");
+        } else if (chainId == 8453) {
+                usdc = vm.envAddress("USDC_BASE");
+                deployer = vm.envAddress("DEPLOYER");
         } else {
             revert("DeployTaskCreatorProxy: unsupported chain");
         }
@@ -46,3 +49,4 @@ contract DeployTaskCreatorProxy is BaseScript {
 
 // forge script script/deploy/gelato/DeployTaskCreatorProxy.s.sol:DeployTaskCreatorProxy --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
 // forge script script/deploy/gelato/DeployTaskCreatorProxy.s.sol:DeployTaskCreatorProxy --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer
+// forge script script/deploy/gelato/DeployTaskCreatorProxy.s.sol:DeployTaskCreatorProxy --rpc-url $BASE_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $BASESCAN_API_KEY
