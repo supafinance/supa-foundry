@@ -13,7 +13,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IVersionManager} from "src/interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
 import {ISupa} from "src/interfaces/ISupa.sol";
-import {IWallet} from "src/interfaces/IWallet.sol";
+import {IWalletLogic, DynamicExecution} from "src/interfaces/IWalletLogic.sol";
 import {IERC1363SpenderExtended} from "src/interfaces/IERC1363-extended.sol";
 
 import {ExecutionLib, Execution, LinkedExecution, ReturnDataLink} from "src/lib/Call.sol";
@@ -34,7 +34,7 @@ contract WalletLogic is
     IERC1271,
     ITransferReceiver2,
     EIP712,
-    IWallet,
+    IWalletLogic,
     IERC1363SpenderExtended
 {
     using Address for address;
@@ -63,12 +63,6 @@ contract WalletLogic is
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
-
-    struct DynamicExecution {
-        Execution execution;
-        ReturnDataLink[] dynamicData;
-        uint8 operation; // 0 = staticcall, 1 = delegatecall
-    }
 
     modifier onlyOwner() {
         if (_supa().getWalletOwner(address(this)) != msg.sender) {
@@ -116,7 +110,7 @@ contract WalletLogic is
         }
     }
 
-    /// @inheritdoc IWallet
+    /// @inheritdoc IWalletLogic
     function executeBatch(Execution[] calldata calls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;

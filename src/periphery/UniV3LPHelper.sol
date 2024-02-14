@@ -6,12 +6,25 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {INonfungiblePositionManager} from "src/external/interfaces/INonfungiblePositionManager.sol";
 import {Call} from "src/lib/Call.sol";
 import {FixedPoint96} from "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 import {SafeCast} from "src/lib/SafeCast.sol";
 import {Path} from "src/lib/Path.sol";
+
+interface ISwapRouter {
+    function exactInputSingle(ExactInputSingleParams calldata params) external returns (uint256 amountOut);
+}
+
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
 
 /// @title Supa UniswapV3 LP Position Helper
 contract UniV3LPHelper is IERC721Receiver {
@@ -95,6 +108,18 @@ contract UniV3LPHelper is IERC721Receiver {
         IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
 
         _quickWithdraw(tokenId, msg.sender, 100);
+
+        // transfer lp token to msg.sender
+        IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
+    }
+
+    /// @notice Remove liquidity and collect fees
+    /// @param tokenId LP token ID
+    function quickWithdraw(uint256 tokenId, address user) external {
+        // transfer LP token to this contract
+        IERC721(address(manager)).transferFrom(msg.sender, address(this), tokenId);
+
+        _quickWithdraw(tokenId, user, 100);
 
         // transfer lp token to msg.sender
         IERC721(address(manager)).transferFrom(address(this), msg.sender, tokenId);
@@ -194,27 +219,25 @@ contract UniV3LPHelper is IERC721Receiver {
         (uint256 amount0Desired, uint256 amount1Desired) =
             LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
 
-        ISwapRouter.ExactInputSingleParams memory params;
+        ExactInputSingleParams memory params;
         if (amount0 > amount0Desired) {
             // swap token0 for token1
-            params = ISwapRouter.ExactInputSingleParams({
+            params = ExactInputSingleParams({
                 tokenIn: token0,
                 tokenOut: token1,
                 fee: fee,
                 recipient: address(this),
-                deadline: block.timestamp,
                 amountIn: amount0 - amount0Desired,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
         } else if (amount1 > amount1Desired) {
             // swap token1 for token0
-            params = ISwapRouter.ExactInputSingleParams({
+            params = ExactInputSingleParams({
                 tokenIn: token1,
                 tokenOut: token0,
                 fee: fee,
                 recipient: address(this),
-                deadline: block.timestamp,
                 amountIn: amount1 - amount1Desired,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
@@ -434,15 +457,14 @@ contract UniV3LPHelper is IERC721Receiver {
         (uint256 amount0Desired, uint256 amount1Desired) =
             LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
 
-        ISwapRouter.ExactInputSingleParams memory params;
+        ExactInputSingleParams memory params;
         if (amount0 > amount0Desired) {
             // swap token0 for token1
-            params = ISwapRouter.ExactInputSingleParams({
+            params = ExactInputSingleParams({
                 tokenIn: token0,
                 tokenOut: token1,
                 fee: fee,
                 recipient: address(this),
-                deadline: block.timestamp,
                 amountIn: amount0 - amount0Desired,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
@@ -452,12 +474,11 @@ contract UniV3LPHelper is IERC721Receiver {
             }
         } else if (amount1 > amount1Desired) {
             // swap token1 for token0
-            params = ISwapRouter.ExactInputSingleParams({
+            params = ExactInputSingleParams({
                 tokenIn: token1,
                 tokenOut: token0,
                 fee: fee,
                 recipient: address(this),
-                deadline: block.timestamp,
                 amountIn: amount1 - amount1Desired,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0

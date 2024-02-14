@@ -29,6 +29,6 @@ contract DeployOffchainEntityProxy is Script {
 
 // forge script script/deploy/governance/OffchainEntityProxy.s.sol:DeployOffchainEntityProxy --rpc-url $GOERLI_RPC_URL --broadcast -vvvv --account supa_test_deployer --verify
 
-// forge script script/deploy/governance/OffchainEntityProxy.s.sol:DeployOffchainEntityProxy --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer --verify -g 100
+// forge script script/deploy/governance/OffchainEntityProxy.s.sol:DeployOffchainEntityProxy --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer --verify --etherscan-api-key $ARBISCAN_API_KEY -g 100
 
 // forge script script/deploy/governance/OffchainEntityProxy.s.sol:DeployOffchainEntityProxy --rpc-url $BASE_RPC_URL --broadcast -vvvv --account supa_deployer --verify --etherscan-api-key $BASESCAN_API_KEY

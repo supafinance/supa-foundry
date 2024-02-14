@@ -36,4 +36,4 @@ contract UpgradeTaskCreator is BaseScript {
 }
 
 // forge script script/deploy/gelato/UpgradeTaskCreator.s.sol:UpgradeTaskCreator --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
-// forge script script/deploy/gelato/UpgradeTaskCreator.s.sol:UpgradeTaskCreator --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer -g 100
+// forge script script/deploy/gelato/UpgradeTaskCreator.s.sol:UpgradeTaskCreator --rpc-url $ARBITRUM_RPC_URL --broadcast --verify --etherscan-api-key $ARBISCAN_API_KEY -vvvv --account supa_deployer -g 100

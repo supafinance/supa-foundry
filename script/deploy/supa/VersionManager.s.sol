@@ -29,6 +29,6 @@ contract DeployVersionManager is Script {
 
 // forge script script/deploy/supa/VersionManager.s.sol:DeployVersionManager --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
 
-// forge script script/deploy/supa/VersionManager.s.sol:DeployVersionManager --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer -g 100
+// forge script script/deploy/supa/VersionManager.s.sol:DeployVersionManager --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $ARBISCAN_API_KEY -g 100
 
 // forge script script/deploy/supa/VersionManager.s.sol:DeployVersionManager --rpc-url $BASE_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $BASESCAN_API_KEY
