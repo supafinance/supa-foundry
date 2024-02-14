@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import { Vm, VmSafe } from "forge-std/Vm.sol";
 
 import {IPermit2} from "src/external/interfaces/IPermit2.sol";
@@ -14,34 +14,23 @@ import {Supa} from "src/supa/Supa.sol";
 import {ISupa} from "src/interfaces/ISupa.sol";
 import {SupaConfig, ISupaConfig} from "src/supa/SupaConfig.sol";
 import {VersionManager, IVersionManager} from "src/supa/VersionManager.sol";
-import {WalletLogic, LinkedCall, ReturnDataLink} from "src/wallet/WalletLogic.sol";
+import {WalletLogic, LinkedExecution, ReturnDataLink} from "src/wallet/WalletLogic.sol";
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
-import {Call, CallLib} from "src/lib/Call.sol";
+import {Execution, ExecutionLib} from "src/lib/Call.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
 
 import {Errors} from "src/libraries/Errors.sol";
-
-//import { UniswapV3Factory } from "@uniswap/v3-core/contracts/UniswapV3Factory.sol";
-//import {SwapRouter} from "@uniswap/v3-periphery/contracts/SwapRouter.sol";
-//import { ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-//import { Multicall } from "@uniswap/v3-periphery/contracts/base/Multicall.sol";
 
 import {SigUtils, ECDSA} from "test/utils/SigUtils.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract WalletTest is Test {
-    uint256 goerliFork;
     IPermit2 public permit2;
     TransferAndCall2 public transferAndCall2;
 
-    IERC20 public usdc = IERC20(vm.envAddress("USDC_GOERLI"));
-    IERC20 public weth = IERC20(vm.envAddress("WETH_GOERLI"));
     TestNFT public nft;
     TestNFT public unregisteredNFT;
-
-    MockERC20Oracle public usdcChainlink;
-    MockERC20Oracle public ethChainlink;
 
     MockNFTOracle public nftOracle;
 
@@ -50,176 +39,70 @@ contract WalletTest is Test {
     VersionManager public versionManager;
     WalletLogic public proxyLogic;
 
+    address public user;
+    address public governance;
     WalletProxy public treasuryWallet;
     WalletProxy public userWallet;
 
-    address public governance = vm.envAddress("OWNER");
+    // Create 2 tokens
+    TestERC20 public token0;
+    TestERC20 public token1;
 
-//    UniswapV3Factory public factory;
-//    SwapRouter public swapRouter;
+    MockERC20Oracle public token0Oracle;
+    MockERC20Oracle public token1Oracle;
 
     bytes32 public constant FS_SALT = bytes32(0x1234567890123456789012345678901234567890123456789012345678901234);
 
     function setUp() public {
-        string memory GOERLI_RPC_URL = vm.envString("GOERLI_RPC_URL");
+        address owner = address(this);
+        user = address(this);
+        governance = address(this);
 
-        goerliFork = vm.createFork(GOERLI_RPC_URL, 9_771_000);
-        vm.selectFork(goerliFork);
-
-        supa = Supa(payable(0x053553B8979B9FefF6e5764A294e2231D018B3A9));
-
-
-//        address owner = address(this);
-//
-//        usdc = new TestERC20("Circle USD", "USDC", 6);
-//        weth = new TestERC20("Wrapped Ether", "WETH", 18);
-//        nft = new TestNFT("Test NFT", "TNFT", 0);
-//        unregisteredNFT = new TestNFT("Unregistered NFT", "UNFT", 0);
-//
-//        usdcChainlink = new MockERC20Oracle(owner);
-//        ethChainlink = new MockERC20Oracle(owner);
-//
-//        nftOracle = new MockNFTOracle();
-        versionManager = VersionManager(0xfE6939D2B10FDc83c756B1Ab3d6bF7D580dAd2B6);
-//        versionManager = new VersionManager(owner);
-//        supaConfig = new SupaConfig(owner);
-//        supa = new Supa(address(supaConfig), address(versionManager));
+        // deploy Supa contracts
+        versionManager = new VersionManager(owner);
+        supaConfig = new SupaConfig(owner);
+        supa = new Supa(address(supaConfig), address(versionManager));
         proxyLogic = new WalletLogic();
         string memory VERSION = proxyLogic.VERSION();
 
-        vm.startPrank(0xc9B6088732E83ef013873e2f04d032F1a7a2E42D);
+        versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(proxyLogic));
+        versionManager.markRecommendedVersion(VERSION);
+
         ISupaConfig(address(supa)).setConfig(
             ISupaConfig.Config({
                 treasuryWallet: address(0),
                 treasuryInterestFraction: 0,
                 maxSolvencyCheckGasCost: 10_000_000,
-                liqFraction: 8e17,
+                liqFraction: 0.8 ether,
                 fractionalReserveLeverage: 10
             })
         );
 
-        versionManager.addVersion(IVersionManager.Status.PRODUCTION, address(proxyLogic));
-        versionManager.markRecommendedVersion(VERSION);
-        vm.stopPrank();
+        ISupaConfig(address(supa)).setTokenStorageConfig(
+            ISupaConfig.TokenStorageConfig({maxTokenStorage: 250, erc20Multiplier: 1, erc721Multiplier: 1})
+        );
 
-//        factory = UniswapV3Factory(payable(0x1F98431c8aD98523631AE4a59f267346ea31F984));
-//
-//        transferAndCall2 = TransferAndCall2(0x1554b484D2392672F0375C56d80e91c1d070a007);
-//        vm.etch(address(transferAndCall2), type(TransferAndCall2).creationCode);
-//        // transferAndCall2 = new TransferAndCall2{salt: FS_SALT}();
-//        usdc.approve(address(transferAndCall2), type(uint256).max);
-//        weth.approve(address(transferAndCall2), type(uint256).max);
+
+        // setup tokens
+        token0 = new TestERC20("token0", "t0", 18);
+        token1 = new TestERC20("token1", "t1", 18);
+
+        token0Oracle = new MockERC20Oracle(owner);
+        token0Oracle.setPrice(1e18, 18, 18);
+        token0Oracle.setRiskFactors(9e17, 9e17);
+
+        token1Oracle = new MockERC20Oracle(owner);
+        token1Oracle.setPrice(1e18, 18, 18);
+        token1Oracle.setRiskFactors(9e17, 9e17);
     }
-
-//    function testExecuteBatchLinkMulticall() public {
-//        vm.selectFork(goerliFork);
-//        userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
-//
-//        address goerliWeth = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
-//        address goerliUsdc = 0x18e526F710B8d504A735927f5Eb8BdF2F4386811;
-//
-//        address pool = factory.getPool(address(goerliWeth), address(goerliUsdc), 3000);
-//        console.log('pool:', pool);
-//        if (pool == address(0)) {
-//            factory.createPool(address(goerliWeth), address(goerliUsdc), 3000);
-//        }
-//
-//        swapRouter = new SwapRouter(address(factory), goerliWeth);
-//
-//        deal({token: goerliWeth, to: address(this), give: 10 ether});
-//        deal({token: goerliWeth, to: address(userWallet), give: 100 ether});
-//
-//        uint256 wethBalance = IERC20(goerliWeth).balanceOf(address(userWallet));
-//        console.log('wethBalance:', wethBalance);
-//
-//        Call[] memory calls = new Call[](2);
-//        calls[0] = Call({
-//            to: goerliWeth,
-//            callData: abi.encodeWithSelector(IERC20.approve.selector, address(swapRouter), type(uint256).max),
-//            value: 0
-//        });
-//
-//        calls[1] = Call({
-//            to: goerliUsdc,
-//            callData: abi.encodeWithSelector(IERC20.approve.selector, address(swapRouter), type(uint256).max),
-//            value: 0
-//        });
-//
-//        bytes[] memory multicallData = new bytes[](1);
-//        ISwapRouter.ExactInputSingleParams memory exactInputSingle = ISwapRouter.ExactInputSingleParams({
-//            tokenIn: goerliWeth,
-//            tokenOut: goerliUsdc,
-//            fee: 3000,
-//            recipient: address(userWallet),
-//            deadline: type(uint256).max,
-//            amountIn: 0.1 ether,
-//            amountOutMinimum: 0,
-//            sqrtPriceLimitX96: 0
-//        });
-//        multicallData[0] = abi.encodeWithSelector(SwapRouter.exactInputSingle.selector, exactInputSingle);
-//
-////        calls[2] = Call({
-////            to: address(swapRouter),
-////            callData: abi.encodeWithSelector(Multicall.multicall.selector, multicallData),
-////            value: 0
-////        });
-//
-////        swapRouter.multicall(multicallData);
-//
-//        WalletLogic(address(userWallet)).executeBatch(calls);
-//
-//        // FIRST LINKED CALL
-//        LinkedCall[] memory linkedCalls = new LinkedCall[](2); // todo: change to 2 for second call
-//        ReturnDataLink[] memory links = new ReturnDataLink[](1);
-//        linkedCalls[0] = LinkedCall({
-//            call: Call({
-//                to: address(swapRouter),
-//                callData: abi.encodeWithSelector(Multicall.multicall.selector, multicallData),
-//                value: 0
-//            }),
-//            links: new ReturnDataLink[](0)
-//        });
-//
-//
-//        // SECOND LINKED CALL
-//        links[0] = ReturnDataLink({
-//            returnValueOffset: 128,
-//            isStatic: true,
-//            callIndex: 0,
-//            offset: 296
-//        });
-//        bytes[] memory multicallData2 = new bytes[](1);
-////        15258789062500
-//        ISwapRouter.ExactInputSingleParams memory exactInputSingle2 = ISwapRouter.ExactInputSingleParams({
-//            tokenIn: goerliUsdc,
-//            tokenOut: goerliWeth,
-//            fee: 3000,
-//            recipient: address(userWallet),
-//            deadline: type(uint256).max,
-//            amountIn: 1 ether,
-//            amountOutMinimum: 0,
-//            sqrtPriceLimitX96: 0
-//        });
-//        multicallData2[0] = abi.encodeWithSelector(SwapRouter.exactInputSingle.selector, exactInputSingle2);
-//        linkedCalls[1] = LinkedCall({
-//            call: Call({
-//                to: address(swapRouter),
-//                callData: abi.encodeWithSelector(Multicall.multicall.selector, multicallData2),
-//                value: 0
-//            }),
-//            links: links
-//        });
-//
-//        WalletLogic(address(userWallet)).executeBatchLink(linkedCalls);
-//    }
 
     function testExecuteBatchLinkTransfer() public {
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
-        deal({token: address(weth), to: address(this), give: 10 ether});
-        deal({token: address(weth), to: address(userWallet), give: 10 ether});
+        deal({token: address(token0), to: address(this), give: 10 ether});
+        deal({token: address(token0), to: address(userWallet), give: 10 ether});
 
-        LinkedCall[] memory linkedCalls = new LinkedCall[](2);
+        LinkedExecution[] memory linkedCalls = new LinkedExecution[](2);
         ReturnDataLink[] memory links = new ReturnDataLink[](1);
         links[0] = ReturnDataLink({
             returnValueOffset: 0,
@@ -227,20 +110,20 @@ contract WalletTest is Test {
             callIndex: 0,
             offset: 4
         });
-        linkedCalls[0] = LinkedCall({
-            call: Call({
-            to: address(supa),
-            callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet)),
-            value: 0
-        }),
+        linkedCalls[0] = LinkedExecution({
+            execution: Execution({
+                target: address(supa),
+                value: 0,
+                callData: abi.encodeWithSignature("getWalletOwner(address)", address(userWallet))
+            }),
             links: new ReturnDataLink[](0)
         });
-        linkedCalls[1] = LinkedCall({
-            call: Call({
-            to: address(weth),
-            callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether),
-            value: 0
-        }),
+        linkedCalls[1] = LinkedExecution({
+            execution: Execution({
+                target: address(token0),
+                value: 0,
+                callData: abi.encodeWithSignature("transfer(address,uint256)", address(0), 1 ether)
+            }),
             links: links
         });
 
@@ -254,11 +137,7 @@ contract WalletTest is Test {
         vm.prank(wallet);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
-        ISupa walletSupa = userWallet.supa();
-
-        address walletOwner = supa.getWalletOwner(address(userWallet));
-
-        Call[] memory calls = new Call[](0);
+        Execution[] memory calls = new Execution[](0);
         uint256 nonce = 0;
         uint256 deadline = type(uint256).max;
 
@@ -267,20 +146,18 @@ contract WalletTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        address recovered = ecrecover(digest, v, r, s);
-
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
     }
 
     function testExecuteSignedBatchReplay() public {
         SigUtils sigUtils = new SigUtils();
         uint256 userPrivateKey = 0xB0B;
-        address user = vm.addr(userPrivateKey);
-        vm.prank(user);
+        address _user = vm.addr(userPrivateKey);
+        vm.startPrank(_user);
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
         WalletProxy userWallet2 = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
 
-        Call[] memory calls = new Call[](0);
+        Execution[] memory calls = new Execution[](0);
         uint256 nonce = 0;
         uint256 deadline = type(uint256).max;
 
@@ -289,32 +166,14 @@ contract WalletTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        // address recovered = ecrecover(digest, v, r, s);
-
         WalletLogic(address(userWallet)).executeSignedBatch(calls, nonce, deadline, signature);
         vm.expectRevert(Errors.InvalidSignature.selector);
         WalletLogic(address(userWallet2)).executeSignedBatch(calls, nonce, deadline, signature);
+        vm.stopPrank();
     }
 
     function testTransferAndCall2ToProxy() public {
         // TODO
-
-//        deal({token: address(usdc), to: address(this), give: 10_000 * 1e6});
-//
-//        deal({token: address(weth), to: address(this), give: 1 * 1 ether});
-//
-//        userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
-//
-//        ITransferReceiver2.Transfer[] memory transfers = new ITransferReceiver2.Transfer[](2);
-//
-//        transfers[0] = ITransferReceiver2.Transfer({token: address(usdc), amount: 10_000 * 1e6});
-//
-//        transfers[1] = ITransferReceiver2.Transfer({token: address(weth), amount: 1 * 1 ether});
-//
-//        _sortTransfers(transfers);
-//
-//        bytes memory data = bytes("0x");
-//        transferAndCall2.transferAndCall2(address(userWallet), transfers, data);
     }
 
     function testTransferAndCall2ToSupa() public {
@@ -388,9 +247,9 @@ contract WalletTest is Test {
 
     function testProposeTransferWalletOwnership(address newOwner) public {
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSignature("proposeTransferWalletOwnership(address)", newOwner),
             value: 0
         });
@@ -401,9 +260,9 @@ contract WalletTest is Test {
 
     function testExecuteTransferWalletOwnership(address newOwner) public {
         userWallet = WalletProxy(payable(ISupaConfig(address(supa)).createWallet()));
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSignature("proposeTransferWalletOwnership(address)", newOwner),
             value: 0
         });
@@ -431,9 +290,9 @@ contract WalletTest is Test {
     }
 
     function _upgradeWalletImplementation(string memory versionName) internal {
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSignature("upgradeWalletImplementation(string)", versionName),
             value: 0
         });

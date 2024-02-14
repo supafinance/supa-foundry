@@ -8,7 +8,7 @@ import {SupaState} from "src/supa/SupaState.sol";
 import { GovernanceProxy } from "src/governance/GovernanceProxy.sol";
 import { OffchainEntityProxy } from "src/governance/OffchainEntityProxy.sol";
 
-import { CallWithoutValue, Call } from "src/lib/Call.sol";
+import { CallWithoutValue, Call, Execution } from "src/lib/Call.sol";
 
 contract CreateGovernanceSafeCalls is Script {
     function run() external {
@@ -16,7 +16,7 @@ contract CreateGovernanceSafeCalls is Script {
         address deployer;
         if (chainId == 5) {
             deployer = vm.envAddress("DEPLOYER_GOERLI");
-        } else if (chainId == 42161) {
+        } else if (chainId == 42161 || chainId == 8453) {
             deployer = vm.envAddress("DEPLOYER");
         } else {
             revert("unsupported chain");
@@ -25,7 +25,7 @@ contract CreateGovernanceSafeCalls is Script {
         address governanceProxyAddress = vm.envAddress("GOVERNANCE_PROXY_ADDRESS");
         address offchainEntityProxyAddress = vm.envAddress("OFFCHAIN_ENTITY_PROXY_ADDRESS");
 
-        address newWalletLogicAddress = 0xA05f94DD5968DDCd1Dc89B942AeB3545341B8701;
+        address newWalletLogicAddress = 0xc8BA72D981EB73920c0fE3ba186C27b313B17B3A;
 
         WalletLogic walletLogic = WalletLogic(newWalletLogicAddress);
 
@@ -52,9 +52,9 @@ contract CreateGovernanceSafeCalls is Script {
             )
         });
 
-        Call[] memory offchainEntityCalls = new Call[](1);
-        offchainEntityCalls[0] = Call({
-            to: governanceProxyAddress,
+        Execution[] memory offchainEntityCalls = new Execution[](1);
+        offchainEntityCalls[0] = Execution({
+            target: governanceProxyAddress,
             callData: abi.encodeWithSelector(
                 governanceProxy.executeBatch.selector,
                 governanceCalls
@@ -62,10 +62,19 @@ contract CreateGovernanceSafeCalls is Script {
             value: 0
         });
 
+        console.logBytes(abi.encodeWithSelector(
+            governanceProxy.executeBatch.selector,
+            governanceCalls
+        ));
+
         console.logBytes(abi.encodeWithSelector(offchainEntityProxy.executeBatch.selector, offchainEntityCalls));
 
+        vm.startBroadcast(deployer);
+        offchainEntityProxy.executeBatch(offchainEntityCalls);
+        vm.stopBroadcast();
     }
 }
 
 // forge script script/CreateGovernanceSafeCalls.s.sol:CreateGovernanceSafeCalls --rpc-url $GOERLI_RPC_URL -vvvv
 // forge script script/CreateGovernanceSafeCalls.s.sol:CreateGovernanceSafeCalls --rpc-url $ARBITRUM_RPC_URL -vvvv
+// forge script script/CreateGovernanceSafeCalls.s.sol:CreateGovernanceSafeCalls --rpc-url $BASE_RPC_URL -vvvv --account supa_deployer --etherscan-api-key $BASESCAN_API_KEY

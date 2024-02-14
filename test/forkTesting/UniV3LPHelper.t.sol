@@ -17,7 +17,7 @@ import {INonfungiblePositionManager} from "src/external/interfaces/INonfungibleP
 import {WalletProxy} from "src/wallet/WalletProxy.sol";
 import {WalletLogic} from "src/wallet/WalletLogic.sol";
 
-import {Call} from "src/lib/Call.sol";
+import {Execution} from "src/lib/Call.sol";
 
 import {MockERC20Oracle} from "src/testing/MockERC20Oracle.sol";
 import {ERC20ChainlinkValueOracle} from "src/oracles/ERC20ChainlinkValueOracle.sol";
@@ -169,7 +169,7 @@ contract UniV3LPHelperTest is Test {
         deal({token: address(usdc), to: address(userWallet), give: usdcAmount});
         deal({token: address(weth), to: address(userWallet), give: wethAmount});
 
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
 
         // (1) mint and deposit LP token
 
@@ -187,18 +187,18 @@ contract UniV3LPHelperTest is Test {
             deadline: block.timestamp + 1000
         });
 
-        calls[0] = Call({
-            to: address(usdc),
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), type(uint256).max),
             value: 0
         });
-        calls[1] = Call({
-            to: address(weth),
+        calls[1] = Execution({
+            target: address(weth),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), type(uint256).max),
             value: 0
         });
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
+        calls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature(
                 "mintAndDeposit((address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,address,uint256))",
                 params
@@ -233,22 +233,22 @@ contract UniV3LPHelperTest is Test {
         deal({token: address(weth), to: address(uniV3LPHelper), give: 1 ether});
 
         // Create calls to reinvest fees
-        Call[] memory reinvestCalls = new Call[](3);
+        Execution[] memory reinvestCalls = new Execution[](3);
         // (1) withdraw LP token to Wallet
-        reinvestCalls[0] = Call({
-            to: address(supa),
+        reinvestCalls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
         // (2) approve LP token to uniV3LPHelper
-        reinvestCalls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        reinvestCalls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
             value: 0
         });
         // (3) reinvest fees
-        reinvestCalls[2] = Call({
-            to: address(uniV3LPHelper),
+        reinvestCalls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature("reinvest(uint256)", tokenId),
             value: 0
         });
@@ -283,16 +283,16 @@ contract UniV3LPHelperTest is Test {
         deal({token: address(weth), to: address(uniV3LPHelper), give: 1 ether});
 
         // Create calls to reinvest fees
-        Call[] memory reinvestCalls = new Call[](2);
+        Execution[] memory reinvestCalls = new Execution[](2);
         // (1) withdraw LP token to Wallet
-        reinvestCalls[0] = Call({
-            to: address(supa),
+        reinvestCalls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
         // (2) reinvest fees
-        reinvestCalls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        reinvestCalls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature(
                 "safeTransferFrom(address,address,uint256,bytes)",
                 address(userWallet),
@@ -322,7 +322,7 @@ contract UniV3LPHelperTest is Test {
         deal({token: address(usdc), to: address(userWallet), give: usdcAmount});
         deal({token: address(weth), to: address(userWallet), give: wethAmount});
 
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
 
         // (1) mint and deposit LP token
 
@@ -340,18 +340,18 @@ contract UniV3LPHelperTest is Test {
             deadline: block.timestamp + 1000
         });
 
-        calls[0] = Call({
-            to: address(usdc),
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), type(uint256).max),
             value: 0
         });
-        calls[1] = Call({
-            to: address(weth),
+        calls[1] = Execution({
+            target: address(weth),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), type(uint256).max),
             value: 0
         });
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
+        calls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature(
                 "mintAndDeposit((address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,address,uint256))",
                 params
@@ -364,22 +364,22 @@ contract UniV3LPHelperTest is Test {
 
         uint256 tokenId = nftData[0].tokenId;
 
-        Call[] memory reinvestCalls = new Call[](3);
+        Execution[] memory reinvestCalls = new Execution[](3);
         // (1) withdraw LP token to Wallet
-        reinvestCalls[0] = Call({
-            to: address(supa),
+        reinvestCalls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
         // (2) approve LP token to uniV3LPHelper
-        reinvestCalls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        reinvestCalls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
             value: 0
         });
         // (3) reinvest fees
-        reinvestCalls[2] = Call({
-            to: address(uniV3LPHelper),
+        reinvestCalls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature("reinvest(uint256)", tokenId),
             value: 0
         });
@@ -397,19 +397,19 @@ contract UniV3LPHelperTest is Test {
         uint256 tokenId = _mintAndDeposit();
 
         // Quick withdraw
-        Call[] memory calls = new Call[](3);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](3);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
-        calls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        calls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
             value: 0
         });
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
+        calls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature("quickWithdraw(uint256)", tokenId),
             value: 0
         });
@@ -430,19 +430,19 @@ contract UniV3LPHelperTest is Test {
         uint256 tokenId = _mintAndDeposit();
 
         // Quick withdraw
-        Call[] memory calls = new Call[](3);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](3);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
-        calls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        calls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
             value: 0
         });
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
+        calls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature("quickWithdraw(uint256)", tokenId),
             value: 0
         });
@@ -450,14 +450,14 @@ contract UniV3LPHelperTest is Test {
         userWallet.executeBatch(calls);
 
         // Quick withdraw
-        Call[] memory secondCalls = new Call[](2);
-        secondCalls[0] = Call({
-            to: address(nonfungiblePositionManager),
+        Execution[] memory secondCalls = new Execution[](2);
+        secondCalls[0] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
             value: 0
         });
-        secondCalls[1] = Call({
-            to: address(uniV3LPHelper),
+        secondCalls[1] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature("quickWithdraw(uint256)", tokenId),
             value: 0
         });
@@ -478,14 +478,14 @@ contract UniV3LPHelperTest is Test {
         data[0] = 0x01;
 
         // Quick withdraw
-        Call[] memory calls = new Call[](2);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](2);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
-        calls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        calls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature(
                 "safeTransferFrom(address,address,uint256,bytes)",
                 address(userWallet),
@@ -514,14 +514,14 @@ contract UniV3LPHelperTest is Test {
         data[0] = 0x01;
 
         // Quick withdraw
-        Call[] memory calls = new Call[](2);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](2);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
-        calls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        calls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature(
                 "safeTransferFrom(address,address,uint256,bytes)",
                 address(userWallet),
@@ -535,9 +535,9 @@ contract UniV3LPHelperTest is Test {
         userWallet.executeBatch(calls);
 
         // Quick withdraw
-        Call[] memory secondCalls = new Call[](1);
-        secondCalls[0] = Call({
-            to: address(nonfungiblePositionManager),
+        Execution[] memory secondCalls = new Execution[](1);
+        secondCalls[0] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature(
                 "safeTransferFrom(address,address,uint256,bytes)",
                 address(userWallet),
@@ -577,19 +577,19 @@ contract UniV3LPHelperTest is Test {
         swapRouter.exactInputSingle(params);
 
         // Rebalance
-        Call[] memory calls = new Call[](3);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](3);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
-        calls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        calls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
             value: 0
         });
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
+        calls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature("rebalanceSameTickSizing(uint256)", tokenId),
             value: 0
         });
@@ -604,19 +604,19 @@ contract UniV3LPHelperTest is Test {
         uint256 tokenId = _mintAndDeposit();
 
         // Rebalance
-        Call[] memory calls = new Call[](3);
-        calls[0] = Call({
-            to: address(supa),
+        Execution[] memory calls = new Execution[](3);
+        calls[0] = Execution({
+            target: address(supa),
             callData: abi.encodeWithSelector(Supa.withdrawERC721.selector, address(nonfungiblePositionManager), tokenId),
             value: 0
         });
-        calls[1] = Call({
-            to: address(nonfungiblePositionManager),
+        calls[1] = Execution({
+            target: address(nonfungiblePositionManager),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), tokenId),
             value: 0
         });
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
+        calls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature("rebalanceSameTickSizing(uint256)", tokenId),
             value: 0
         });
@@ -635,7 +635,7 @@ contract UniV3LPHelperTest is Test {
         deal({token: address(weth), to: address(userWallet), give: wethAmount});
 
         // Create a position and deposit LP token to supa
-        Call[] memory calls = new Call[](3);
+        Execution[] memory calls = new Execution[](3);
 
         // get pool
         IUniswapV3Pool pool =
@@ -667,20 +667,20 @@ contract UniV3LPHelperTest is Test {
         });
 
         // (1) approve usdc
-        calls[0] = Call({
-            to: address(usdc),
+        calls[0] = Execution({
+            target: address(usdc),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), type(uint256).max),
             value: 0
         });
         // (2) approve weth
-        calls[1] = Call({
-            to: address(weth),
+        calls[1] = Execution({
+            target: address(weth),
             callData: abi.encodeWithSignature("approve(address,uint256)", address(uniV3LPHelper), type(uint256).max),
             value: 0
         });
         // (3) mint and deposit LP token
-        calls[2] = Call({
-            to: address(uniV3LPHelper),
+        calls[2] = Execution({
+            target: address(uniV3LPHelper),
             callData: abi.encodeWithSignature(
                 "mintAndDeposit((address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,address,uint256))",
                 params

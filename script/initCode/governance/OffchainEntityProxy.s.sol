@@ -22,5 +22,5 @@ contract InitCodeHashOffchainEntityProxy is Script {
     }
 }
 
-// forge script script/initCode/OffchainEntityProxy.s.sol:InitCodeHashOffchainEntityProxy -vvvv
+// forge script script/initCode/governance/OffchainEntityProxy.s.sol:InitCodeHashOffchainEntityProxy -vvvv
 

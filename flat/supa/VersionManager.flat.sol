@@ -2016,6 +2016,8 @@ library Errors {
     error InvalidSignature();
     /// @notice Data does not match the expected format
     error InvalidData();
+    /// @notice Nonce is out of range
+    error InvalidNonce();
     /// @notice Nonce has already been used
     error NonceAlreadyUsed();
     /// @notice Deadline has expired

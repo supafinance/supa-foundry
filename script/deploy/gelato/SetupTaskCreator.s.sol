@@ -33,6 +33,13 @@ contract SetupTaskCreator is BaseScript {
             gasPriceFeed = vm.envAddress("GAS_PRICE_FEED_ARBITRUM");
             powerCreditRate = 1e6; // 1 usdc
             depositAmount = 5 ether; // 5 power credits
+        } else if (chainId == 8453) {
+            deployer = vm.envAddress("DEPLOYER");
+            usdc = vm.envAddress("USDC_BASE");
+            feeCollector = vm.envAddress("AUTOMATION_FEE_COLLECTOR_BASE");
+            gasPriceFeed = vm.envAddress("GAS_PRICE_FEED_BASE");
+            powerCreditRate = 1e6; // 1 usdc
+            depositAmount = 5 ether; // 5 power credits
         } else {
             revert("unsupported chain");
         }
@@ -42,25 +49,23 @@ contract SetupTaskCreator is BaseScript {
         address payable taskCreatorProxyAddress = payable(vm.envAddress("TASK_CREATOR_PROXY_ADDRESS"));
         address allowlistServer = vm.envAddress("GELATO_SERVER");
         vm.startBroadcast(deployer);
-//        TaskCreator taskCreator = new TaskCreator(supa, automate, taskCreatorProxyAddress, usdc);
-        TaskCreator taskCreator = TaskCreator(0x276c4e2D4B575Ff7A53A2d8922255434ec2363C4);
-        TaskCreatorProxy taskCreatorProxy = TaskCreatorProxy(taskCreatorProxyAddress);
-        taskCreatorProxy.upgrade(address(taskCreator));
+        TaskCreator taskCreator = TaskCreator(taskCreatorProxyAddress);
 
-        TaskCreator(payable(address(taskCreatorProxy))).addAllowlistRole(allowlistServer);
-        TaskCreator(payable(address(taskCreatorProxy))).setFeeCollector(feeCollector);
-        TaskCreator(payable(address(taskCreatorProxy))).setGasPriceFeed(gasPriceFeed);
+        taskCreator.addAllowlistRole(allowlistServer);
+        taskCreator.setFeeCollector(feeCollector);
+        taskCreator.setGasPriceFeed(gasPriceFeed);
         ITaskCreator.Tier[] memory tiers = new ITaskCreator.Tier[](1);
         tiers[0] = ITaskCreator.Tier({
             limit: 0,
             rate: powerCreditRate
         });
-        TaskCreator(payable(address(taskCreatorProxy))).setTiers(tiers);
-        TaskCreator(payable(address(taskCreatorProxy))).setDepositAmount(depositAmount);
-        TaskCreator(payable(address(taskCreatorProxy))).setPowerPerExecution(powerPerExecution);
+        taskCreator.setTiers(tiers);
+        taskCreator.setDepositAmount(depositAmount);
+        taskCreator.setPowerPerExecution(powerPerExecution);
         vm.stopBroadcast();
     }
 }
 
-// forge script script/deploy/gelato/SetupTaskCreator.s.sol:SetupTaskCreator --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
-// forge script script/deploy/gelato/SetupTaskCreator.s.sol:SetupTaskCreator --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer -g 100
+// forge script script/deploy/gelato/SetupTaskCreator.s.sol:SetupTaskCreator --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer --etherscan-api-key $ETHERSCAN_API_KEY
+// forge script script/deploy/gelato/SetupTaskCreator.s.sol:SetupTaskCreator --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer -g 100 --etherscan-api-key $ARBISCAN_API_KEY
+// forge script script/deploy/gelato/SetupTaskCreator.s.sol:SetupTaskCreator --rpc-url $BASE_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $BASESCAN_API_KEY

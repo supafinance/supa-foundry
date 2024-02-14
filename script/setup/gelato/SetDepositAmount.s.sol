@@ -14,7 +14,7 @@ contract SetDepositAmount is Script {
         if (chainId == 5) {
             deployer = vm.envAddress("DEPLOYER_GOERLI");
             depositAmount = 0.001 ether * 60;
-        } else if (chainId == 42161) {
+        } else if (chainId == 42161 || chainId == 8453) {
             deployer = vm.envAddress("DEPLOYER");
             depositAmount = 0.001 ether * 60;
         } else {
@@ -28,4 +28,6 @@ contract SetDepositAmount is Script {
     }
 }
 
-// forge script script/setup/gelato/SetDepositAmount.s.sol:SetDepositAmount --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer
+// forge script script/setup/gelato/SetDepositAmount.s.sol:SetDepositAmount --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv --account supa_test_deployer --etherscan-api-key $GOERLISCAN_API_KEY
+// forge script script/setup/gelato/SetDepositAmount.s.sol:SetDepositAmount --rpc-url $ARBITRUM_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $ARBISCAN_API_KEY
+// forge script script/setup/gelato/SetDepositAmount.s.sol:SetDepositAmount --rpc-url $BASE_RPC_URL --broadcast --verify -vvvv --account supa_deployer --etherscan-api-key $BASESCAN_API_KEY

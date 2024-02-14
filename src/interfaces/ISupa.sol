@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Call} from "../lib/Call.sol";
+import {Execution} from "../lib/Call.sol";
 import {IERC20ValueOracle} from "./IERC20ValueOracle.sol";
 import {INFTValueOracle} from "./INFTValueOracle.sol";
 
@@ -462,7 +462,7 @@ interface ISupaCore {
     /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral
     /// and Supa reserve/debt must be sufficient
     /// @param calls An array of transaction calls
-    function executeBatch(Call[] memory calls) external;
+    function executeBatch(Execution[] memory calls) external;
 
     /// @notice Returns the approved address for a token, or zero if no address set
     /// @param collection The address of the ERC721 token

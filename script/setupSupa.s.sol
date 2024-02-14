@@ -13,7 +13,7 @@ import { WalletLogic } from "src/wallet/WalletLogic.sol";
 import {MockERC20Oracle } from "src/testing/MockERC20Oracle.sol";
 import {UniV3Oracle} from "src/oracles/UniV3Oracle.sol";
 
-import {Call, CallWithoutValue} from "src/lib/Call.sol";
+import {Execution, CallWithoutValue} from "src/lib/Call.sol";
 
 contract SetupSupa is Script {
     function run() external {
@@ -23,7 +23,7 @@ contract SetupSupa is Script {
         address owner;
         if (chainId == 5) {
             owner = vm.envAddress("OWNER_GOERLI");
-        } else if (chainId == 42161) {
+        } else if (chainId == 42161 || chainId == 8453) {
             owner = vm.envAddress("DEPLOYER");
         } else {
             revert("unsupported chain");
@@ -60,20 +60,20 @@ contract SetupSupa is Script {
             erc721Multiplier: 5
         });
 
-        CallWithoutValue[] memory governanceCalls = new CallWithoutValue[](4);
+        CallWithoutValue[] memory governanceCalls = new CallWithoutValue[](2);
+//        governanceCalls[0] = CallWithoutValue({
+//            to: address(versionManager),
+//            callData: abi.encodeWithSelector(VersionManager.addVersion.selector, IVersionManager.Status.PRODUCTION, address(walletLogic))
+//        });
+//        governanceCalls[1] = CallWithoutValue({
+//            to: address(versionManager),
+//            callData: abi.encodeWithSelector(VersionManager.markRecommendedVersion.selector, walletLogic.VERSION())
+//        });
         governanceCalls[0] = CallWithoutValue({
-            to: address(versionManager),
-            callData: abi.encodeWithSelector(VersionManager.addVersion.selector, IVersionManager.Status.PRODUCTION, address(walletLogic))
-        });
-        governanceCalls[1] = CallWithoutValue({
-            to: address(versionManager),
-            callData: abi.encodeWithSelector(VersionManager.markRecommendedVersion.selector, walletLogic.VERSION())
-        });
-        governanceCalls[2] = CallWithoutValue({
             to: address(supa),
             callData: abi.encodeWithSelector(SupaConfig.setConfig.selector, config)
         });
-        governanceCalls[3] = CallWithoutValue({
+        governanceCalls[1] = CallWithoutValue({
             to: address(supa),
             callData: abi.encodeWithSelector(SupaConfig.setTokenStorageConfig.selector, tokenStorageConfig)
         });
@@ -81,9 +81,9 @@ contract SetupSupa is Script {
 
         OffchainEntityProxy offchainEntityProxy = OffchainEntityProxy(offchainEntityProxyAddress);
 
-        Call[] memory calls = new Call[](1);
-        calls[0] = Call({
-            to: address(governanceProxy),
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(governanceProxy),
             callData: abi.encodeWithSelector(GovernanceProxy.executeBatch.selector, governanceCalls),
             value: 0
         });
@@ -96,4 +96,6 @@ contract SetupSupa is Script {
 // forge script script/SetupSupa.s.sol:SetupSupa --rpc-url $GOERLI_RPC_URL --broadcast -vvvv --account supa_test_deployer
 
 // forge script script/SetupSupa.s.sol:SetupSupa --rpc-url $ARBITRUM_RPC_URL --broadcast -vvvv --account supa_deployer
+
+// forge script script/SetupSupa.s.sol:SetupSupa --rpc-url $BASE_RPC_URL --broadcast -vvvv --account supa_deployer
 

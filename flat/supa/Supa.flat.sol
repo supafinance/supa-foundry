@@ -1761,6 +1761,12 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
         uint256 value;
     }
 
+    struct Execution {
+        address target;
+        uint256 value;
+        bytes callData;
+    }
+
 /// @notice Metadata to splice a return value into a call.
     struct ReturnDataLink {
         // index of the call with the return value
@@ -1775,15 +1781,15 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 
 /// @notice Specify a batch of calls to be executed in sequence,
 /// @notice with the return values of some calls being passed as arguments to later calls.
-    struct LinkedCall {
-        Call call;
+    struct LinkedExecution {
+        Execution execution;
         ReturnDataLink[] links;
     }
 
-library CallLib {
+library ExecutionLib {
     using Address for address;
 
-    bytes internal constant CALL_TYPESTRING = "Call(address to,bytes callData,uint256 value)";
+    bytes internal constant CALL_TYPESTRING = "Execution(address target,uint256 value,bytes callData)";
     bytes32 constant CALL_TYPEHASH = keccak256(CALL_TYPESTRING);
     bytes internal constant CALLWITHOUTVALUE_TYPESTRING =
     "CallWithoutValue(address to,bytes callData)";
@@ -1808,11 +1814,31 @@ library CallLib {
     }
 
     /**
+     * @notice Execute a call with value.
+     *
+     * @param call The call to execute.
+     */
+    function execute(Execution memory call) internal returns (bytes memory) {
+        return call.target.functionCallWithValue(call.callData, call.value);
+    }
+
+//    /**
+//     * @notice Execute a batch of calls.
+//     *
+//     * @param calls The calls to execute.
+//     */
+//    function executeBatch(Call[] memory calls) internal {
+//        for (uint256 i = 0; i < calls.length; i++) {
+//            execute(calls[i]);
+//        }
+//    }
+
+    /**
      * @notice Execute a batch of calls.
      *
      * @param calls The calls to execute.
      */
-    function executeBatch(Call[] memory calls) internal {
+    function executeBatch(Execution[] memory calls) internal {
         for (uint256 i = 0; i < calls.length; i++) {
             execute(calls[i]);
         }
@@ -1829,11 +1855,11 @@ library CallLib {
         }
     }
 
-    function hashCall(Call memory call) internal pure returns (bytes32) {
-        return keccak256(abi.encode(CALL_TYPEHASH, call.to, keccak256(call.callData), call.value));
+    function hashCall(Execution memory call) internal pure returns (bytes32) {
+        return keccak256(abi.encode(CALL_TYPEHASH, call.target, keccak256(call.callData), call.value));
     }
 
-    function hashCallArray(Call[] memory calls) internal pure returns (bytes32) {
+    function hashCallArray(Execution[] memory calls) internal pure returns (bytes32) {
         bytes32[] memory hashes = new bytes32[](calls.length);
         for (uint256 i = 0; i < calls.length; i++) {
             hashes[i] = hashCall(calls[i]);
@@ -2033,6 +2059,11 @@ interface ISupaConfig {
     /// @param version The new target version of walletLogic contract
     function upgradeWalletImplementation(string calldata version) external;
 
+    /// @notice Transfers ownership of `msg.sender` to the `newOwner`
+    /// @dev emits `WalletOwnershipTransferred` event
+    /// @param newOwner The new owner of the wallet
+    function transferWalletOwnership(address newOwner) external;
+
     /// @notice Proposes the ownership transfer of `wallet` to the `newOwner`
     /// @dev The ownership transfer must be executed by the `newOwner` to complete the transfer
     /// @dev emits `WalletOwnershipTransferProposed` event
@@ -2110,6 +2141,11 @@ interface ISupaConfig {
     /// @notice creates a new wallet with sender as the owner and returns the wallet address
     /// @return wallet The address of the created wallet
     function createWallet() external returns (address wallet);
+
+    /// @notice creates a new wallet with sender as the owner and returns the wallet address
+    /// @param nonce The nonce to be used for the wallet creation (must be greater than 1B)
+    /// @return wallet The address of the created wallet
+    function createWallet(uint256 nonce) external returns (address wallet);
 
     /// @notice Pause the contract
     function pause() external;
@@ -2328,7 +2364,7 @@ interface ISupaCore {
     /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral
     /// and Supa reserve/debt must be sufficient
     /// @param calls An array of transaction calls
-    function executeBatch(Call[] memory calls) external;
+    function executeBatch(Execution[] memory calls) external;
 
     /// @notice Returns the approved address for a token, or zero if no address set
     /// @param collection The address of the ERC721 token
@@ -4604,6 +4640,8 @@ library Errors {
     error InvalidSignature();
     /// @notice Data does not match the expected format
     error InvalidData();
+    /// @notice Nonce is out of range
+    error InvalidNonce();
     /// @notice Nonce has already been used
     error NonceAlreadyUsed();
     /// @notice Deadline has expired
@@ -4951,12 +4989,12 @@ contract WalletProxy is WalletState, Proxy {
     receive() external payable override {}
 
     // Allow Supa to make arbitrary calls in lieu of this wallet
-    function executeBatch(Call[] calldata calls) external payable ifSupa {
+    function executeBatch(Execution[] calldata calls) external payable ifSupa {
         // Function is payable to allow for ETH transfers to the logic
         // contract, but supa should never send eth (supa contract should
         // never contain eth / other than what's self-destructed into it)
         FsUtils.Assert(msg.value == 0);
-        CallLib.executeBatch(calls);
+        ExecutionLib.executeBatch(calls);
     }
 
     // The implementation of the delegate is controlled by Supa
@@ -4969,7 +5007,7 @@ interface IERC1363SpenderExtended {
     function onApprovalReceived(
         address owner,
         uint256 value,
-        Call calldata call
+        Execution calldata call
     ) external returns (bytes4);
 }
 
@@ -5245,7 +5283,7 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
     }
 
     /// @inheritdoc ISupaCore
-    function executeBatch(Call[] memory calls) external override onlyWallet whenNotPaused {
+    function executeBatch(Execution[] memory calls) external onlyWallet whenNotPaused {
         WalletProxy(payable(msg.sender)).executeBatch(calls);
         if (!isSolvent(msg.sender)) {
             revert Errors.Insolvent();
@@ -5474,7 +5512,11 @@ contract Supa is SupaState, ISupaCore, IERC721Receiver, Proxy {
             revert Errors.ReceiverNotContract();
         }
 
-        Call memory call = Call({to: target, callData: data, value: msg.value});
+        Execution memory call = Execution({
+            target: target,
+            callData: data,
+            value: msg.value
+        });
 
         try IERC1363SpenderExtended(spender).onApprovalReceived(msg.sender, amount, call) returns (bytes4 retval) {
             return retval == IERC1363SpenderExtended.onApprovalReceived.selector;

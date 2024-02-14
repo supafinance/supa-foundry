@@ -1,218 +1,167 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-// OpenZeppelin Contracts (last updated v4.8.0) (token/ERC721/ERC721.sol)
-
-// OpenZeppelin Contracts (last updated v4.8.0) (token/ERC721/IERC721.sol)
-
-// OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)
+// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
 
 /**
- * @dev Interface of the ERC165 standard, as defined in the
- * https://eips.ethereum.org/EIPS/eip-165[EIP].
- *
- * Implementers can declare support of contract interfaces, which can then be
- * queried by others ({ERC165Checker}).
- *
- * For an implementation, see {ERC165}.
+ * @dev Interface of the ERC20 standard as defined in the EIP.
  */
-interface IERC165 {
+interface IERC20 {
     /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding
-     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-     * to learn more about how these ids are created.
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
      *
-     * This function call must use less than 30 000 gas.
+     * Note that `value` may be zero.
      */
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
-}
-
-/**
- * @dev Required interface of an ERC721 compliant contract.
- */
-interface IERC721 is IERC165 {
-    /**
-     * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event Transfer(address indexed from, address indexed to, uint256 value);
 
     /**
-     * @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
      */
-    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     /**
-     * @dev Emitted when `owner` enables or disables (`approved`) `operator` to manage all of its assets.
+     * @dev Returns the amount of tokens in existence.
      */
-    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+    function totalSupply() external view returns (uint256);
 
     /**
-     * @dev Returns the number of tokens in ``owner``'s account.
+     * @dev Returns the amount of tokens owned by `account`.
      */
-    function balanceOf(address owner) external view returns (uint256 balance);
+    function balanceOf(address account) external view returns (uint256);
 
     /**
-     * @dev Returns the owner of the `tokenId` token.
+     * @dev Moves `amount` tokens from the caller's account to `to`.
      *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     */
-    function ownerOf(uint256 tokenId) external view returns (address owner);
-
-    /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
+     * Returns a boolean value indicating whether the operation succeeded.
      *
      * Emits a {Transfer} event.
      */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes calldata data
-    ) external;
+    function transfer(address to, uint256 amount) external returns (bool);
 
     /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
-     * are aware of the ERC721 protocol to prevent tokens from being forever locked.
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
      *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If the caller is not `from`, it must have been allowed to move this token by either {approve} or {setApprovalForAll}.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
-     *
-     * Emits a {Transfer} event.
+     * This value changes when {approve} or {transferFrom} are called.
      */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
+    function allowance(address owner, address spender) external view returns (uint256);
 
     /**
-     * @dev Transfers `tokenId` token from `from` to `to`.
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
      *
-     * WARNING: Note that the caller is responsible to confirm that the recipient is capable of receiving ERC721
-     * or else they may be permanently lost. Usage of {safeTransferFrom} prevents loss, though the caller must
-     * understand this adds an external call which potentially creates a reentrancy vulnerability.
+     * Returns a boolean value indicating whether the operation succeeded.
      *
-     * Requirements:
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
      *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must be owned by `from`.
-     * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `from` to `to` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
      *
      * Emits a {Transfer} event.
      */
     function transferFrom(
         address from,
         address to,
-        uint256 tokenId
-    ) external;
-
-    /**
-     * @dev Gives permission to `to` to transfer `tokenId` token to another account.
-     * The approval is cleared when the token is transferred.
-     *
-     * Only a single account can be approved at a time, so approving the zero address clears previous approvals.
-     *
-     * Requirements:
-     *
-     * - The caller must own the token or be an approved operator.
-     * - `tokenId` must exist.
-     *
-     * Emits an {Approval} event.
-     */
-    function approve(address to, uint256 tokenId) external;
-
-    /**
-     * @dev Approve or remove `operator` as an operator for the caller.
-     * Operators can call {transferFrom} or {safeTransferFrom} for any token owned by the caller.
-     *
-     * Requirements:
-     *
-     * - The `operator` cannot be the caller.
-     *
-     * Emits an {ApprovalForAll} event.
-     */
-    function setApprovalForAll(address operator, bool _approved) external;
-
-    /**
-     * @dev Returns the account approved for `tokenId` token.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     */
-    function getApproved(uint256 tokenId) external view returns (address operator);
-
-    /**
-     * @dev Returns if the `operator` is allowed to manage all of the assets of `owner`.
-     *
-     * See {setApprovalForAll}
-     */
-    function isApprovedForAll(address owner, address operator) external view returns (bool);
+        uint256 amount
+    ) external returns (bool);
 }
 
-// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC721/IERC721Receiver.sol)
+pragma abicoder v2;
 
-/**
- * @title ERC721 token receiver interface
- * @dev Interface for any contract that wants to support safeTransfers
- * from ERC721 asset contracts.
- */
-interface IERC721Receiver {
-    /**
-     * @dev Whenever an {IERC721} `tokenId` token is transferred to this contract via {IERC721-safeTransferFrom}
-     * by `operator` from `from`, this function is called.
-     *
-     * It must return its Solidity selector to confirm the token transfer.
-     * If any other value is returned or the interface is not implemented by the recipient, the transfer will be reverted.
-     *
-     * The selector can be obtained in Solidity with `IERC721Receiver.onERC721Received.selector`.
-     */
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
+/// @title Callback for IUniswapV3PoolActions#swap
+/// @notice Any contract that calls IUniswapV3PoolActions#swap must implement this interface
+interface IUniswapV3SwapCallback {
+    /// @notice Called to `msg.sender` after executing a swap via IUniswapV3Pool#swap.
+    /// @dev In the implementation you must pay the pool tokens owed for the swap.
+    /// The caller of this method must be checked to be a UniswapV3Pool deployed by the canonical UniswapV3Factory.
+    /// amount0Delta and amount1Delta can both be 0 if no tokens were swapped.
+    /// @param amount0Delta The amount of token0 that was sent (negative) or must be received (positive) by the pool by
+    /// the end of the swap. If positive, the callback must send that amount of token0 to the pool.
+    /// @param amount1Delta The amount of token1 that was sent (negative) or must be received (positive) by the pool by
+    /// the end of the swap. If positive, the callback must send that amount of token1 to the pool.
+    /// @param data Any data passed through by the caller via the IUniswapV3PoolActions#swap call
+    function uniswapV3SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
         bytes calldata data
-    ) external returns (bytes4);
+    ) external;
 }
 
-// OpenZeppelin Contracts v4.4.1 (token/ERC721/extensions/IERC721Metadata.sol)
+/// @title Router token swapping functionality
+/// @notice Functions for swapping tokens via Uniswap V3
+interface ISwapRouter is IUniswapV3SwapCallback {
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
 
-/**
- * @title ERC-721 Non-Fungible Token Standard, optional metadata extension
- * @dev See https://eips.ethereum.org/EIPS/eip-721
- */
-interface IERC721Metadata is IERC721 {
-    /**
-     * @dev Returns the token collection name.
-     */
-    function name() external view returns (string memory);
+    /// @notice Swaps `amountIn` of one token for as much as possible of another token
+    /// @param params The parameters necessary for the swap, encoded as `ExactInputSingleParams` in calldata
+    /// @return amountOut The amount of the received token
+    function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
 
-    /**
-     * @dev Returns the token collection symbol.
-     */
-    function symbol() external view returns (string memory);
+    struct ExactInputParams {
+        bytes path;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+    }
 
-    /**
-     * @dev Returns the Uniform Resource Identifier (URI) for `tokenId` token.
-     */
-    function tokenURI(uint256 tokenId) external view returns (string memory);
+    /// @notice Swaps `amountIn` of one token for as much as possible of another along the specified path
+    /// @param params The parameters necessary for the multi-hop swap, encoded as `ExactInputParams` in calldata
+    /// @return amountOut The amount of the received token
+    function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
+
+    struct ExactOutputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 deadline;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+        uint160 sqrtPriceLimitX96;
+    }
+
+    /// @notice Swaps as little as possible of one token for `amountOut` of another token
+    /// @param params The parameters necessary for the swap, encoded as `ExactOutputSingleParams` in calldata
+    /// @return amountIn The amount of the input token
+    function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn);
+
+    struct ExactOutputParams {
+        bytes path;
+        address recipient;
+        uint256 deadline;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+    }
+
+    /// @notice Swaps as little as possible of one token for `amountOut` of another along the specified path (reversed)
+    /// @param params The parameters necessary for the multi-hop swap, encoded as `ExactOutputParams` in calldata
+    /// @return amountIn The amount of the input token
+    function exactOutput(ExactOutputParams calldata params) external payable returns (uint256 amountIn);
 }
 
 // OpenZeppelin Contracts (last updated v4.8.0) (utils/Address.sol)
@@ -454,1302 +403,6 @@ library Address {
         } else {
             revert(errorMessage);
         }
-    }
-}
-
-// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
-
-/**
- * @dev Provides information about the current execution context, including the
- * sender of the transaction and its data. While these are generally available
- * via msg.sender and msg.data, they should not be accessed in such a direct
- * manner, since when dealing with meta-transactions the account sending and
- * paying for execution may not be the actual sender (as far as an application
- * is concerned).
- *
- * This contract is only required for intermediate, library-like contracts.
- */
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
-}
-
-// OpenZeppelin Contracts (last updated v4.8.0) (utils/Strings.sol)
-
-// OpenZeppelin Contracts (last updated v4.8.0) (utils/math/Math.sol)
-
-/**
- * @dev Standard math utilities missing in the Solidity language.
- */
-library Math {
-    enum Rounding {
-        Down, // Toward negative infinity
-        Up, // Toward infinity
-        Zero // Toward zero
-    }
-
-    /**
-     * @dev Returns the largest of two numbers.
-     */
-    function max(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a > b ? a : b;
-    }
-
-    /**
-     * @dev Returns the smallest of two numbers.
-     */
-    function min(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a < b ? a : b;
-    }
-
-    /**
-     * @dev Returns the average of two numbers. The result is rounded towards
-     * zero.
-     */
-    function average(uint256 a, uint256 b) internal pure returns (uint256) {
-        // (a + b) / 2 can overflow.
-        return (a & b) + (a ^ b) / 2;
-    }
-
-    /**
-     * @dev Returns the ceiling of the division of two numbers.
-     *
-     * This differs from standard division with `/` in that it rounds up instead
-     * of rounding down.
-     */
-    function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
-        // (a + b - 1) / b can overflow on addition, so we distribute.
-        return a == 0 ? 0 : (a - 1) / b + 1;
-    }
-
-    /**
-     * @notice Calculates floor(x * y / denominator) with full precision. Throws if result overflows a uint256 or denominator == 0
-     * @dev Original credit to Remco Bloemen under MIT license (https://xn--2-umb.com/21/muldiv)
-     * with further edits by Uniswap Labs also under MIT license.
-     */
-    function mulDiv(
-        uint256 x,
-        uint256 y,
-        uint256 denominator
-    ) internal pure returns (uint256 result) {
-        unchecked {
-            // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
-            // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
-            // variables such that product = prod1 * 2^256 + prod0.
-            uint256 prod0; // Least significant 256 bits of the product
-            uint256 prod1; // Most significant 256 bits of the product
-            assembly {
-                let mm := mulmod(x, y, not(0))
-                prod0 := mul(x, y)
-                prod1 := sub(sub(mm, prod0), lt(mm, prod0))
-            }
-
-            // Handle non-overflow cases, 256 by 256 division.
-            if (prod1 == 0) {
-                return prod0 / denominator;
-            }
-
-            // Make sure the result is less than 2^256. Also prevents denominator == 0.
-            require(denominator > prod1);
-
-            ///////////////////////////////////////////////
-            // 512 by 256 division.
-            ///////////////////////////////////////////////
-
-            // Make division exact by subtracting the remainder from [prod1 prod0].
-            uint256 remainder;
-            assembly {
-                // Compute remainder using mulmod.
-                remainder := mulmod(x, y, denominator)
-
-                // Subtract 256 bit number from 512 bit number.
-                prod1 := sub(prod1, gt(remainder, prod0))
-                prod0 := sub(prod0, remainder)
-            }
-
-            // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.
-            // See https://cs.stackexchange.com/q/138556/92363.
-
-            // Does not overflow because the denominator cannot be zero at this stage in the function.
-            uint256 twos = denominator & (~denominator + 1);
-            assembly {
-                // Divide denominator by twos.
-                denominator := div(denominator, twos)
-
-                // Divide [prod1 prod0] by twos.
-                prod0 := div(prod0, twos)
-
-                // Flip twos such that it is 2^256 / twos. If twos is zero, then it becomes one.
-                twos := add(div(sub(0, twos), twos), 1)
-            }
-
-            // Shift in bits from prod1 into prod0.
-            prod0 |= prod1 * twos;
-
-            // Invert denominator mod 2^256. Now that denominator is an odd number, it has an inverse modulo 2^256 such
-            // that denominator * inv = 1 mod 2^256. Compute the inverse by starting with a seed that is correct for
-            // four bits. That is, denominator * inv = 1 mod 2^4.
-            uint256 inverse = (3 * denominator) ^ 2;
-
-            // Use the Newton-Raphson iteration to improve the precision. Thanks to Hensel's lifting lemma, this also works
-            // in modular arithmetic, doubling the correct bits in each step.
-            inverse *= 2 - denominator * inverse; // inverse mod 2^8
-            inverse *= 2 - denominator * inverse; // inverse mod 2^16
-            inverse *= 2 - denominator * inverse; // inverse mod 2^32
-            inverse *= 2 - denominator * inverse; // inverse mod 2^64
-            inverse *= 2 - denominator * inverse; // inverse mod 2^128
-            inverse *= 2 - denominator * inverse; // inverse mod 2^256
-
-            // Because the division is now exact we can divide by multiplying with the modular inverse of denominator.
-            // This will give us the correct result modulo 2^256. Since the preconditions guarantee that the outcome is
-            // less than 2^256, this is the final result. We don't need to compute the high bits of the result and prod1
-            // is no longer required.
-            result = prod0 * inverse;
-            return result;
-        }
-    }
-
-    /**
-     * @notice Calculates x * y / denominator with full precision, following the selected rounding direction.
-     */
-    function mulDiv(
-        uint256 x,
-        uint256 y,
-        uint256 denominator,
-        Rounding rounding
-    ) internal pure returns (uint256) {
-        uint256 result = mulDiv(x, y, denominator);
-        if (rounding == Rounding.Up && mulmod(x, y, denominator) > 0) {
-            result += 1;
-        }
-        return result;
-    }
-
-    /**
-     * @dev Returns the square root of a number. If the number is not a perfect square, the value is rounded down.
-     *
-     * Inspired by Henry S. Warren, Jr.'s "Hacker's Delight" (Chapter 11).
-     */
-    function sqrt(uint256 a) internal pure returns (uint256) {
-        if (a == 0) {
-            return 0;
-        }
-
-        // For our first guess, we get the biggest power of 2 which is smaller than the square root of the target.
-        //
-        // We know that the "msb" (most significant bit) of our target number `a` is a power of 2 such that we have
-        // `msb(a) <= a < 2*msb(a)`. This value can be written `msb(a)=2**k` with `k=log2(a)`.
-        //
-        // This can be rewritten `2**log2(a) <= a < 2**(log2(a) + 1)`
-        // → `sqrt(2**k) <= sqrt(a) < sqrt(2**(k+1))`
-        // → `2**(k/2) <= sqrt(a) < 2**((k+1)/2) <= 2**(k/2 + 1)`
-        //
-        // Consequently, `2**(log2(a) / 2)` is a good first approximation of `sqrt(a)` with at least 1 correct bit.
-        uint256 result = 1 << (log2(a) >> 1);
-
-        // At this point `result` is an estimation with one bit of precision. We know the true value is a uint128,
-        // since it is the square root of a uint256. Newton's method converges quadratically (precision doubles at
-        // every iteration). We thus need at most 7 iteration to turn our partial result with one bit of precision
-        // into the expected uint128 result.
-        unchecked {
-            result = (result + a / result) >> 1;
-            result = (result + a / result) >> 1;
-            result = (result + a / result) >> 1;
-            result = (result + a / result) >> 1;
-            result = (result + a / result) >> 1;
-            result = (result + a / result) >> 1;
-            result = (result + a / result) >> 1;
-            return min(result, a / result);
-        }
-    }
-
-    /**
-     * @notice Calculates sqrt(a), following the selected rounding direction.
-     */
-    function sqrt(uint256 a, Rounding rounding) internal pure returns (uint256) {
-        unchecked {
-            uint256 result = sqrt(a);
-            return result + (rounding == Rounding.Up && result * result < a ? 1 : 0);
-        }
-    }
-
-    /**
-     * @dev Return the log in base 2, rounded down, of a positive value.
-     * Returns 0 if given 0.
-     */
-    function log2(uint256 value) internal pure returns (uint256) {
-        uint256 result = 0;
-        unchecked {
-            if (value >> 128 > 0) {
-                value >>= 128;
-                result += 128;
-            }
-            if (value >> 64 > 0) {
-                value >>= 64;
-                result += 64;
-            }
-            if (value >> 32 > 0) {
-                value >>= 32;
-                result += 32;
-            }
-            if (value >> 16 > 0) {
-                value >>= 16;
-                result += 16;
-            }
-            if (value >> 8 > 0) {
-                value >>= 8;
-                result += 8;
-            }
-            if (value >> 4 > 0) {
-                value >>= 4;
-                result += 4;
-            }
-            if (value >> 2 > 0) {
-                value >>= 2;
-                result += 2;
-            }
-            if (value >> 1 > 0) {
-                result += 1;
-            }
-        }
-        return result;
-    }
-
-    /**
-     * @dev Return the log in base 2, following the selected rounding direction, of a positive value.
-     * Returns 0 if given 0.
-     */
-    function log2(uint256 value, Rounding rounding) internal pure returns (uint256) {
-        unchecked {
-            uint256 result = log2(value);
-            return result + (rounding == Rounding.Up && 1 << result < value ? 1 : 0);
-        }
-    }
-
-    /**
-     * @dev Return the log in base 10, rounded down, of a positive value.
-     * Returns 0 if given 0.
-     */
-    function log10(uint256 value) internal pure returns (uint256) {
-        uint256 result = 0;
-        unchecked {
-            if (value >= 10**64) {
-                value /= 10**64;
-                result += 64;
-            }
-            if (value >= 10**32) {
-                value /= 10**32;
-                result += 32;
-            }
-            if (value >= 10**16) {
-                value /= 10**16;
-                result += 16;
-            }
-            if (value >= 10**8) {
-                value /= 10**8;
-                result += 8;
-            }
-            if (value >= 10**4) {
-                value /= 10**4;
-                result += 4;
-            }
-            if (value >= 10**2) {
-                value /= 10**2;
-                result += 2;
-            }
-            if (value >= 10**1) {
-                result += 1;
-            }
-        }
-        return result;
-    }
-
-    /**
-     * @dev Return the log in base 10, following the selected rounding direction, of a positive value.
-     * Returns 0 if given 0.
-     */
-    function log10(uint256 value, Rounding rounding) internal pure returns (uint256) {
-        unchecked {
-            uint256 result = log10(value);
-            return result + (rounding == Rounding.Up && 10**result < value ? 1 : 0);
-        }
-    }
-
-    /**
-     * @dev Return the log in base 256, rounded down, of a positive value.
-     * Returns 0 if given 0.
-     *
-     * Adding one to the result gives the number of pairs of hex symbols needed to represent `value` as a hex string.
-     */
-    function log256(uint256 value) internal pure returns (uint256) {
-        uint256 result = 0;
-        unchecked {
-            if (value >> 128 > 0) {
-                value >>= 128;
-                result += 16;
-            }
-            if (value >> 64 > 0) {
-                value >>= 64;
-                result += 8;
-            }
-            if (value >> 32 > 0) {
-                value >>= 32;
-                result += 4;
-            }
-            if (value >> 16 > 0) {
-                value >>= 16;
-                result += 2;
-            }
-            if (value >> 8 > 0) {
-                result += 1;
-            }
-        }
-        return result;
-    }
-
-    /**
-     * @dev Return the log in base 10, following the selected rounding direction, of a positive value.
-     * Returns 0 if given 0.
-     */
-    function log256(uint256 value, Rounding rounding) internal pure returns (uint256) {
-        unchecked {
-            uint256 result = log256(value);
-            return result + (rounding == Rounding.Up && 1 << (result * 8) < value ? 1 : 0);
-        }
-    }
-}
-
-/**
- * @dev String operations.
- */
-library Strings {
-    bytes16 private constant _SYMBOLS = "0123456789abcdef";
-    uint8 private constant _ADDRESS_LENGTH = 20;
-
-    /**
-     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
-     */
-    function toString(uint256 value) internal pure returns (string memory) {
-        unchecked {
-            uint256 length = Math.log10(value) + 1;
-            string memory buffer = new string(length);
-            uint256 ptr;
-            /// @solidity memory-safe-assembly
-            assembly {
-                ptr := add(buffer, add(32, length))
-            }
-            while (true) {
-                ptr--;
-                /// @solidity memory-safe-assembly
-                assembly {
-                    mstore8(ptr, byte(mod(value, 10), _SYMBOLS))
-                }
-                value /= 10;
-                if (value == 0) break;
-            }
-            return buffer;
-        }
-    }
-
-    /**
-     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
-     */
-    function toHexString(uint256 value) internal pure returns (string memory) {
-        unchecked {
-            return toHexString(value, Math.log256(value) + 1);
-        }
-    }
-
-    /**
-     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
-     */
-    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
-        bytes memory buffer = new bytes(2 * length + 2);
-        buffer[0] = "0";
-        buffer[1] = "x";
-        for (uint256 i = 2 * length + 1; i > 1; --i) {
-            buffer[i] = _SYMBOLS[value & 0xf];
-            value >>= 4;
-        }
-        require(value == 0, "Strings: hex length insufficient");
-        return string(buffer);
-    }
-
-    /**
-     * @dev Converts an `address` with fixed length of 20 bytes to its not checksummed ASCII `string` hexadecimal representation.
-     */
-    function toHexString(address addr) internal pure returns (string memory) {
-        return toHexString(uint256(uint160(addr)), _ADDRESS_LENGTH);
-    }
-}
-
-// OpenZeppelin Contracts v4.4.1 (utils/introspection/ERC165.sol)
-
-/**
- * @dev Implementation of the {IERC165} interface.
- *
- * Contracts that want to implement ERC165 should inherit from this contract and override {supportsInterface} to check
- * for the additional interface id that will be supported. For example:
- *
- * ```solidity
- * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
- *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);
- * }
- * ```
- *
- * Alternatively, {ERC165Storage} provides an easier to use but more expensive implementation.
- */
-abstract contract ERC165 is IERC165 {
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IERC165).interfaceId;
-    }
-}
-
-/**
- * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC721] Non-Fungible Token Standard, including
- * the Metadata extension, but not including the Enumerable extension, which is available separately as
- * {ERC721Enumerable}.
- */
-contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
-    using Address for address;
-    using Strings for uint256;
-
-    // Token name
-    string private _name;
-
-    // Token symbol
-    string private _symbol;
-
-    // Mapping from token ID to owner address
-    mapping(uint256 => address) private _owners;
-
-    // Mapping owner address to token count
-    mapping(address => uint256) private _balances;
-
-    // Mapping from token ID to approved address
-    mapping(uint256 => address) private _tokenApprovals;
-
-    // Mapping from owner to operator approvals
-    mapping(address => mapping(address => bool)) private _operatorApprovals;
-
-    /**
-     * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
-     */
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
-    }
-
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-        return
-            interfaceId == type(IERC721).interfaceId ||
-            interfaceId == type(IERC721Metadata).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
-    /**
-     * @dev See {IERC721-balanceOf}.
-     */
-    function balanceOf(address owner) public view virtual override returns (uint256) {
-        require(owner != address(0), "ERC721: address zero is not a valid owner");
-        return _balances[owner];
-    }
-
-    /**
-     * @dev See {IERC721-ownerOf}.
-     */
-    function ownerOf(uint256 tokenId) public view virtual override returns (address) {
-        address owner = _ownerOf(tokenId);
-        require(owner != address(0), "ERC721: invalid token ID");
-        return owner;
-    }
-
-    /**
-     * @dev See {IERC721Metadata-name}.
-     */
-    function name() public view virtual override returns (string memory) {
-        return _name;
-    }
-
-    /**
-     * @dev See {IERC721Metadata-symbol}.
-     */
-    function symbol() public view virtual override returns (string memory) {
-        return _symbol;
-    }
-
-    /**
-     * @dev See {IERC721Metadata-tokenURI}.
-     */
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        _requireMinted(tokenId);
-
-        string memory baseURI = _baseURI();
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId.toString())) : "";
-    }
-
-    /**
-     * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
-     * token will be the concatenation of the `baseURI` and the `tokenId`. Empty
-     * by default, can be overridden in child contracts.
-     */
-    function _baseURI() internal view virtual returns (string memory) {
-        return "";
-    }
-
-    /**
-     * @dev See {IERC721-approve}.
-     */
-    function approve(address to, uint256 tokenId) public virtual override {
-        address owner = ERC721.ownerOf(tokenId);
-        require(to != owner, "ERC721: approval to current owner");
-
-        require(
-            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
-            "ERC721: approve caller is not token owner or approved for all"
-        );
-
-        _approve(to, tokenId);
-    }
-
-    /**
-     * @dev See {IERC721-getApproved}.
-     */
-    function getApproved(uint256 tokenId) public view virtual override returns (address) {
-        _requireMinted(tokenId);
-
-        return _tokenApprovals[tokenId];
-    }
-
-    /**
-     * @dev See {IERC721-setApprovalForAll}.
-     */
-    function setApprovalForAll(address operator, bool approved) public virtual override {
-        _setApprovalForAll(_msgSender(), operator, approved);
-    }
-
-    /**
-     * @dev See {IERC721-isApprovedForAll}.
-     */
-    function isApprovedForAll(address owner, address operator) public view virtual override returns (bool) {
-        return _operatorApprovals[owner][operator];
-    }
-
-    /**
-     * @dev See {IERC721-transferFrom}.
-     */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override {
-        //solhint-disable-next-line max-line-length
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not token owner or approved");
-
-        _transfer(from, to, tokenId);
-    }
-
-    /**
-     * @dev See {IERC721-safeTransferFrom}.
-     */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override {
-        safeTransferFrom(from, to, tokenId, "");
-    }
-
-    /**
-     * @dev See {IERC721-safeTransferFrom}.
-     */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public virtual override {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not token owner or approved");
-        _safeTransfer(from, to, tokenId, data);
-    }
-
-    /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
-     * are aware of the ERC721 protocol to prevent tokens from being forever locked.
-     *
-     * `data` is additional data, it has no specified format and it is sent in call to `to`.
-     *
-     * This internal function is equivalent to {safeTransferFrom}, and can be used to e.g.
-     * implement alternative mechanisms to perform token transfer, such as signature-based.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _safeTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) internal virtual {
-        _transfer(from, to, tokenId);
-        require(_checkOnERC721Received(from, to, tokenId, data), "ERC721: transfer to non ERC721Receiver implementer");
-    }
-
-    /**
-     * @dev Returns the owner of the `tokenId`. Does NOT revert if token doesn't exist
-     */
-    function _ownerOf(uint256 tokenId) internal view virtual returns (address) {
-        return _owners[tokenId];
-    }
-
-    /**
-     * @dev Returns whether `tokenId` exists.
-     *
-     * Tokens can be managed by their owner or approved accounts via {approve} or {setApprovalForAll}.
-     *
-     * Tokens start existing when they are minted (`_mint`),
-     * and stop existing when they are burned (`_burn`).
-     */
-    function _exists(uint256 tokenId) internal view virtual returns (bool) {
-        return _ownerOf(tokenId) != address(0);
-    }
-
-    /**
-     * @dev Returns whether `spender` is allowed to manage `tokenId`.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     */
-    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
-        address owner = ERC721.ownerOf(tokenId);
-        return (spender == owner || isApprovedForAll(owner, spender) || getApproved(tokenId) == spender);
-    }
-
-    /**
-     * @dev Safely mints `tokenId` and transfers it to `to`.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must not exist.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _safeMint(address to, uint256 tokenId) internal virtual {
-        _safeMint(to, tokenId, "");
-    }
-
-    /**
-     * @dev Same as {xref-ERC721-_safeMint-address-uint256-}[`_safeMint`], with an additional `data` parameter which is
-     * forwarded in {IERC721Receiver-onERC721Received} to contract recipients.
-     */
-    function _safeMint(
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) internal virtual {
-        _mint(to, tokenId);
-        require(
-            _checkOnERC721Received(address(0), to, tokenId, data),
-            "ERC721: transfer to non ERC721Receiver implementer"
-        );
-    }
-
-    /**
-     * @dev Mints `tokenId` and transfers it to `to`.
-     *
-     * WARNING: Usage of this method is discouraged, use {_safeMint} whenever possible
-     *
-     * Requirements:
-     *
-     * - `tokenId` must not exist.
-     * - `to` cannot be the zero address.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _mint(address to, uint256 tokenId) internal virtual {
-        require(to != address(0), "ERC721: mint to the zero address");
-        require(!_exists(tokenId), "ERC721: token already minted");
-
-        _beforeTokenTransfer(address(0), to, tokenId, 1);
-
-        // Check that tokenId was not minted by `_beforeTokenTransfer` hook
-        require(!_exists(tokenId), "ERC721: token already minted");
-
-        unchecked {
-            // Will not overflow unless all 2**256 token ids are minted to the same owner.
-            // Given that tokens are minted one by one, it is impossible in practice that
-            // this ever happens. Might change if we allow batch minting.
-            // The ERC fails to describe this case.
-            _balances[to] += 1;
-        }
-
-        _owners[tokenId] = to;
-
-        emit Transfer(address(0), to, tokenId);
-
-        _afterTokenTransfer(address(0), to, tokenId, 1);
-    }
-
-    /**
-     * @dev Destroys `tokenId`.
-     * The approval is cleared when the token is burned.
-     * This is an internal function that does not check if the sender is authorized to operate on the token.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _burn(uint256 tokenId) internal virtual {
-        address owner = ERC721.ownerOf(tokenId);
-
-        _beforeTokenTransfer(owner, address(0), tokenId, 1);
-
-        // Update ownership in case tokenId was transferred by `_beforeTokenTransfer` hook
-        owner = ERC721.ownerOf(tokenId);
-
-        // Clear approvals
-        delete _tokenApprovals[tokenId];
-
-        unchecked {
-            // Cannot overflow, as that would require more tokens to be burned/transferred
-            // out than the owner initially received through minting and transferring in.
-            _balances[owner] -= 1;
-        }
-        delete _owners[tokenId];
-
-        emit Transfer(owner, address(0), tokenId);
-
-        _afterTokenTransfer(owner, address(0), tokenId, 1);
-    }
-
-    /**
-     * @dev Transfers `tokenId` from `from` to `to`.
-     *  As opposed to {transferFrom}, this imposes no restrictions on msg.sender.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must be owned by `from`.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _transfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {
-        require(ERC721.ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
-        require(to != address(0), "ERC721: transfer to the zero address");
-
-        _beforeTokenTransfer(from, to, tokenId, 1);
-
-        // Check that tokenId was not transferred by `_beforeTokenTransfer` hook
-        require(ERC721.ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
-
-        // Clear approvals from the previous owner
-        delete _tokenApprovals[tokenId];
-
-        unchecked {
-            // `_balances[from]` cannot overflow for the same reason as described in `_burn`:
-            // `from`'s balance is the number of token held, which is at least one before the current
-            // transfer.
-            // `_balances[to]` could overflow in the conditions described in `_mint`. That would require
-            // all 2**256 token ids to be minted, which in practice is impossible.
-            _balances[from] -= 1;
-            _balances[to] += 1;
-        }
-        _owners[tokenId] = to;
-
-        emit Transfer(from, to, tokenId);
-
-        _afterTokenTransfer(from, to, tokenId, 1);
-    }
-
-    /**
-     * @dev Approve `to` to operate on `tokenId`
-     *
-     * Emits an {Approval} event.
-     */
-    function _approve(address to, uint256 tokenId) internal virtual {
-        _tokenApprovals[tokenId] = to;
-        emit Approval(ERC721.ownerOf(tokenId), to, tokenId);
-    }
-
-    /**
-     * @dev Approve `operator` to operate on all of `owner` tokens
-     *
-     * Emits an {ApprovalForAll} event.
-     */
-    function _setApprovalForAll(
-        address owner,
-        address operator,
-        bool approved
-    ) internal virtual {
-        require(owner != operator, "ERC721: approve to caller");
-        _operatorApprovals[owner][operator] = approved;
-        emit ApprovalForAll(owner, operator, approved);
-    }
-
-    /**
-     * @dev Reverts if the `tokenId` has not been minted yet.
-     */
-    function _requireMinted(uint256 tokenId) internal view virtual {
-        require(_exists(tokenId), "ERC721: invalid token ID");
-    }
-
-    /**
-     * @dev Internal function to invoke {IERC721Receiver-onERC721Received} on a target address.
-     * The call is not executed if the target address is not a contract.
-     *
-     * @param from address representing the previous owner of the given token ID
-     * @param to target address that will receive the tokens
-     * @param tokenId uint256 ID of the token to be transferred
-     * @param data bytes optional data to send along with the call
-     * @return bool whether the call correctly returned the expected magic value
-     */
-    function _checkOnERC721Received(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) private returns (bool) {
-        if (to.isContract()) {
-            try IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, data) returns (bytes4 retval) {
-                return retval == IERC721Receiver.onERC721Received.selector;
-            } catch (bytes memory reason) {
-                if (reason.length == 0) {
-                    revert("ERC721: transfer to non ERC721Receiver implementer");
-                } else {
-                    /// @solidity memory-safe-assembly
-                    assembly {
-                        revert(add(32, reason), mload(reason))
-                    }
-                }
-            }
-        } else {
-            return true;
-        }
-    }
-
-    /**
-     * @dev Hook that is called before any token transfer. This includes minting and burning. If {ERC721Consecutive} is
-     * used, the hook may be called as part of a consecutive (batch) mint, as indicated by `batchSize` greater than 1.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s tokens will be transferred to `to`.
-     * - When `from` is zero, the tokens will be minted for `to`.
-     * - When `to` is zero, ``from``'s tokens will be burned.
-     * - `from` and `to` are never both zero.
-     * - `batchSize` is non-zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256, /* firstTokenId */
-        uint256 batchSize
-    ) internal virtual {
-        if (batchSize > 1) {
-            if (from != address(0)) {
-                _balances[from] -= batchSize;
-            }
-            if (to != address(0)) {
-                _balances[to] += batchSize;
-            }
-        }
-    }
-
-    /**
-     * @dev Hook that is called after any token transfer. This includes minting and burning. If {ERC721Consecutive} is
-     * used, the hook may be called as part of a consecutive (batch) mint, as indicated by `batchSize` greater than 1.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s tokens were transferred to `to`.
-     * - When `from` is zero, the tokens were minted for `to`.
-     * - When `to` is zero, ``from``'s tokens were burned.
-     * - `from` and `to` are never both zero.
-     * - `batchSize` is non-zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 firstTokenId,
-        uint256 batchSize
-    ) internal virtual {}
-}
-
-// OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/utils/SafeERC20.sol)
-
-// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
-
-/**
- * @dev Interface of the ERC20 standard as defined in the EIP.
- */
-interface IERC20 {
-    /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
-     */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
-    /**
-     * @dev Returns the amount of tokens in existence.
-     */
-    function totalSupply() external view returns (uint256);
-
-    /**
-     * @dev Returns the amount of tokens owned by `account`.
-     */
-    function balanceOf(address account) external view returns (uint256);
-
-    /**
-     * @dev Moves `amount` tokens from the caller's account to `to`.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transfer(address to, uint256 amount) external returns (bool);
-
-    /**
-     * @dev Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through {transferFrom}. This is
-     * zero by default.
-     *
-     * This value changes when {approve} or {transferFrom} are called.
-     */
-    function allowance(address owner, address spender) external view returns (uint256);
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * IMPORTANT: Beware that changing an allowance with this method brings the risk
-     * that someone may use both the old and the new allowance by unfortunate
-     * transaction ordering. One possible solution to mitigate this race
-     * condition is to first reduce the spender's allowance to 0 and set the
-     * desired value afterwards:
-     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-     *
-     * Emits an {Approval} event.
-     */
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    /**
-     * @dev Moves `amount` tokens from `from` to `to` using the
-     * allowance mechanism. `amount` is then deducted from the caller's
-     * allowance.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external returns (bool);
-}
-
-// OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/draft-IERC20Permit.sol)
-
-/**
- * @dev Interface of the ERC20 Permit extension allowing approvals to be made via signatures, as defined in
- * https://eips.ethereum.org/EIPS/eip-2612[EIP-2612].
- *
- * Adds the {permit} method, which can be used to change an account's ERC20 allowance (see {IERC20-allowance}) by
- * presenting a message signed by the account. By not relying on {IERC20-approve}, the token holder account doesn't
- * need to send a transaction, and thus is not required to hold Ether at all.
- */
-interface IERC20Permit {
-    /**
-     * @dev Sets `value` as the allowance of `spender` over ``owner``'s tokens,
-     * given ``owner``'s signed approval.
-     *
-     * IMPORTANT: The same issues {IERC20-approve} has related to transaction
-     * ordering also apply here.
-     *
-     * Emits an {Approval} event.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     * - `deadline` must be a timestamp in the future.
-     * - `v`, `r` and `s` must be a valid `secp256k1` signature from `owner`
-     * over the EIP712-formatted function arguments.
-     * - the signature must use ``owner``'s current nonce (see {nonces}).
-     *
-     * For more information on the signature format, see the
-     * https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
-     * section].
-     */
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
-    /**
-     * @dev Returns the current nonce for `owner`. This value must be
-     * included whenever a signature is generated for {permit}.
-     *
-     * Every successful call to {permit} increases ``owner``'s nonce by one. This
-     * prevents a signature from being used multiple times.
-     */
-    function nonces(address owner) external view returns (uint256);
-
-    /**
-     * @dev Returns the domain separator used in the encoding of the signature for {permit}, as defined by {EIP712}.
-     */
-    // solhint-disable-next-line func-name-mixedcase
-    function DOMAIN_SEPARATOR() external view returns (bytes32);
-}
-
-/**
- * @title SafeERC20
- * @dev Wrappers around ERC20 operations that throw on failure (when the token
- * contract returns false). Tokens that return no value (and instead revert or
- * throw on failure) are also supported, non-reverting calls are assumed to be
- * successful.
- * To use this library you can add a `using SafeERC20 for IERC20;` statement to your contract,
- * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.
- */
-library SafeERC20 {
-    using Address for address;
-
-    function safeTransfer(
-        IERC20 token,
-        address to,
-        uint256 value
-    ) internal {
-        _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
-    }
-
-    function safeTransferFrom(
-        IERC20 token,
-        address from,
-        address to,
-        uint256 value
-    ) internal {
-        _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
-    }
-
-    /**
-     * @dev Deprecated. This function has issues similar to the ones found in
-     * {IERC20-approve}, and its usage is discouraged.
-     *
-     * Whenever possible, use {safeIncreaseAllowance} and
-     * {safeDecreaseAllowance} instead.
-     */
-    function safeApprove(
-        IERC20 token,
-        address spender,
-        uint256 value
-    ) internal {
-        // safeApprove should only be called when setting an initial allowance,
-        // or when resetting it to zero. To increase and decrease it, use
-        // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
-        require(
-            (value == 0) || (token.allowance(address(this), spender) == 0),
-            "SafeERC20: approve from non-zero to non-zero allowance"
-        );
-        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
-    }
-
-    function safeIncreaseAllowance(
-        IERC20 token,
-        address spender,
-        uint256 value
-    ) internal {
-        uint256 newAllowance = token.allowance(address(this), spender) + value;
-        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
-    }
-
-    function safeDecreaseAllowance(
-        IERC20 token,
-        address spender,
-        uint256 value
-    ) internal {
-        unchecked {
-            uint256 oldAllowance = token.allowance(address(this), spender);
-            require(oldAllowance >= value, "SafeERC20: decreased allowance below zero");
-            uint256 newAllowance = oldAllowance - value;
-            _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
-        }
-    }
-
-    function safePermit(
-        IERC20Permit token,
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) internal {
-        uint256 nonceBefore = token.nonces(owner);
-        token.permit(owner, spender, value, deadline, v, r, s);
-        uint256 nonceAfter = token.nonces(owner);
-        require(nonceAfter == nonceBefore + 1, "SafeERC20: permit did not succeed");
-    }
-
-    /**
-     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
-     * on the return value: the return value is optional (but if data is returned, it must not be false).
-     * @param token The token targeted by the call.
-     * @param data The call data (encoded using abi.encode or one of its variants).
-     */
-    function _callOptionalReturn(IERC20 token, bytes memory data) private {
-        // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
-        // we're implementing it ourselves. We use {Address-functionCall} to perform this call, which verifies that
-        // the target address contains contract code and also asserts for success in the low-level call.
-
-        bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
-        if (returndata.length > 0) {
-            // Return data is optional
-            require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
-        }
-    }
-}
-
-// OpenZeppelin Contracts (last updated v4.7.0) (security/Pausable.sol)
-
-/**
- * @dev Contract module which allows children to implement an emergency stop
- * mechanism that can be triggered by an authorized account.
- *
- * This module is used through inheritance. It will make available the
- * modifiers `whenNotPaused` and `whenPaused`, which can be applied to
- * the functions of your contract. Note that they will not be pausable by
- * simply including this module, only once the modifiers are put in place.
- */
-abstract contract Pausable is Context {
-    /**
-     * @dev Emitted when the pause is triggered by `account`.
-     */
-    event Paused(address account);
-
-    /**
-     * @dev Emitted when the pause is lifted by `account`.
-     */
-    event Unpaused(address account);
-
-    bool private _paused;
-
-    /**
-     * @dev Initializes the contract in unpaused state.
-     */
-    constructor() {
-        _paused = false;
-    }
-
-    /**
-     * @dev Modifier to make a function callable only when the contract is not paused.
-     *
-     * Requirements:
-     *
-     * - The contract must not be paused.
-     */
-    modifier whenNotPaused() {
-        _requireNotPaused();
-        _;
-    }
-
-    /**
-     * @dev Modifier to make a function callable only when the contract is paused.
-     *
-     * Requirements:
-     *
-     * - The contract must be paused.
-     */
-    modifier whenPaused() {
-        _requirePaused();
-        _;
-    }
-
-    /**
-     * @dev Returns true if the contract is paused, and false otherwise.
-     */
-    function paused() public view virtual returns (bool) {
-        return _paused;
-    }
-
-    /**
-     * @dev Throws if the contract is paused.
-     */
-    function _requireNotPaused() internal view virtual {
-        require(!paused(), "Pausable: paused");
-    }
-
-    /**
-     * @dev Throws if the contract is not paused.
-     */
-    function _requirePaused() internal view virtual {
-        require(paused(), "Pausable: not paused");
-    }
-
-    /**
-     * @dev Triggers stopped state.
-     *
-     * Requirements:
-     *
-     * - The contract must not be paused.
-     */
-    function _pause() internal virtual whenNotPaused {
-        _paused = true;
-        emit Paused(_msgSender());
-    }
-
-    /**
-     * @dev Returns to normal state.
-     *
-     * Requirements:
-     *
-     * - The contract must be paused.
-     */
-    function _unpause() internal virtual whenPaused {
-        _paused = false;
-        emit Unpaused(_msgSender());
     }
 }
 
@@ -2448,106 +1101,6 @@ interface ISupaCore {
 }
 
 interface ISupa is ISupaCore, ISupaConfig {}
-
-interface IVersionManager {
-    /// @dev Signifies the status of a version
-    enum Status {
-        BETA,
-        RC,
-        PRODUCTION,
-        DEPRECATED
-    }
-
-    /// @dev Indicated the highest level of bug found in the version
-    enum BugLevel {
-        NONE,
-        LOW,
-        MEDIUM,
-        HIGH,
-        CRITICAL
-    }
-
-    /// @dev A struct to encode version details
-    struct Version {
-        // the version number string ex. "v1.0"
-        string versionName;
-        Status status;
-        BugLevel bugLevel;
-        // the address of the instantiation of the version
-        address implementation;
-        // the date when this version was registered with the contract
-        uint256 dateAdded;
-    }
-
-    event VersionAdded(string versionName, address indexed implementation);
-
-    event VersionUpdated(string versionName, Status status, BugLevel bugLevel);
-
-    event VersionRecommended(string versionName);
-
-    event RecommendedVersionRemoved();
-
-    /// @notice Registers a new version of the store contract
-    /// @param status Status of the version to be added
-    /// @param _implementation The address of the implementation of the version
-    function addVersion(Status status, address _implementation) external;
-
-    /// @notice Update a contract version
-    /// @param versionName Version of the contract
-    /// @param status Status of the contract
-    /// @param bugLevel New bug level for the contract
-    function updateVersion(string calldata versionName, Status status, BugLevel bugLevel) external;
-
-    /// @notice Set the recommended version
-    /// @param versionName Version of the contract
-    function markRecommendedVersion(string calldata versionName) external;
-
-    /// @notice Remove the recommended version
-    function removeRecommendedVersion() external;
-
-    /// @notice Get recommended version for the contract.
-    /// @return versionName The name of the recommended version
-    /// @return status The status of the recommended version
-    /// @return bugLevel The bug level of the recommended version
-    /// @return implementation The address of the implementation of the recommended version
-    /// @return dateAdded The date the recommended version was added
-    function getRecommendedVersion()
-        external
-        view
-        returns (
-            string memory versionName,
-            Status status,
-            BugLevel bugLevel,
-            address implementation,
-            uint256 dateAdded
-        );
-
-    /// @notice Get total count of versions
-    function getVersionCount() external view returns (uint256 count);
-
-    /// @dev Returns the version name at specific index in the versionString[] array
-    /// @param index The index to be searched for
-    function getVersionAtIndex(uint256 index) external view returns (string memory versionName);
-
-    /// @notice Get the implementation address for a version
-    /// @param index The index of the version
-    function getVersionAddress(uint256 index) external view returns (address);
-
-    /// @notice Returns the version details for the given version name
-    /// @param versionName Version string
-    function getVersionDetails(
-        string calldata versionName
-    )
-        external
-        view
-        returns (
-            string memory versionString,
-            Status status,
-            BugLevel bugLevel,
-            address implementation,
-            uint256 dateAdded
-        );
-}
 
 // BEGIN STRIP
 // Used in `FsUtils.log` which is a debugging tool.
@@ -4166,383 +2719,6 @@ library FsUtils {
     }
 }
 
-/**
- * @title Utility methods basic math operations.
- *
- * NOTE In order for the fuzzing tests to be isolated, all functions in this library need to be
- * `internal`.  Otherwise a contract that uses this library has a dependency on the library.
- *
- * Our current Echidna setup requires contracts to be deployable in isolation, so make sure to keep
- * the functions `internal`, until we update our Echidna tests to support more complex setups.
- */
-library FsMath {
-    /**
-     * @notice Size of `FIXED_POINT_SCALE` in bits.
-     */
-    int256 constant FIXED_POINT_SCALE_BITS = 64;
-
-    /**
-     * @notice Scaling factor used by our fixed-point integer representation.
-     *
-     * We chose `FIXED_POINT_SCALE` to be a power of 2 to make certain optimizations in the
-     * calculation of `e^x` more efficient.  See `exp()` implementation for details.
-     *
-     * See https://en.wikipedia.org/wiki/Fixed-point_arithmetic
-     */
-    int256 constant FIXED_POINT_SCALE = int256(1) << uint256(FIXED_POINT_SCALE_BITS);
-
-    uint256 constant UINT256_MAX = ~uint256(0);
-
-    function abs(int256 value) internal pure returns (uint256) {
-        if (value >= 0) {
-            // slither-disable-next-line safe-cast
-            return uint256(value);
-        }
-        // slither-disable-next-line safe-cast
-        return uint256(-value);
-    }
-
-    function sabs(int256 value) internal pure returns (int256) {
-        if (value >= 0) {
-            return value;
-        }
-        return -value;
-    }
-
-    function sign(int256 value) internal pure returns (int256) {
-        if (value < 0) {
-            return -1;
-        } else if (value > 0) {
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-
-    function min(int256 a, int256 b) internal pure returns (int256) {
-        return a < b ? a : b;
-    }
-
-    function max(int256 a, int256 b) internal pure returns (int256) {
-        return a > b ? a : b;
-    }
-
-    // Clip val into interval [lower, upper]
-    function clip(int256 val, int256 lower, int256 upper) internal pure returns (int256) {
-        return min(max(val, lower), upper);
-    }
-
-    function safeCastToSigned(uint256 x) internal pure returns (int256) {
-        // slither-disable-next-line safe-cast
-        int256 ret = int256(x);
-        require(ret >= 0, "Cast overflow");
-        return ret;
-    }
-
-    function safeCastToUnsigned(int256 x) internal pure returns (uint256) {
-        require(x >= 0, "Cast underflow");
-        // slither-disable-next-line safe-cast
-        return uint256(x);
-    }
-
-    /**
-     * @notice Calculate `e^x`.
-     *
-     * @param x Is a fixed point decimals with the scale of `FIXED_POINT_SCALE`.
-     * @return A fixed point decimals with the scale of `FIXED_POINT_SCALE`.
-     */
-    function exp(int256 x) internal pure returns (int256) {
-        /*
-         * Making fixed point representation explicit we want to compute
-         *
-         * result = e^(x / FIXED_POINT_SCALE) * FIXED_POINT_SCALE
-         *
-         * To efficiently and accurately calculate the above expression we decompose this into 3
-         * parts where each part has an efficient and accurate method of calculation.
-         *
-         * First, we transform the exponentiation into base 2 so we can use shifts:
-         *
-         *   e^(x / FIXED_POINT_SCALE) * FIXED_POINT_SCALE
-         * = 2^(x / FIXED_POINT_SCALE / ln(2)) * FIXED_POINT_SCALE
-         * = 2^(x / ln2FixedPoint) * FIXED_POINT_SCALE
-         * = 2^integerQuot * 2^(rem / ln2FixedPoint) * FIXED_POINT_SCALE
-         */
-
-        FsUtils.Assert(FIXED_POINT_SCALE_BITS == 64);
-        /*
-         * ln(2) * 2^FIXED_POINT_SCALE_BITS = ln(2) * 2^64
-         */
-        int256 ln2FixedPoint = 12786308645202655659;
-
-        int256 shiftLeft = x / ln2FixedPoint;
-        int256 remainder = x % ln2FixedPoint;
-        if (shiftLeft <= -FIXED_POINT_SCALE_BITS) return 0;
-        // We use signed integers so we have 256 - 1 bits to work with of which FIXED_POINT_SCALE_BITS
-        // are used for the fractional part.
-        require(shiftLeft < (256 - 1 - FIXED_POINT_SCALE_BITS), "Exponentiation overflows");
-
-        /*
-         * At this point we have decomposed exp as a simple bitshift and a fractional power of 2. We
-         * could express this as an integer power like
-         *
-         *      (2^(1/ln2FixedPoint))^remainder
-         *
-         * but `remainder` is very big, in the order of `10^19` resulting in ~60 (2log) iteration in
-         * repeated squaring but more problematic also a lot of precision loss. It turns out that
-         * `ln2FixedPoint` as an integer has a smallish factor.
-         */
-        int256 smallFactor = 4373;
-        int256 bigFactor = ln2FixedPoint / smallFactor;
-
-        /*
-         * Split
-         *
-         *      2^(remainder/ln2FixedPoint)
-         *
-         * as
-         *
-         *      (2^(1/smallFactor)) ^ (remainder/bigFactor)
-         */
-        int256 integerPower = remainder / bigFactor;
-        int256 smallRemainder = remainder % bigFactor;
-
-        /*
-         * So we can further decompose as follows:
-         *
-         * (2^(1/smallFactor))^(integerPower) * exp(smallRemainder/fixedPoint)
-         *
-         * where in the last factor base 2 is replaced with an ordinary e-power using ln2.
-         *
-         * At this point `0 <= integerPower < smallFactor` and `0 <= smallRemainder < bigFactor`.
-         * The first range implies that repeated exponentiation of the first factor won't loop too
-         * much and has rather good precision.  The second range implies that
-         * `smallRemainder/FIXED_POINT_SCALE < 1/4373` so that the Taylor expansion rapidly
-         * converges.
-         */
-        int256 taylorApprox = FIXED_POINT_SCALE +
-            smallRemainder +
-            (smallRemainder * smallRemainder) /
-            (2 * FIXED_POINT_SCALE) +
-            (smallRemainder * smallRemainder * smallRemainder) /
-            (6 * FIXED_POINT_SCALE * FIXED_POINT_SCALE);
-
-        int256 twoPowRecipSmallFactor = 18449668226934502855; // 2^(1/smallFactor) in fixed point
-        int256 prod;
-        if (integerPower >= 0) {
-            /*
-             * This implies shiftLeft >= 0 we don't want to lose precision by first dividing and
-             * subsequent shifting left.
-             */
-            prod = powInternal(twoPowRecipSmallFactor, integerPower) * taylorApprox;
-            shiftLeft -= FIXED_POINT_SCALE_BITS;
-        } else {
-            /*
-             * This implies shiftLeft <= 0 so we're losing precision anyway.
-             */
-            prod =
-                (FIXED_POINT_SCALE * taylorApprox) /
-                powInternal(twoPowRecipSmallFactor, -integerPower);
-        }
-
-        return shiftLeft >= 0 ? (prod << uint256(shiftLeft)) : (prod >> uint256(-shiftLeft));
-    }
-
-    /**
-     * @notice Calculates `x^n`
-     *
-     * Note we cannot use solidity `**` as we have to normalize fixed point after every
-     * multiplication.
-     *
-     * @param x  a `FIXED_POINT_SCALE` fixed point decimal, with a scale of `FIXED_POINT_SCALE`.
-     * @param n  an integer.
-     */
-    function pow(int256 x, int256 n) internal pure returns (int256) {
-        if (n >= 0) {
-            return powInternal(x, n);
-        } else {
-            return powInternal((FIXED_POINT_SCALE * FIXED_POINT_SCALE) / x, -n);
-        }
-    }
-
-    /**
-     * @notice Calculates square root of `x`, in fixed point decimal with a scale of
-     * `FIXED_POINT_SCALE`.
-     *
-     * @param x  a `FIXED_POINT_SCALE` fixed point decimal, with a scale of `FIXED_POINT_SCALE`.
-     */
-    function sqrt(int256 x) internal pure returns (int256) {
-        require(x >= 0, "Square root of negative number");
-        int256 prevRes = 0;
-        int256 res = x / 2;
-        while (res != prevRes) {
-            prevRes = res;
-            res = (res + (x << uint256(FIXED_POINT_SCALE_BITS)) / res) / 2;
-        }
-        return res;
-    }
-
-    // See https://en.wikipedia.org/wiki/Hamming_weight#Efficient_implementation
-    function bitCount(uint256 x) internal pure returns (uint256) {
-        // In this routine we purposefully interpret x as a number in Z mod (2^256) in the
-        // multiplication.
-        unchecked {
-            if (x == UINT256_MAX) return 256;
-
-            // Count 1's in 128 2-bit groups
-            uint256 mask = UINT256_MAX / 3; // 0x5555...
-            // Special case (x & mask) + ((x >> 1) & mask) equals formula below with less
-            // instructions.
-            x = x - ((x >> 1) & mask);
-
-            // Count 1's in 64 4-bit groups
-            mask = UINT256_MAX / 5; // 0x3333....
-            x = (x & mask) + ((x >> 2) & mask);
-
-            // Count 1's in 32 8-bit groups. Note At this point there is no danger of overflowing
-            // between count of groups so we can have
-            // (x & mask) + ((x >> n) & mask) = (x + (x >> n)) & mask
-            // which saves an instruction
-            mask = UINT256_MAX / 17; // 0x0F0F...
-            x = (x + (x >> 4)) & mask;
-
-            // At this point we have the count of each of the 32 bytes. In 8 bits we can store
-            // 0 to 255, so only UINT_MAX would overflow when represented in a single byte, which
-            // is case we have excluded. So we can calculate the
-            mask = UINT256_MAX / 255;
-            x = (x * mask) >> (256 - 8);
-        }
-        return x;
-    }
-
-    /**
-     * @notice A helper used by `pow`, that expects that `n` is positive.
-     */
-    function powInternal(int256 x, int256 n) private pure returns (int256) {
-        int256 res = FIXED_POINT_SCALE;
-        while (n > 0) {
-            if ((n & 1) == 1) {
-                res = (res * x) / FIXED_POINT_SCALE;
-            }
-            x = (x * x) / FIXED_POINT_SCALE;
-            n /= 2;
-        }
-        return res;
-    }
-}
-
-library WalletLib {
-    type NFTId is uint256; // 16 bits (tokenId) + 224 bits (hash) + 16 bits (erc721 index)
-
-    /// @notice NFT must be in the user's wallet
-    error NFTNotInWallet();
-
-    struct Wallet {
-        address owner;
-        int256 tokenCounter;
-        mapping(uint16 => ERC20Share) erc20Share;
-        NFTId[] nfts;
-        // bitmask of Supa indexes of ERC20 present in a wallet. `1` can be increased on updates
-        uint256[1] creditAccountErc20Idxs;
-    }
-
-    function removeERC20IdxFromCreditAccount(Wallet storage wallet, uint16 erc20Idx) internal {
-        wallet.creditAccountErc20Idxs[erc20Idx >> 8] &= ~(1 << (erc20Idx & 255));
-        --wallet.tokenCounter;
-    }
-
-    function addERC20IdxToCreditAccount(Wallet storage wallet, uint16 erc20Idx) internal {
-        wallet.creditAccountErc20Idxs[erc20Idx >> 8] |= (1 << (erc20Idx & 255));
-        ++wallet.tokenCounter;
-    }
-
-    function extractNFT(
-        Wallet storage wallet,
-        NFTId nftId,
-        mapping(NFTId => NFTTokenData) storage map
-    ) internal {
-        uint16 idx = map[nftId].walletIdx;
-        map[nftId].approvedSpender = address(0); // remove approval
-        bool userOwnsNFT = wallet.nfts.length > 0 &&
-            NFTId.unwrap(wallet.nfts[idx]) == NFTId.unwrap(nftId);
-        if (!userOwnsNFT) {
-            revert NFTNotInWallet();
-        }
-        if (idx == wallet.nfts.length - 1) {
-            wallet.nfts.pop();
-        } else {
-            NFTId lastNFTId = wallet.nfts[wallet.nfts.length - 1];
-            map[lastNFTId].walletIdx = idx;
-            wallet.nfts[idx] = lastNFTId;
-            wallet.nfts.pop();
-        }
-    }
-
-    function insertNFT(
-        Wallet storage wallet,
-        NFTId nftId,
-        mapping(NFTId => NFTTokenData) storage map
-    ) internal {
-        uint16 idx = uint16(wallet.nfts.length);
-        wallet.nfts.push(nftId);
-        map[nftId].walletIdx = idx;
-    }
-
-    function getERC20s(Wallet storage wallet) internal view returns (uint16[] memory erc20s) {
-        uint256 numberOfERC20 = 0;
-        for (uint256 i = 0; i < wallet.creditAccountErc20Idxs.length; i++) {
-            numberOfERC20 += FsMath.bitCount(wallet.creditAccountErc20Idxs[i]);
-        }
-        erc20s = new uint16[](numberOfERC20);
-        uint256 idx = 0;
-        for (uint256 i = 0; i < wallet.creditAccountErc20Idxs.length; i++) {
-            uint256 mask = wallet.creditAccountErc20Idxs[i];
-            for (uint256 j = 0; j < 256; j++) {
-                uint256 x = mask >> j;
-                if (x == 0) break;
-                if ((x & 1) != 0) {
-                    erc20s[idx++] = uint16(i * 256 + j);
-                }
-            }
-        }
-    }
-}
-
-library ERC20PoolLib {
-    type NFTId is uint256; // 16 bits (tokenId) + 224 bits (hash) + 16 bits (erc721 index)
-
-    function extractPosition(
-        ERC20Pool storage pool,
-        ERC20Share shares
-    ) internal returns (int256 tokens) {
-        tokens = computeERC20(pool, shares);
-        pool.tokens -= tokens;
-        pool.shares -= ERC20Share.unwrap(shares);
-    }
-
-    function insertPosition(ERC20Pool storage pool, int256 tokens) internal returns (ERC20Share) {
-        int256 shares;
-        if (pool.shares == 0) {
-            FsUtils.Assert(pool.tokens == 0);
-            shares = tokens;
-        } else {
-            shares = (pool.shares * tokens) / pool.tokens;
-        }
-        pool.tokens += tokens;
-        pool.shares += shares;
-        return ERC20Share.wrap(shares);
-    }
-
-    function computeERC20(
-        ERC20Pool storage pool,
-        ERC20Share sharesWrapped
-    ) internal view returns (int256 tokens) {
-        int256 shares = ERC20Share.unwrap(sharesWrapped);
-        if (shares == 0) return 0;
-        FsUtils.Assert(pool.shares != 0);
-        return (pool.tokens * shares) / pool.shares;
-    }
-}
-
 /// @title Errors
 /// @notice Library containing all custom errors the protocol may revert with.
 library Errors {
@@ -4719,533 +2895,508 @@ abstract contract WalletState {
     }
 }
 
-/// @title Supa State
-/// @notice Contract holds the configuration state for Supa
-contract SupaState is Pausable {
-    using ERC20PoolLib for ERC20Pool;
+// All this file is taken from @uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol
+// Commented out the code that is not compatible with owr OpenZeppelin version.
+// So the rest may be used to create an interface for a deployed instance of this contract
 
-    IVersionManager public versionManager;
-    /// @notice mapping between wallet address and Supa-specific wallet data
-    mapping(address => WalletLib.Wallet) public wallets;
+// SPDX-License-Identifier: GPL-2.0-or-later
 
-    /// @notice mapping between account and their nonce for wallet creation
-    mapping(address account => uint256 nonce) public walletNonce;
+pragma abicoder v2;
 
-    /// @notice mapping between wallet address and the proposed new owner
-    /// @dev `proposedNewOwner` is address(0) when there is no pending change
-    mapping(address => address) public walletProposedNewOwner;
+//import '@openzeppelin/contracts/token/ERC721/IERC721Metadata.sol';
+//import '@openzeppelin/contracts/token/ERC721/IERC721Enumerable.sol';
 
-    /// @notice mapping between wallet address and an instance of deployed walletLogic contract.
-    /// It means that this specific walletLogic version is setup to operate the wallet.
-    // @dev this could be a mapping to a version index instead of the implementation address
-    mapping(address => address) public walletLogic;
+//import './IPoolInitializer.sol';
+//import './IERC721Permit.sol';
+//import './IPeripheryPayments.sol';
+//import './IPeripheryImmutableState.sol';
+//import '../libraries/PoolAddress.sol';
 
-    /// @notice mapping from
-    /// wallet owner address => ERC20 address => wallet spender address => allowed amount of ERC20.
-    /// It represent the allowance of `spender` to transfer up to `amount` of `erc20` balance of
-    /// owner's creditAccount to some other creditAccount. E.g. 123 => abc => 456 => 1000, means that
-    /// wallet 456 can transfer up to 1000 of abc tokens from creditAccount of wallet 123 to some other creditAccount.
-    /// Note, that no ERC20 are actually getting transferred - creditAccount is a Supa concept, and
-    /// corresponding tokens are owned by Supa
-    mapping(address => mapping(address => mapping(address => uint256))) public allowances;
+/// @title Non-fungible token for positions
+/// @notice Wraps Uniswap V3 positions in a non-fungible token interface which allows for them to be transferred
+/// and authorized.
+//is
+//IPoolInitializer,
+//IPeripheryPayments,
+//IPeripheryImmutableState,
+//IERC721Metadata,
+//IERC721Enumerable,
+//IERC721Permit
+interface INonfungiblePositionManager {
+    /// @notice Emitted when liquidity is increased for a position NFT
+    /// @dev Also emitted when a token is minted
+    /// @param tokenId The ID of the token for which liquidity was increased
+    /// @param liquidity The amount by which liquidity for the NFT position was increased
+    /// @param amount0 The amount of token0 that was paid for the increase in liquidity
+    /// @param amount1 The amount of token1 that was paid for the increase in liquidity
+    event IncreaseLiquidity(
+        uint256 indexed tokenId,
+        uint128 liquidity,
+        uint256 amount0,
+        uint256 amount1
+    );
+    /// @notice Emitted when liquidity is decreased for a position NFT
+    /// @param tokenId The ID of the token for which liquidity was decreased
+    /// @param liquidity The amount by which liquidity for the NFT position was decreased
+    /// @param amount0 The amount of token0 that was accounted for the decrease in liquidity
+    /// @param amount1 The amount of token1 that was accounted for the decrease in liquidity
+    event DecreaseLiquidity(
+        uint256 indexed tokenId,
+        uint128 liquidity,
+        uint256 amount0,
+        uint256 amount1
+    );
+    /// @notice Emitted when tokens are collected for a position NFT
+    /// @dev The amounts reported may not be exactly equivalent to the amounts transferred, due to rounding behavior
+    /// @param tokenId The ID of the token for which underlying tokens were collected
+    /// @param recipient The address of the account that received the collected tokens
+    /// @param amount0 The amount of token0 owed to the position that was collected
+    /// @param amount1 The amount of token1 owed to the position that was collected
+    event Collect(uint256 indexed tokenId, address recipient, uint256 amount0, uint256 amount1);
 
-    /// @notice Whether a spender is approved to operate on behalf of an owner
-    /// @dev Mapping from wallet owner address => spender address => bool
-    mapping(address => mapping(address => bool)) public operatorApprovals;
+    /// @notice Returns the position information associated with a given token ID.
+    /// @dev Throws if the token ID is not valid.
+    /// @param tokenId The ID of the token that represents the position
+    /// @return nonce The nonce for permits
+    /// @return operator The address that is approved for spending
+    /// @return token0 The address of the token0 for a specific pool
+    /// @return token1 The address of the token1 for a specific pool
+    /// @return fee The fee associated with the pool
+    /// @return tickLower The lower end of the tick range for the position
+    /// @return tickUpper The higher end of the tick range for the position
+    /// @return liquidity The liquidity of the position
+    /// @return feeGrowthInside0LastX128 The fee growth of token0 as of the last action on the individual position
+    /// @return feeGrowthInside1LastX128 The fee growth of token1 as of the last action on the individual position
+    /// @return tokensOwed0 The uncollected amount of token0 owed to the position as of the last computation
+    /// @return tokensOwed1 The uncollected amount of token1 owed to the position as of the last computation
+    function positions(
+        uint256 tokenId
+    )
+        external
+        view
+        returns (
+            uint96 nonce,
+            address operator,
+            address token0,
+            address token1,
+            uint24 fee,
+            int24 tickLower,
+            int24 tickUpper,
+            uint128 liquidity,
+            uint256 feeGrowthInside0LastX128,
+            uint256 feeGrowthInside1LastX128,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        );
 
-    mapping(WalletLib.NFTId => NFTTokenData) public tokenDataByNFTId;
-
-    ERC20Info[] public erc20Infos;
-    ERC721Info[] public erc721Infos;
-
-    /// @notice mapping of ERC20 or ERC721 address => Supa asset idx and contract kind.
-    /// idx is the index of the ERC20 in `erc20Infos` or ERC721 in `erc721Infos`
-    /// kind is ContractKind enum, that here can be ERC20 or ERC721
-    mapping(address => ContractData) public infoIdx;
-
-    ISupaConfig.Config public config;
-    ISupaConfig.TokenStorageConfig public tokenStorageConfig;
-
-    modifier onlyWallet() {
-//        if (wallets[msg.sender].owner == address(0) || address(WalletState(msg.sender).supa()) != address(this)) {
-            if (wallets[msg.sender].owner == address(0)) {
-            revert Errors.OnlyWallet();
-        }
-        _;
-    }
-
-    modifier walletExists(address wallet) {
-        if (wallets[wallet].owner == address(0)) {
-            revert Errors.WalletNonExistent();
-        }
-        _;
-    }
-
-    function getBalance(
-        ERC20Share shares,
-        ERC20Info storage erc20Info
-    ) internal view returns (int256) {
-        ERC20Pool storage pool = ERC20Share.unwrap(shares) > 0
-            ? erc20Info.collateral
-            : erc20Info.debt;
-        return pool.computeERC20(shares);
-    }
-
-    function getNFTData(
-        WalletLib.NFTId nftId
-    ) internal view returns (uint16 erc721Idx, uint256 tokenId) {
-        uint256 unwrappedId = WalletLib.NFTId.unwrap(nftId);
-        erc721Idx = uint16(unwrappedId);
-        tokenId = tokenDataByNFTId[nftId].tokenId | ((unwrappedId >> 240) << 240);
-    }
-
-    function getERC20Info(IERC20 erc20) internal view returns (ERC20Info storage, uint16) {
-        if (infoIdx[address(erc20)].kind != ContractKind.ERC20) {
-            revert Errors.NotRegistered(address(erc20));
-        }
-        uint16 idx = infoIdx[address(erc20)].idx;
-        return (erc20Infos[idx], idx);
-    }
-}
-
-// OpenZeppelin Contracts (last updated v4.6.0) (proxy/Proxy.sol)
-
-/**
- * @dev This abstract contract provides a fallback function that delegates all calls to another contract using the EVM
- * instruction `delegatecall`. We refer to the second contract as the _implementation_ behind the proxy, and it has to
- * be specified by overriding the virtual {_implementation} function.
- *
- * Additionally, delegation to the implementation can be triggered manually through the {_fallback} function, or to a
- * different contract through the {_delegate} function.
- *
- * The success and return data of the delegated call will be returned back to the caller of the proxy.
- */
-abstract contract Proxy {
-    /**
-     * @dev Delegates the current call to `implementation`.
-     *
-     * This function does not return to its internal call site, it will return directly to the external caller.
-     */
-    function _delegate(address implementation) internal virtual {
-        assembly {
-            // Copy msg.data. We take full control of memory in this inline assembly
-            // block because it will not return to Solidity code. We overwrite the
-            // Solidity scratch pad at memory position 0.
-            calldatacopy(0, 0, calldatasize())
-
-            // Call the implementation.
-            // out and outsize are 0 because we don't know the size yet.
-            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
-
-            // Copy the returned data.
-            returndatacopy(0, 0, returndatasize())
-
-            switch result
-            // delegatecall returns 0 on error.
-            case 0 {
-                revert(0, returndatasize())
-            }
-            default {
-                return(0, returndatasize())
-            }
-        }
-    }
-
-    /**
-     * @dev This is a virtual function that should be overridden so it returns the address to which the fallback function
-     * and {_fallback} should delegate.
-     */
-    function _implementation() internal view virtual returns (address);
-
-    /**
-     * @dev Delegates the current call to the address returned by `_implementation()`.
-     *
-     * This function does not return to its internal call site, it will return directly to the external caller.
-     */
-    function _fallback() internal virtual {
-        _beforeFallback();
-        _delegate(_implementation());
-    }
-
-    /**
-     * @dev Fallback function that delegates calls to the address returned by `_implementation()`. Will run if no other
-     * function in the contract matches the call data.
-     */
-    fallback() external payable virtual {
-        _fallback();
-    }
-
-    /**
-     * @dev Fallback function that delegates calls to the address returned by `_implementation()`. Will run if call data
-     * is empty.
-     */
-    receive() external payable virtual {
-        _fallback();
-    }
-
-    /**
-     * @dev Hook that is called before falling back to the implementation. Can happen as part of a manual `_fallback`
-     * call, or as part of the Solidity `fallback` or `receive` functions.
-     *
-     * If overridden should call `super._beforeFallback()`.
-     */
-    function _beforeFallback() internal virtual {}
-}
-
-// This address is in flux as long as the bytecode of this contract is not fixed. For now
-// we deploy it on local block chain on fixed address, when we go deploy this needs to change
-// to the permanent address.
-address constant TRANSFER_AND_CALL2 = address(0x1554b484D2392672F0375C56d80e91c1d070a007);
-
-// Contracts that implement can receive multiple ERC20 transfers in a single transaction,
-// with backwards compatibility for legacy ERC20's not implementing ERC677.
-abstract contract ITransferReceiver2 {
-    error InvalidSender(address sender);
-
-    struct Transfer {
-        address token;
-        uint256 amount;
-    }
-
-    /// @dev Called by a token to indicate a transfer into the callee
-    /// @param operator The account that initiated the transfer
-    /// @param from The account that has sent the token
-    /// @param transfers Transfers that have been made
-    /// @param data The extra data being passed to the receiving contract
-    function onTransferReceived2(
-        address operator,
-        address from,
-        Transfer[] calldata transfers,
-        bytes calldata data
-    ) external virtual returns (bytes4);
-
-    modifier onlyTransferAndCall2() {
-        if (msg.sender != TRANSFER_AND_CALL2) revert InvalidSender(msg.sender);
-        _;
-    }
-}
-
-// https://docs.uniswap.org/contracts/permit2/overview
-// https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3#code
-IPermit2 constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
-
-// Minimal Permit2 interface, derived from
-// https://github.com/Uniswap/permit2/blob/main/src/interfaces/ISignatureTransfer.sol
-interface IPermit2 {
-    // Token and amount in a permit message.
-    struct TokenPermissions {
-        // Token to transfer.
-        IERC20 token;
-        // Amount to transfer.
-        uint256 amount;
-    }
-
-    // The permit2 message.
-    struct PermitTransferFrom {
-        // Permitted token and amount.
-        TokenPermissions permitted;
-        // Unique identifier for this permit.
-        uint256 nonce;
-        // Expiration for this permit.
+    struct MintParams {
+        address token0;
+        address token1;
+        uint24 fee;
+        int24 tickLower;
+        int24 tickUpper;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        address recipient;
         uint256 deadline;
     }
 
-    // Transfer details for permitTransferFrom().
-    struct SignatureTransferDetails {
-        // Recipient of tokens.
-        address to;
-        // Amount to transfer.
-        uint256 requestedAmount;
+    /// @notice Creates a new position wrapped in a NFT
+    /// @dev Call this when the pool does exist and is initialized. Note that if the pool is created but not initialized
+    /// a method does not exist, i.e. the pool is assumed to be initialized.
+    /// @param params The params necessary to mint a position, encoded as `MintParams` in calldata
+    /// @return tokenId The ID of the token that represents the minted position
+    /// @return liquidity The amount of liquidity for this position
+    /// @return amount0 The amount of token0
+    /// @return amount1 The amount of token1
+    function mint(
+        MintParams calldata params
+    )
+        external
+        payable
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+
+    struct IncreaseLiquidityParams {
+        uint256 tokenId;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 deadline;
     }
 
-    // Consume a permit2 message and transfer tokens.
-    function permitTransferFrom(
-        PermitTransferFrom calldata permit,
-        SignatureTransferDetails calldata transferDetails,
-        address owner,
-        bytes calldata signature
-    ) external;
+    /// @notice Increases the amount of liquidity in a position, with tokens paid by the `msg.sender`
+    /// @param params tokenId The ID of the token for which liquidity is being increased,
+    /// amount0Desired The desired amount of token0 to be spent,
+    /// amount1Desired The desired amount of token1 to be spent,
+    /// amount0Min The minimum amount of token0 to spend, which serves as a slippage check,
+    /// amount1Min The minimum amount of token1 to spend, which serves as a slippage check,
+    /// deadline The time by which the transaction must be included to effect the change
+    /// @return liquidity The new liquidity amount as a result of the increase
+    /// @return amount0 The amount of token0 to acheive resulting liquidity
+    /// @return amount1 The amount of token1 to acheive resulting liquidity
+    function increaseLiquidity(
+        IncreaseLiquidityParams calldata params
+    ) external payable returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+
+    struct DecreaseLiquidityParams {
+        uint256 tokenId;
+        uint128 liquidity;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 deadline;
+    }
+
+    /// @notice Decreases the amount of liquidity in a position and accounts it to the position
+    /// @param params tokenId The ID of the token for which liquidity is being decreased,
+    /// amount The amount by which liquidity will be decreased,
+    /// amount0Min The minimum amount of token0 that should be accounted for the burned liquidity,
+    /// amount1Min The minimum amount of token1 that should be accounted for the burned liquidity,
+    /// deadline The time by which the transaction must be included to effect the change
+    /// @return amount0 The amount of token0 accounted to the position's tokens owed
+    /// @return amount1 The amount of token1 accounted to the position's tokens owed
+    function decreaseLiquidity(
+        DecreaseLiquidityParams calldata params
+    ) external payable returns (uint256 amount0, uint256 amount1);
+
+    struct CollectParams {
+        uint256 tokenId;
+        address recipient;
+        uint128 amount0Max;
+        uint128 amount1Max;
+    }
+
+    /// @notice Collects up to a maximum amount of fees owed to a specific position to the recipient
+    /// @param params tokenId The ID of the NFT for which tokens are being collected,
+    /// recipient The account that should receive the tokens,
+    /// amount0Max The maximum amount of token0 to collect,
+    /// amount1Max The maximum amount of token1 to collect
+    /// @return amount0 The amount of fees collected in token0
+    /// @return amount1 The amount of fees collected in token1
+    function collect(
+        CollectParams calldata params
+    ) external payable returns (uint256 amount0, uint256 amount1);
+
+    /// @notice Burns a token ID, which deletes it from the NFT contract. The token must have 0 liquidity and all tokens
+    /// must be collected first.
+    /// @param tokenId The ID of the token that is being burned
+    function burn(uint256 tokenId) external payable;
 }
 
-/// @title Wallet Proxy
-/// @notice Proxy contract for Supa Wallets
-// Inspired by TransparentUpdatableProxy
-contract WalletProxy is WalletState, Proxy {
-    modifier ifSupa() {
-        if (msg.sender == address(supa)) {
-            _;
-        } else {
-            _fallback();
+struct SqrtPricePriceRangeX96 {
+    uint160 minSell;
+    uint160 maxBuy;
+}
+
+/// @title Logic for liquify functionality of wallet
+/// @dev It is designed to be an extension for walletLogic contract.
+/// Functionally, it's a part of the walletLogic contract, but has been extracted into a separate
+/// contract for better code structuring. This is why the contract is declared as abstract
+///   The only function it exports is `liquify`. The rest are private function that are parts of
+/// `liquify`
+abstract contract Liquifier is WalletState {
+    /// @notice Only this address or the Wallet owner can call this function
+    error OnlySelfOrOwner();
+
+    modifier selfOrWalletOwner() {
+        if (msg.sender != address(this) && msg.sender != supa.getWalletOwner(address(this))) {
+            revert OnlySelfOrOwner();
         }
-    }
-
-    constructor(
-        address _supa
-    ) WalletState(_supa) {
-        // solhint-disable-next-line no-empty-blocks
-    }
-
-    /// @dev Allow ETH transfers
-    receive() external payable override {}
-
-    // Allow Supa to make arbitrary calls in lieu of this wallet
-    function executeBatch(Execution[] calldata calls) external payable ifSupa {
-        // Function is payable to allow for ETH transfers to the logic
-        // contract, but supa should never send eth (supa contract should
-        // never contain eth / other than what's self-destructed into it)
-        FsUtils.Assert(msg.value == 0);
-        ExecutionLib.executeBatch(calls);
-    }
-
-    // The implementation of the delegate is controlled by Supa
-    function _implementation() internal view override returns (address) {
-        return supa.getImplementation(address(this));
-    }
-}
-
-/// @title ImmutableGovernance
-/// @dev This contract is meant to be inherited by other contracts, to make them ownable.
-contract ImmutableGovernance {
-    address public immutable immutableGovernance;
-
-    /// @notice Only governance can call this function
-    error OnlyGovernance();
-
-    modifier onlyGovernance() {
-        if (msg.sender != immutableGovernance) revert OnlyGovernance();
         _;
     }
 
-    constructor(address governance) {
-        // slither-disable-next-line missing-zero-check
-        immutableGovernance = FsUtils.nonNull(governance);
-    }
-}
+    /// @notice Advanced version of liquidate function. Potentially unwanted side-affect of
+    /// liquidation is a debt on the liquidator. So liquify would liquidate and then re-balance
+    /// obtained assets to have no debt. This is the algorithm:
+    ///   * liquidate creditAccount of target `wallet`
+    ///   * terminate all obtained ERC721s (NFTs)
+    ///   * buy/sell `erc20s` for `numeraire` so the balance of `wallet` on that ERC20s matches the
+    ///     debt of `wallet` on it's creditAccount. E.g.:
+    ///     - for 1 WETH of debt on creditAccount and 3 WETH on the balance of wallet - sell 2 WETH
+    ///     - for 3 WETH of debt on creditAccount and 1 WETH on the balance of wallet - buy 2 WETH
+    ///     - for no debt on creditAccount and 1 WETH on the balance of wallet - sell 2 WETH
+    ///     - for 1 WETH of debt on creditAccount and no WETH on the balance of dSave - buy 1 WETH
+    ///   * deposit `erc20s` and `numeraire` to cover debts
+    ///
+    /// !! IMPORTANT: because this function executes quite a lot of logic on top of Supa.liquidate(),
+    /// there is a risk that for liquidatable position with a long list of NFTs it will run out
+    /// of gas. As for now, it's up to liquidator to estimate if specific position is liquifiable,
+    /// or Supa.liquidate() need to be used (with further assets re-balancing in other transactions)
+    /// @dev notes on erc20s: the reason for erc20s been a call parameter, and not been calculated
+    /// inside of liquify, is reducing gas costs
+    ///   erc20s should NOT include numeraire. Otherwise, the transaction would be reverted with an
+    /// error from uniswap router
+    ///   It's the responsibility of caller to provide the correct list of erc20s. Assets
+    /// re-balancing would be performed only by this list of tokens and numeraire.
+    ///   * if erc20s misses a token that liquidatable have debt on - the debt on this erc20 would
+    ///     persist on liquidator's creditAccount as-is
+    ///   * if erc20s misses a token that liquidatable have collateral on - the token would persist
+    ///     on liquidator's creditAccount. It may result in generating debt in numeraire on liquidator
+    ///     creditAccount by the end of liquify (because the token would not be soled for numeraire,
+    ///     there may not be enough numeraire to buy tokens to cover debts, and so they will be
+    ///     bought in debt)
+    ///   * if erc20s misses a token that would be obtained as the result of NFT termination - same
+    ///     as previous, except of the token to be persisted on wallet instead of creditAccount of
+    ///     liquidator
+    ///   Because no buy/sell would be done for prices from outside of the erc20sAllowedPriceRanges,
+    /// too narrow range may result in not having enough of some ERC20 to cover the debt. So the
+    /// eventual state would still include some debt
+    /// @param wallet - the address of a wallet to liquidate
+    /// @param swapRouter - the address of a Uniswap swap router to be used to buy/sell erc20s
+    /// @param nftManager - the address of a Uniswap NonFungibleTokenManager to be used to terminate
+    /// ERC721 (NFTs)
+    /// @param numeraire - the address of an ERC20 to be used to convert to and from erc20s. The
+    /// liquidation reward would be in this token
+    /// @param erc20s - the list of ERC20 that liquidated has debt, collateral or that would be
+    /// obtained from termination of any ERC721 that he owns. Except of numeraire, that should
+    /// never be included in erc20s array
+    /// @param erc20sAllowedPriceRanges - the list of root squares of allowed prices in Q96 for
+    /// `erc20s` swaps on Uniswap in `numeraire`. This is the protection against sandwich-attack -
+    /// if the price would be lower/higher for sell/buy
+    ///   It's up to liquidator to decide what range is acceptable. +/- 1% of price before liquify
+    /// call seems to be reasonable
+    ///   Zero minSell/maxBuy value for a specific ERC20 would disable the corresponding check
+    /// Uniswap docs - https://docs.uniswap.org/contracts/v3/guides/swaps/single-swaps
+    /// It doesn't explained in Uniswap docs, but this is how it actually works:
+    /// * if the price for each token would be below the specified limit
+    /// then full amount would be converted and no error would be thrown
+    /// * if at least some amount of tokens can be bought by the price that is below the limit
+    /// then only that amount of tokens would be bought and no error would be thrown
+    /// * if no tokens can be bought by the price below the limit
+    /// then error would be thrown with message "SPL"
+    function liquify(
+        address wallet,
+        address swapRouter,
+        address nftManager,
+        address numeraire,
+        IERC20[] calldata erc20s,
+        SqrtPricePriceRangeX96[] calldata erc20sAllowedPriceRanges
+    ) external selfOrWalletOwner {
+        if (msg.sender != address(this)) {
+            /* prettier-ignore */ // list of liquify arguments as-is
+            return callOverBatchExecute(wallet, swapRouter, nftManager, numeraire, erc20s, erc20sAllowedPriceRanges);
+        }
 
-/// @title Supa Config
-contract SupaConfig is SupaState, ImmutableGovernance, ISupaConfig {
-    using WalletLib for WalletLib.Wallet;
-    using ERC20PoolLib for ERC20Pool;
-    using SafeERC20 for IERC20;
-    using Address for address;
+        supa.liquidate(wallet);
 
-    constructor(address _owner) ImmutableGovernance(_owner) {}
-
-    /// @inheritdoc ISupaConfig
-    function upgradeWalletImplementation(
-        string calldata version
-    ) external override onlyWallet whenNotPaused {
         (
-            ,
-            IVersionManager.Status status,
-            IVersionManager.BugLevel bugLevel,
-            address implementation,
+            IERC20[] memory erc20sCollateral,
+            uint256[] memory erc20sDebtAmounts
+        ) = analyseCreditAccountStructure(erc20s, numeraire);
 
-        ) = versionManager.getVersionDetails(version);
-        if (implementation == address(0) || !implementation.isContract()) {
-            revert Errors.InvalidImplementation();
+        supa.withdrawFull(erc20sCollateral);
+        terminateERC721s(nftManager);
+
+        (
+            uint256[] memory erc20sToSellAmounts,
+            uint256[] memory erc20sToBuyAmounts
+        ) = calcSellAndBuyERC20Amounts(erc20s, erc20sDebtAmounts);
+        sellERC20s(swapRouter, erc20s, erc20sToSellAmounts, numeraire, erc20sAllowedPriceRanges);
+        buyERC20s(swapRouter, erc20s, erc20sToBuyAmounts, numeraire, erc20sAllowedPriceRanges);
+
+        deposit(erc20s, numeraire);
+    }
+
+    function callOverBatchExecute(
+        address wallet,
+        address swapRouter,
+        address nftManager,
+        address numeraire,
+        IERC20[] calldata erc20s,
+        SqrtPricePriceRangeX96[] calldata erc20sAllowedPriceRanges
+    ) private {
+        Execution[] memory calls = new Execution[](1);
+        calls[0] = Execution({
+            target: address(this),
+            callData: abi.encodeWithSelector(
+                this.liquify.selector,
+                wallet,
+                swapRouter,
+                nftManager,
+                numeraire,
+                erc20s,
+                erc20sAllowedPriceRanges
+            ),
+            value: 0
+        });
+        supa.executeBatch(calls);
+    }
+
+    /// @param nftManager - passed as-is from liquify function. The address of a Uniswap
+    ///   NonFungibleTokenManager to be used to terminate ERC721 (NFTs)
+    function terminateERC721s(address nftManager) private {
+        INonfungiblePositionManager manager = INonfungiblePositionManager(nftManager);
+        ISupa.NFTData[] memory nfts = supa.getCreditAccountERC721(address(this));
+        for (uint256 i = 0; i < nfts.length; i++) {
+            ISupa.NFTData memory nft = nfts[i];
+            supa.withdrawERC721(nft.erc721, nft.tokenId);
+            (, , , , , , , uint128 nftLiquidity, , , , ) = manager.positions(nft.tokenId);
+            manager.decreaseLiquidity(
+                INonfungiblePositionManager.DecreaseLiquidityParams({
+                    tokenId: nft.tokenId,
+                    liquidity: nftLiquidity,
+                    amount0Min: 0,
+                    amount1Min: 0,
+                    deadline: type(uint256).max
+                })
+            );
+            manager.collect(
+                INonfungiblePositionManager.CollectParams({
+                    tokenId: nft.tokenId,
+                    recipient: address(this),
+                    amount0Max: type(uint128).max,
+                    amount1Max: type(uint128).max
+                })
+            );
+
+            manager.burn(nft.tokenId);
         }
-        if (status == IVersionManager.Status.DEPRECATED) {
-            revert Errors.DeprecatedVersion();
+    }
+
+    function analyseCreditAccountStructure(
+        IERC20[] calldata erc20s,
+        address numeraire
+    ) private view returns (IERC20[] memory erc20sCollateral, uint256[] memory erc20sDebtAmounts) {
+        uint256 numOfERC20sCollateral = 0;
+        int256[] memory balances = new int256[](erc20s.length);
+
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            int256 balance = supa.getCreditAccountERC20(address(this), erc20s[i]);
+            if (balance > 0) {
+                numOfERC20sCollateral++;
+                balances[i] = balance;
+            } else if (balance < 0) {
+                balances[i] = balance;
+            }
         }
-        if (bugLevel != IVersionManager.BugLevel.NONE) {
-            revert Errors.BugLevelTooHigh();
-        }
-        walletLogic[msg.sender] = implementation;
-        emit ISupaConfig.WalletImplementationUpgraded(msg.sender, version, implementation);
-    }
 
-    /// @inheritdoc ISupaConfig
-    function transferWalletOwnership(address newOwner) external override onlyWallet whenNotPaused {
-        wallets[msg.sender].owner = newOwner;
-        emit ISupaConfig.WalletOwnershipTransferred(msg.sender, newOwner);
-    }
-
-    /// @inheritdoc ISupaConfig
-    function proposeTransferWalletOwnership(
-        address newOwner
-    ) external override onlyWallet whenNotPaused {
-        walletProposedNewOwner[msg.sender] = newOwner;
-        emit ISupaConfig.WalletOwnershipTransferProposed(msg.sender, newOwner);
-    }
-
-    /// @inheritdoc ISupaConfig
-    function executeTransferWalletOwnership(address wallet) external override whenNotPaused {
-        if (msg.sender != walletProposedNewOwner[wallet]) {
-            revert Errors.InvalidNewOwner(walletProposedNewOwner[wallet], msg.sender);
-        }
-        wallets[wallet].owner = msg.sender;
-        delete walletProposedNewOwner[wallet];
-        emit ISupaConfig.WalletOwnershipTransferred(wallet, msg.sender);
-    }
-
-    /// @inheritdoc ISupaConfig
-    function pause() external override onlyGovernance {
-        _pause();
-    }
-
-    /// @inheritdoc ISupaConfig
-    function unpause() external override onlyGovernance {
-        _unpause();
-    }
-
-    /// @inheritdoc ISupaConfig
-    function addERC20Info(
-        address erc20Contract,
-        string calldata name,
-        string calldata symbol,
-        uint8 decimals,
-        address valueOracle,
-        uint256 baseRate,
-        uint256 slope1,
-        uint256 slope2,
-        uint256 targetUtilization
-    ) external override onlyGovernance returns (uint16) {
-        uint16 erc20Idx = uint16(erc20Infos.length);
-        erc20Infos.push(
-            ERC20Info(
-                erc20Contract,
-                IERC20ValueOracle(valueOracle),
-                ERC20Pool(0, 0),
-                ERC20Pool(0, 0),
-                baseRate,
-                slope1,
-                slope2,
-                targetUtilization,
-                block.timestamp
-            )
+        int256 creditAccountNumeraireBalance = supa.getCreditAccountERC20(
+            address(this),
+            IERC20(numeraire)
         );
-        infoIdx[erc20Contract] = ContractData(erc20Idx, ContractKind.ERC20);
-        emit ISupaConfig.ERC20Added(
-            erc20Idx,
-            erc20Contract,
-            name,
-            symbol,
-            decimals,
-            valueOracle,
-            baseRate,
-            slope1,
-            slope2,
-            targetUtilization
-        );
-        return erc20Idx;
-    }
-
-    /// @inheritdoc ISupaConfig
-    function addERC721Info(
-        address erc721Contract,
-        address valueOracleAddress
-    ) external override onlyGovernance {
-        if (!IERC165(erc721Contract).supportsInterface(type(IERC721).interfaceId)) {
-            revert Errors.NotNFT();
+        if (creditAccountNumeraireBalance > 0) {
+            numOfERC20sCollateral++;
         }
-        INFTValueOracle valueOracle = INFTValueOracle(valueOracleAddress);
-        uint256 erc721Idx = erc721Infos.length;
-        erc721Infos.push(ERC721Info(erc721Contract, valueOracle));
-        infoIdx[erc721Contract] = ContractData(uint16(erc721Idx), ContractKind.ERC721);
-        emit ISupaConfig.ERC721Added(erc721Idx, erc721Contract, valueOracleAddress);
-    }
 
-    /// @inheritdoc ISupaConfig
-    function setConfig(Config calldata _config) external override onlyGovernance {
-        config = _config;
-        emit ISupaConfig.ConfigSet(_config);
-    }
+        erc20sCollateral = new IERC20[](numOfERC20sCollateral);
+        erc20sDebtAmounts = new uint256[](erc20s.length);
 
-    /// @inheritdoc ISupaConfig
-    function setTokenStorageConfig(
-        TokenStorageConfig calldata _tokenStorageConfig
-    ) external override onlyGovernance {
-        tokenStorageConfig = _tokenStorageConfig;
-        emit ISupaConfig.TokenStorageConfigSet(_tokenStorageConfig);
-    }
-
-    /// @inheritdoc ISupaConfig
-    function setVersionManager(address _versionManager) external override onlyGovernance {
-        versionManager = IVersionManager(_versionManager);
-        emit ISupaConfig.VersionManagerSet(_versionManager);
-    }
-
-    /// @inheritdoc ISupaConfig
-    function setERC20Data(
-        address erc20,
-        address valueOracle,
-        uint256 baseRate,
-        uint256 slope1,
-        uint256 slope2,
-        uint256 targetUtilization
-    ) external override onlyGovernance {
-        uint16 erc20Idx = infoIdx[erc20].idx;
-        if (infoIdx[erc20].kind != ContractKind.ERC20) {
-            revert Errors.NotERC20();
+        if (creditAccountNumeraireBalance > 0) {
+            erc20sCollateral[0] = IERC20(numeraire);
         }
-        erc20Infos[erc20Idx].valueOracle = IERC20ValueOracle(valueOracle);
-        erc20Infos[erc20Idx].baseRate = baseRate;
-        erc20Infos[erc20Idx].slope1 = slope1;
-        erc20Infos[erc20Idx].slope2 = slope2;
-        erc20Infos[erc20Idx].targetUtilization = targetUtilization;
-        emit ISupaConfig.ERC20DataSet(
-            erc20,
-            erc20Idx,
-            valueOracle,
-            baseRate,
-            slope1,
-            slope2,
-            targetUtilization
-        );
-    }
 
-    /// @inheritdoc ISupaConfig
-    function createWallet() external override whenNotPaused returns (address wallet) {
-        wallet = address(new WalletProxy{salt: keccak256(abi.encode(msg.sender, walletNonce[msg.sender]++))}(address(this)));
-        wallets[wallet].owner = msg.sender;
-
-        // add a version parameter if users should pick a specific version
-        (, , , address implementation, ) = versionManager.getRecommendedVersion();
-        walletLogic[wallet] = implementation;
-        emit ISupaConfig.WalletCreated(wallet, msg.sender);
-    }
-
-    /// @inheritdoc ISupaConfig
-    function createWallet(uint256 nonce) external override whenNotPaused returns (address wallet) {
-        if (nonce < 1_000_000_000) {
-            revert Errors.InvalidNonce();
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            if (balances[i] > 0) {
+                erc20sCollateral[--numOfERC20sCollateral] = erc20s[i];
+            } else if (balances[i] < 0) {
+                erc20sDebtAmounts[i] = uint256(-balances[i]);
+            }
         }
-        wallet = address(new WalletProxy{salt: keccak256(abi.encode(msg.sender, nonce))}(address(this)));
-        wallets[wallet].owner = msg.sender;
-
-        // add a version parameter if users should pick a specific version
-        (, , , address implementation, ) = versionManager.getRecommendedVersion();
-        walletLogic[wallet] = implementation;
-        emit ISupaConfig.WalletCreated(wallet, msg.sender);
     }
 
-    /// @inheritdoc ISupaConfig
-    function getCreditAccountERC20(
-        address walletAddr,
-        IERC20 erc20
-    ) external view override returns (int256) {
-        WalletLib.Wallet storage wallet = wallets[walletAddr];
-        (ERC20Info storage erc20Info, uint16 erc20Idx) = getERC20Info(erc20);
-        ERC20Share erc20Share = wallet.erc20Share[erc20Idx];
-        return getBalance(erc20Share, erc20Info);
-    }
+    function calcSellAndBuyERC20Amounts(
+        IERC20[] calldata erc20s,
+        uint256[] memory erc20sDebtAmounts
+    )
+        private
+        view
+        returns (uint256[] memory erc20ToSellAmounts, uint256[] memory erc20ToBuyAmounts)
+    {
+        erc20ToBuyAmounts = new uint256[](erc20s.length);
+        erc20ToSellAmounts = new uint256[](erc20s.length);
 
-    /// @inheritdoc ISupaConfig
-    function getCreditAccountERC721(
-        address wallet
-    ) external view override returns (NFTData[] memory) {
-        NFTData[] memory nftData = new NFTData[](wallets[wallet].nfts.length);
-        for (uint i = 0; i < nftData.length; i++) {
-            (uint16 erc721Idx, uint256 tokenId) = getNFTData(wallets[wallet].nfts[i]);
-            nftData[i] = NFTData(erc721Infos[erc721Idx].erc721Contract, tokenId);
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            uint256 balance = erc20s[i].balanceOf(address(this));
+            if (balance > erc20sDebtAmounts[i]) {
+                erc20ToSellAmounts[i] = balance - erc20sDebtAmounts[i];
+            } else if (balance < erc20sDebtAmounts[i]) {
+                erc20ToBuyAmounts[i] = erc20sDebtAmounts[i] - balance;
+            }
         }
-        return nftData;
     }
 
-    /// @inheritdoc ISupaConfig
-    function getCreditAccountERC721Counter(address wallet) external view returns (uint256) {
-        return wallets[wallet].nfts.length;
+    function sellERC20s(
+        address swapRouter,
+        IERC20[] memory erc20sToSell,
+        uint256[] memory amountsToSell,
+        address erc20ToSellFor,
+        SqrtPricePriceRangeX96[] calldata erc20sAllowedPriceRanges
+    ) private {
+        for (uint256 i = 0; i < erc20sToSell.length; i++) {
+            if (amountsToSell[i] == 0) continue;
+
+            ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+                tokenIn: address(erc20sToSell[i]),
+                tokenOut: erc20ToSellFor,
+                fee: 500,
+                recipient: address(this),
+                deadline: type(uint256).max, // ignore - total transaction type should be limited at Supa level
+                amountIn: amountsToSell[i],
+                amountOutMinimum: 0,
+                // see comments on `erc20sAllowedPriceRanges` parameter of `liquify`
+                sqrtPriceLimitX96: erc20sAllowedPriceRanges[i].minSell
+            });
+
+            try ISwapRouter(swapRouter).exactInputSingle(params) {} catch Error(
+                string memory reason
+            ) {
+                // "SPL" means that proposed sell price is too low. If so - silently skip conversion.
+                // For any other error - revert
+                // Consider emitting or logging
+                // Consider ignoring some other errors if it's appropriate
+                // Consider replacing with `Strings.equal` on OpenZeppelin next release
+                if (keccak256(abi.encodePacked(reason)) != keccak256(abi.encodePacked("SPL"))) {
+                    revert(reason);
+                }
+            }
+        }
+    }
+
+    function buyERC20s(
+        address swapRouter,
+        IERC20[] memory erc20sToBuy,
+        uint256[] memory amountsToBuy,
+        address erc20ToBuyFor,
+        SqrtPricePriceRangeX96[] calldata erc20sAllowedPriceRanges
+    ) private {
+        for (uint256 i = 0; i < erc20sToBuy.length; i++) {
+            if (amountsToBuy[i] == 0) continue;
+
+            ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter
+                .ExactOutputSingleParams({
+                    tokenIn: erc20ToBuyFor,
+                    tokenOut: address(erc20sToBuy[i]),
+                    fee: 500,
+                    recipient: address(this),
+                    deadline: type(uint256).max, // ignore - total transaction type should be limited at Supa level
+                    amountOut: amountsToBuy[i],
+                    amountInMaximum: type(uint256).max,
+                    // see comments on `erc20sAllowedPriceRanges` parameter of `liquify`
+                    sqrtPriceLimitX96: erc20sAllowedPriceRanges[i].maxBuy
+                });
+
+            try ISwapRouter(swapRouter).exactOutputSingle(params) {} catch Error(
+                string memory reason
+            ) {
+                // "SPL" means that proposed buy price is too high. If so - silently skip conversion.
+                // For any other error - revert
+                // Consider emitting or logging
+                // Consider ignoring some other errors if it's appropriate
+                // Consider replacing with `Strings.equal` on OpenZeppelin next release
+                if (keccak256(abi.encodePacked(reason)) != keccak256(abi.encodePacked("SPL"))) {
+                    revert(reason);
+                }
+            }
+        }
+    }
+
+    function deposit(IERC20[] memory erc20s, address numeraire) private {
+        supa.depositFull(erc20s);
+        IERC20[] memory numeraireArray = new IERC20[](1);
+        numeraireArray[0] = IERC20(numeraire);
+        supa.depositFull(numeraireArray);
     }
 }
 

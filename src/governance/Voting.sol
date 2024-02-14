@@ -7,7 +7,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {HashNFT} from "../tokens/HashNFT.sol";
 import {TrieLib} from "../lib/Proofs.sol";
-import {CallLib, CallWithoutValue} from "../lib/Call.sol";
+import {ExecutionLib, CallWithoutValue} from "../lib/Call.sol";
 import {FsUtils} from "../lib/FsUtils.sol";
 import {NonceMapLib, NonceMap} from "../lib/NonceMap.sol";
 
@@ -112,7 +112,7 @@ contract Voting is EIP712 {
 
         // proof storageHash is correct for blockhash(blockNumber) governanceTokenAddress
         Proposal storage proposal = proposals.push();
-        proposal.digest = CallLib.hashCallWithoutValueArray(calls);
+        proposal.digest = ExecutionLib.hashCallWithoutValueArray(calls);
         proposal.deadline = block.timestamp + 2 days;
         proposal.storageHash = storageHash;
         proposal.totalSupply = TrieLib.proofStorageAt(

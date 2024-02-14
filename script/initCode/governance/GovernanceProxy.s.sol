@@ -20,4 +20,4 @@ contract InitCodeHashGovernanceProxy is Script {
     }
 }
 
-// forge script script/initCode/GovernanceProxy.s.sol:InitCodeHashGovernanceProxy -vvvv
+// forge script script/initCode/governance/GovernanceProxy.s.sol:InitCodeHashGovernanceProxy -vvvv

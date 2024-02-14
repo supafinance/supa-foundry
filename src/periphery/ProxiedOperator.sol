@@ -1,20 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import {Execution, LinkedExecution} from "src/lib/Call.sol";
 import {IWalletLogic, DynamicExecution} from "src/interfaces/IWalletLogic.sol";
 
-/// @title Gelato Operator
-/// @notice This contract acts as the operator for Gelato automated tasks
+/// @title Proxied Operator
+/// @notice This contract acts as an operator for automated tasks
 /// @dev This contract must be set as an operator on the target Wallet
-contract GelatoOperator {
-    address public immutable dedicatedSender;
-
+/// @dev Owner should be set to a multisig or governance contract
+contract ProxiedOperator is Ownable {
     /// @notice Only the dedicated sender can call this function
     error OnlyDedicatedSender();
 
-    constructor(address _dedicatedSender) {
+    address public dedicatedSender;
+
+    constructor(address _dedicatedSender, address owner) {
         dedicatedSender = _dedicatedSender;
+        _transferOwnership(owner);
     }
 
     modifier onlyDedicatedSender() {
@@ -36,5 +40,9 @@ contract GelatoOperator {
     /// @param _calls The calls to execute
     function execute(IWalletLogic _target, DynamicExecution[] calldata _calls) external onlyDedicatedSender {
         _target.executeBatch(_calls);
+    }
+
+    function setDedicatedSender(address _dedicatedSender) external onlyOwner {
+        dedicatedSender = _dedicatedSender;
     }
 }

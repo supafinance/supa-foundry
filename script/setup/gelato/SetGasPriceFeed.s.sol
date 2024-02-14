@@ -17,6 +17,9 @@ contract SetFeeCollector is Script {
         } else if (chainId == 42161) {
             deployer = vm.envAddress("DEPLOYER");
             gasPriceFeed = vm.envAddress("AUTOMATION_FEE_COLLECTOR_ARBITRUM");
+        } else if (chainId == 8453) {
+                deployer = vm.envAddress("DEPLOYER");
+                gasPriceFeed = vm.envAddress("AUTOMATION_FEE_COLLECTOR_BASE");
         } else {
             revert("unsupported chain");
         }

@@ -5,16 +5,36 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5d4f8e33-0e59-42aa-8b86-a9ddd380f4c0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/script/initCode/periphery/UniV3LPHelper.s.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/chainlink" beforeDir="false" afterPath="$PROJECT_DIR$/lib/chainlink" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/chainlink/contracts/test/v0.8/foundry/BaseTest.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/lib/chainlink/contracts/test/v0.8/foundry/BaseTest.t.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" beforeDir="false" afterPath="$PROJECT_DIR$/lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/deploy/periphery/uniV3LPHelper.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/deploy/periphery/uniV3LPHelper.s.sol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/periphery/UniV3LPHelper.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/periphery/UniV3LPHelper.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/AddOperator.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/AddOperator.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/PayGasNative.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/PayGasNative.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/setupSupa.s.sol" beforeDir="false" afterPath="$PROJECT_DIR$/script/setupSupa.s.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/governance/OffchainEntityProxy.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/governance/OffchainEntityProxy.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interfaces/IERC1363-extended.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/interfaces/IERC1363-extended.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interfaces/ISupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/interfaces/ISupa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interfaces/IWallet.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/interfaces/IWallet.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/Call.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/Call.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/periphery/GelatoOperator.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/periphery/GelatoOperator.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/periphery/UniHelper.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/periphery/UniHelper.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/Liquifier.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/Liquifier.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/supa/Supa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/supa/Supa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testing/MigrationSupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/testing/MigrationSupa.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testing/SimulationSupa.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/testing/SimulationSupa.sol" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletLogic.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/wallet/WalletProxy.sol" beforeDir="false" afterPath="$PROJECT_DIR$/src/wallet/WalletProxy.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/wallet/v1.0.0/WalletLogic.sol" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/wallet/v1.0.1/WalletLogic.sol" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/test/forkTesting/UniV3LPHelper.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/forkTesting/UniV3LPHelper.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/forkTesting/gelato.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/forkTesting/gelato.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/gelato.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/gelato.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/supa.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/supa.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/utils/SigUtils.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/utils/SigUtils.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/wallet.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/wallet.t.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/walletMigration.t.sol" beforeDir="false" afterPath="$PROJECT_DIR$/test/walletMigration.t.sol" afterDir="false" />
     </list>
     <list id="ae3f2fcf-7289-4c23-b0ad-11e5520c204f" name="Changes by parkeresmay" comment="" />
     <option name="SHOW_DIALOG" value="false" />
@@ -40,23 +60,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;ammon/wallet-static-call&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/ammonwerner/supa/supa-foundry&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;yarn&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/Users/ammonwerner/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "ammon/new-execute-batch-signature",
+    "last_opened_file_path": "/Users/ammonwerner/supa/supa-foundry",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "yarn",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "ts.external.directory.path": "/Users/ammonwerner/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/wallet/v1.0.0" />

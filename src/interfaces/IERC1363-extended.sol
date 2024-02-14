@@ -1,13 +1,13 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {Call} from "../lib/Call.sol";
+import {Execution} from "../lib/Call.sol";
 
 interface IERC1363SpenderExtended {
     function onApprovalReceived(
         address owner,
         uint256 value,
-        Call calldata call
+        Execution calldata call
     ) external returns (bytes4);
 }
 

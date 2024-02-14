@@ -19,9 +19,6 @@ contract TaskCreator is ITaskCreator, AutomateTaskCreator, Ownable, ERC20 {
     using GelatoBytes for bytes;
     using SafeERC20 for IERC20;
 
-//    /// @dev This makes sure we don't override the implementation address on the proxy
-//    address public implementation = address(this);
-
     /// @notice The address of the fee collector
     address public feeCollector;
 

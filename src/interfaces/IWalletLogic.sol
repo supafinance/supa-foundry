@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Execution} from "src/lib/Call.sol";
+import {Execution,ReturnDataLink} from "src/lib/Call.sol";
 
-interface IWallet {
+    struct DynamicExecution {
+        Execution execution;
+        ReturnDataLink[] dynamicData;
+        uint8 operation; // 0 = staticcall, 1 = delegatecall
+    }
+
+interface IWalletLogic {
     event TokensApproved(address sender, uint256 amount, bytes data);
     event TokensReceived(address spender, address sender, uint256 amount, bytes data);
 
@@ -17,4 +23,6 @@ interface IWallet {
     ///   * callData - encoded function name and it's arguments
     ///   * value - the amount of ETH to sent with the call
     function executeBatch(Execution[] memory calls) external payable;
+
+    function executeBatch(DynamicExecution[] memory dynamicCalls) external payable;
 }

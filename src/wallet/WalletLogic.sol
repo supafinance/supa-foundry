@@ -13,10 +13,10 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IVersionManager} from "src/interfaces/IVersionManager.sol";
 import {ITransferReceiver2} from "src/interfaces/ITransferReceiver2.sol";
 import {ISupa} from "src/interfaces/ISupa.sol";
-import {IWallet} from "src/interfaces/IWallet.sol";
+import {IWalletLogic, DynamicExecution} from "src/interfaces/IWalletLogic.sol";
 import {IERC1363SpenderExtended} from "src/interfaces/IERC1363-extended.sol";
 
-import {CallLib, Call, Execution, LinkedCall, ReturnDataLink} from "src/lib/Call.sol";
+import {ExecutionLib, Execution, LinkedExecution, ReturnDataLink} from "src/lib/Call.sol";
 import {NonceMapLib, NonceMap} from "src/lib/NonceMap.sol";
 import {ImmutableVersion} from "src/lib/ImmutableVersion.sol";
 import {BytesLib} from "src/lib/BytesLib.sol";
@@ -34,7 +34,7 @@ contract WalletLogic is
     IERC1271,
     ITransferReceiver2,
     EIP712,
-    IWallet,
+    IWalletLogic,
     IERC1363SpenderExtended
 {
     using Address for address;
@@ -42,19 +42,19 @@ contract WalletLogic is
     using BytesLib for bytes;
 
     bytes private constant EXECUTEBATCH_TYPESTRING =
-    "ExecuteBatch(Call[] calls,uint256 nonce,uint256 deadline)";
+    "ExecuteBatch(Execution[] calls,uint256 nonce,uint256 deadline)";
     bytes private constant TRANSFER_TYPESTRING = "Transfer(address token,uint256 amount)";
     bytes private constant ONTRANSFERRECEIVED2CALL_TYPESTRING =
     "OnTransferReceived2Call(address operator,address from,Transfer[] transfers,Call[] calls,uint256 nonce,uint256 deadline)";
 
     bytes32 private constant EXECUTEBATCH_TYPEHASH =
-    keccak256(abi.encodePacked(EXECUTEBATCH_TYPESTRING, CallLib.CALL_TYPESTRING));
+    keccak256(abi.encodePacked(EXECUTEBATCH_TYPESTRING, ExecutionLib.CALL_TYPESTRING));
     bytes32 private constant TRANSFER_TYPEHASH = keccak256(TRANSFER_TYPESTRING);
     bytes32 private constant ONTRANSFERRECEIVED2CALL_TYPEHASH =
     keccak256(
         abi.encodePacked(
             ONTRANSFERRECEIVED2CALL_TYPESTRING,
-            CallLib.CALL_TYPESTRING,
+            ExecutionLib.CALL_TYPESTRING,
             TRANSFER_TYPESTRING
         )
     );
@@ -63,12 +63,6 @@ contract WalletLogic is
 
     bool internal forwardNFT;
     NonceMap private nonceMap;
-
-    struct DynamicCall {
-        Call call;
-        ReturnDataLink[] dynamicData;
-        uint8 operation; // 0 = call, 1 = delegatecall
-    }
 
     modifier onlyOwner() {
         if (_supa().getWalletOwner(address(this)) != msg.sender) {
@@ -116,31 +110,11 @@ contract WalletLogic is
         }
     }
 
-    /// @inheritdoc IWallet
-    function executeBatch(Call[] calldata calls) external payable onlyOwnerOrOperator {
-        bool saveForwardNFT = forwardNFT;
-        forwardNFT = false;
-        CallLib.executeBatch(calls);
-        forwardNFT = saveForwardNFT;
-
-        if (!_supa().isSolvent(address(this))) {
-            revert Errors.Insolvent();
-        }
-    }
-
-    /// @notice makes a batch of different calls from the name of wallet owner. Eventual state of
-    /// creditAccount and Supa must be solvent, i.e. debt on creditAccount cannot exceed collateral on
-    /// creditAccount and wallet and Supa reserve/debt must be sufficient
-    /// @dev - this goes to supa.executeBatch that would immediately call WalletProxy.executeBatch
-    /// from above of this file
-    /// @param calls {address target, uint256 value, bytes callData}[], where
-    ///   * to - is the address of the contract whose function should be called
-    ///   * callData - encoded function name and it's arguments
-    ///   * value - the amount of ETH to sent with the call
+    /// @inheritdoc IWalletLogic
     function executeBatch(Execution[] calldata calls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
-        CallLib.executeBatch(calls);
+        ExecutionLib.executeBatch(calls);
         forwardNFT = saveForwardNFT;
 
         if (!_supa().isSolvent(address(this))) {
@@ -149,7 +123,7 @@ contract WalletLogic is
     }
 
     function executeSignedBatch(
-        Call[] memory calls,
+        Execution[] memory calls,
         uint256 nonce,
         uint256 deadline,
         bytes calldata signature
@@ -158,7 +132,7 @@ contract WalletLogic is
         nonceMap.validateAndUseNonce(nonce);
         bytes32 digest = _hashTypedDataV4(
             keccak256(
-                abi.encode(EXECUTEBATCH_TYPEHASH, CallLib.hashCallArray(calls), nonce, deadline)
+                abi.encode(EXECUTEBATCH_TYPEHASH, ExecutionLib.hashCallArray(calls), nonce, deadline)
             )
         );
         if (
@@ -245,7 +219,7 @@ contract WalletLogic is
             if (msg.sender != _supa().getWalletOwner(address(this))) {
                 revert Errors.OnlyOwner();
             }
-            Call[] memory calls = abi.decode(data[1:], (Call[]));
+            Execution[] memory calls = abi.decode(data[1:], (Execution[]));
             _supa().executeBatch(calls);
         } else if (data[0] == 0x01) {
             if (data.length != 1) revert Errors.InvalidData();
@@ -258,8 +232,8 @@ contract WalletLogic is
             // execute signed batch
 
             // Verify signature matches
-            (Call[] memory calls, uint256 nonce, uint256 deadline, bytes memory signature) = abi
-                .decode(data[1:], (Call[], uint256, uint256, bytes));
+            (Execution[] memory calls, uint256 nonce, uint256 deadline, bytes memory signature) = abi
+                .decode(data[1:], (Execution[], uint256, uint256, bytes));
 
             if (deadline < block.timestamp) revert Errors.DeadlineExpired();
             nonceMap.validateAndUseNonce(nonce);
@@ -277,7 +251,7 @@ contract WalletLogic is
                         operator,
                         from,
                         keccak256(abi.encodePacked(transferDigests)),
-                        CallLib.hashCallArray(calls),
+                        ExecutionLib.hashCallArray(calls),
                         nonce,
                         deadline
                     )
@@ -301,14 +275,14 @@ contract WalletLogic is
     function onApprovalReceived(
         address sender,
         uint256 amount,
-        Call memory call
+        Execution memory call
     ) external onlySupa returns (bytes4) {
         if (call.callData.length == 0) {
             revert Errors.InvalidData();
         }
         emit TokensApproved(sender, amount, call.callData);
 
-        Call[] memory calls = new Call[](1);
+        Execution[] memory calls = new Execution[](1);
         calls[0] = call;
 
         _supa().executeBatch(calls);
@@ -316,7 +290,7 @@ contract WalletLogic is
         return this.onApprovalReceived.selector;
     }
 
-    function executeBatch(DynamicCall[] memory dynamicCalls) external payable onlyOwnerOrOperator {
+    function executeBatch(DynamicExecution[] memory dynamicCalls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
 
@@ -329,7 +303,7 @@ contract WalletLogic is
         for (uint256 i = 0; i < len;) {
 
             // store the call to execute
-            Call memory call = dynamicCalls[i].call;
+            Execution memory call = dynamicCalls[i].execution;
 
             // loop through the offsets (the number of return values to be passed in the next call)
             uint256 linksLength = dynamicCalls[i].dynamicData.length;
@@ -372,7 +346,7 @@ contract WalletLogic is
             }
 
             // execute the call and store the return data
-            bytes memory returnData = dynamicCalls[i].operation == 0 ? call.to.functionStaticCall(call.callData) : call.to.functionCallWithValue(call.callData, call.value);
+            bytes memory returnData = dynamicCalls[i].operation == 0 ? call.target.functionStaticCall(call.callData) : call.target.functionCallWithValue(call.callData, call.value);
             // add the return data to the array
             returnDataArray[i] = returnData;
 
@@ -392,12 +366,12 @@ contract WalletLogic is
     /// @notice Execute a batch of calls with linked return values.
     /// @dev Deprecated, use executeBatchCalls instead.
     /// @param linkedCalls The calls to execute.
-    function executeBatchLink(LinkedCall[] memory linkedCalls) external payable onlyOwnerOrOperator {
+    function executeBatchLink(LinkedExecution[] memory linkedCalls) external payable onlyOwnerOrOperator {
         bool saveForwardNFT = forwardNFT;
         forwardNFT = false;
 
         // get the first call
-        Call memory call;
+        Execution memory call;
 
         // create a bytes array with length equal to the number of calls
         bytes[] memory returnDataArray = new bytes[](linkedCalls.length);
@@ -407,7 +381,7 @@ contract WalletLogic is
         for (uint256 i = 0; i < l;) {
 
             // get the next call to execute
-            call = linkedCalls[i].call;
+            call = linkedCalls[i].execution;
 
             // loop through the offsets (the number of return values to be passed in the next call)
             uint256 linksLength = linkedCalls[i].links.length;
@@ -453,7 +427,7 @@ contract WalletLogic is
             }
 
             // execute the call and store the return data
-            bytes memory returnData = CallLib.execute(call);
+            bytes memory returnData = ExecutionLib.execute(call);
             // add the return data to the array
             returnDataArray[i] = returnData;
 

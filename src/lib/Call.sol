@@ -48,15 +48,15 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /// @notice Specify a batch of calls to be executed in sequence,
 /// @notice with the return values of some calls being passed as arguments to later calls.
-    struct LinkedCall {
-        Call call;
+    struct LinkedExecution {
+        Execution execution;
         ReturnDataLink[] links;
     }
 
-library CallLib {
+library ExecutionLib {
     using Address for address;
 
-    bytes internal constant CALL_TYPESTRING = "Call(address to,bytes callData,uint256 value)";
+    bytes internal constant CALL_TYPESTRING = "Execution(address target,uint256 value,bytes callData)";
     bytes32 constant CALL_TYPEHASH = keccak256(CALL_TYPESTRING);
     bytes internal constant CALLWITHOUTVALUE_TYPESTRING =
     "CallWithoutValue(address to,bytes callData)";
@@ -89,16 +89,16 @@ library CallLib {
         return call.target.functionCallWithValue(call.callData, call.value);
     }
 
-    /**
-     * @notice Execute a batch of calls.
-     *
-     * @param calls The calls to execute.
-     */
-    function executeBatch(Call[] memory calls) internal {
-        for (uint256 i = 0; i < calls.length; i++) {
-            execute(calls[i]);
-        }
-    }
+//    /**
+//     * @notice Execute a batch of calls.
+//     *
+//     * @param calls The calls to execute.
+//     */
+//    function executeBatch(Call[] memory calls) internal {
+//        for (uint256 i = 0; i < calls.length; i++) {
+//            execute(calls[i]);
+//        }
+//    }
 
     /**
      * @notice Execute a batch of calls.
@@ -122,11 +122,11 @@ library CallLib {
         }
     }
 
-    function hashCall(Call memory call) internal pure returns (bytes32) {
-        return keccak256(abi.encode(CALL_TYPEHASH, call.to, keccak256(call.callData), call.value));
+    function hashCall(Execution memory call) internal pure returns (bytes32) {
+        return keccak256(abi.encode(CALL_TYPEHASH, call.target, keccak256(call.callData), call.value));
     }
 
-    function hashCallArray(Call[] memory calls) internal pure returns (bytes32) {
+    function hashCallArray(Execution[] memory calls) internal pure returns (bytes32) {
         bytes32[] memory hashes = new bytes32[](calls.length);
         for (uint256 i = 0; i < calls.length; i++) {
             hashes[i] = hashCall(calls[i]);
